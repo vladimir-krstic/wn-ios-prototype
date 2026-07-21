@@ -40,3 +40,10 @@ Records are append-only. Supersede; do not rewrite history.
 - Authority: explicit user direction
 - Decision: Normal launch never presents a stored-profile chooser. Onboarding contains Welcome, Sign In, the Sign In QR Scanner, and Sign Up only. Profile switching, adding, and removal belong to `settings.profiles`; **Add Profile** may reuse Welcome as a dismissible Settings flow.
 - Supersedes: the Foundation v1 `onboarding.profile-selection` catalog entry and scenario.
+
+## WN-PROTOTYPE-0007 — Neutral Claude review handoff
+
+- Date: 2026-07-21
+- Status: approved
+- Authority: explicit user direction
+- Decision: Before each independent Claude review, Codex supplies the user with a neutral copyable prompt. The prompt must invite first-principles review without predicting a pass or seeding suspected findings, and must explicitly cover Apple-native components, hierarchy, spacing, typography, motion, accessibility, and adaptation when UI is in scope. Claude remains read-only and returns concrete proposed fixes for Codex to apply or disposition; material revisions require re-review.

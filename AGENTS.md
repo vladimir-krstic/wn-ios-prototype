@@ -31,6 +31,7 @@ Build a production-polished, deterministic iPhone prototype for everyday people 
 - Use explicit `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` for every build and test.
 - Preserve unrelated user changes. Do not publish, push, or configure a Git remote unless explicitly requested.
 - Record every material deviation in `docs/decisions.md` and obtain user plus independent approval before implementation.
+- Before every independent Claude review, give the user a neutral, copyable prompt that names the review artifacts and authority without asserting that the work is correct or suggesting expected findings. Claude reviews read-only and returns material findings with concrete proposed fixes; Codex applies or dispositions them after the user returns the response. Re-review any materially changed artifact.
 
 ## Completion
 

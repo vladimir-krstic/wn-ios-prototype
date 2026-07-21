@@ -14,6 +14,6 @@ description: Plan, contract, implement, test, or review White Noise native iPhon
 7. Keep product UI calm and human. Keep `ScreenID`, `ScenarioID`, fixture controls, and technical diagnostics inside team-only surfaces.
 8. Use fixed IDs, clocks, ordering, delays, and outcomes. Add no networking, authentication, cryptography, real persistence, or third-party runtime dependency.
 9. Implement only the approved contract. Add previews, unit/UI coverage, accessibility checks, sanitized evidence, and review disposition.
-10. Run `./scripts/validate-foundation.sh` and Xcode 27 tests. A non-authoring agent must review material changes before user acceptance.
+10. Run `./scripts/validate-foundation.sh` and Xcode 27 tests. For each independent Claude review, give the user a neutral copyable prompt that does not predict a pass or seed expected findings. Keep Claude read-only; have it return evidence-backed findings and concrete fixes for Codex to apply or disposition. Re-review material revisions before user acceptance.
 
 Stop and request direction when product scope, navigation, data-loss consequences, safety language, custom UI, or a visual decision is unresolved.
