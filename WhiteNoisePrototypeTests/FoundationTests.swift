@@ -45,4 +45,30 @@ struct FoundationTests {
         #expect(store.state.chats.first?.unreadCount == 1)
         #expect(store.state.scenarioID == .chatsPopulated)
     }
+
+    @Test("Onboarding fixtures classify only at the fixed completion threshold")
+    func onboardingCredentialFixtures() {
+        let fixtures = FixtureUniverse.Onboarding.self
+
+        #expect(fixtures.acceptedCredential.count == fixtures.credentialCompletionLength)
+        #expect(fixtures.existingProfileCredential.count == fixtures.credentialCompletionLength)
+        #expect(fixtures.invalidCompleteCredential.count == fixtures.credentialCompletionLength)
+        #expect(fixtures.classifyCredential(String(fixtures.acceptedCredential.dropLast())) == .neutral)
+        #expect(fixtures.classifyCredential(fixtures.acceptedCredential) == .accepted(profileID: "profile.maya"))
+        #expect(fixtures.classifyCredential(fixtures.existingProfileCredential) == .existingProfile(profileID: "profile.maya"))
+        #expect(fixtures.classifyCredential(fixtures.invalidCompleteCredential) == .invalid)
+        #expect(fixtures.classifyCredential(fixtures.acceptedCredential + "X") == .invalid)
+    }
+
+    @Test("Onboarding QR and empty-name Profile fixtures stay deterministic")
+    func onboardingOutcomeFixtures() {
+        let fixtures = FixtureUniverse.Onboarding.self
+
+        #expect(fixtures.classifyQRCodePayload(fixtures.acceptedQRCodePayload) == .accepted(profileID: "profile.maya"))
+        #expect(fixtures.classifyQRCodePayload(fixtures.invalidQRCodePayload) == .invalid)
+        #expect(fixtures.defaultSignUpPerson.name == "Quiet Pine")
+        #expect(fixtures.defaultSignUpInitials == "QP")
+        #expect(fixtures.defaultSignUpProfile.id == OnboardingFixtureID.profileQuietPine.rawValue)
+        #expect(fixtures.defaultSignUpProfile.personID == fixtures.defaultSignUpPerson.id)
+    }
 }

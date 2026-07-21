@@ -9,11 +9,14 @@ enum ScenarioID: String, CaseIterable, Codable, Sendable {
     case onboardingSignInOffline = "onboarding.sign-in.offline"
     case onboardingSignInAccessibilityStress = "onboarding.sign-in.accessibility-stress"
     case onboardingQRReady = "onboarding.qr.ready"
+    case onboardingQRValidCode = "onboarding.qr.valid-code"
     case onboardingQRPermissionDenied = "onboarding.qr.permission-denied"
     case onboardingQRPermissionRestricted = "onboarding.qr.permission-restricted"
+    case onboardingQRNoCamera = "onboarding.qr.no-camera"
     case onboardingQRUnavailable = "onboarding.qr.unavailable"
     case onboardingQRCameraError = "onboarding.qr.camera-error"
     case onboardingQRInvalidCode = "onboarding.qr.invalid-code"
+    case onboardingQRAccessibilityStress = "onboarding.qr.accessibility-stress"
     case onboardingSignUpEmpty = "onboarding.sign-up.empty"
     case onboardingSignUpPopulated = "onboarding.sign-up.populated"
     case onboardingSignUpLoading = "onboarding.sign-up.loading"
@@ -64,8 +67,9 @@ enum ScenarioID: String, CaseIterable, Codable, Sendable {
              .onboardingSignInExistingProfile, .onboardingSignInLoading, .onboardingSignInError,
              .onboardingSignInOffline, .onboardingSignInAccessibilityStress:
             .onboardingSignIn
-        case .onboardingQRReady, .onboardingQRPermissionDenied, .onboardingQRPermissionRestricted,
-             .onboardingQRUnavailable, .onboardingQRCameraError, .onboardingQRInvalidCode:
+        case .onboardingQRReady, .onboardingQRValidCode, .onboardingQRPermissionDenied,
+             .onboardingQRPermissionRestricted, .onboardingQRNoCamera, .onboardingQRUnavailable,
+             .onboardingQRCameraError, .onboardingQRInvalidCode, .onboardingQRAccessibilityStress:
             .onboardingQRScanner
         case .onboardingSignUpEmpty, .onboardingSignUpPopulated, .onboardingSignUpLoading,
              .onboardingSignUpError, .onboardingSignUpPartialError,

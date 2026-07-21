@@ -47,3 +47,10 @@ Records are append-only. Supersede; do not rewrite history.
 - Status: approved
 - Authority: explicit user direction
 - Decision: Before each independent Claude review, Codex supplies the user with a neutral copyable prompt. The prompt must invite first-principles review without predicting a pass or seeding suspected findings, and must explicitly cover Apple-native components, hierarchy, spacing, typography, motion, accessibility, and adaptation when UI is in scope. Claude remains read-only and returns concrete proposed fixes for Codex to apply or disposition; material revisions require re-review.
+
+## WN-PROTOTYPE-0008 — Onboarding fixture identities
+
+- Date: 2026-07-21
+- Status: approved
+- Authority: explicit user direction
+- Decision: A successful fictional Sign In activates Maya Chen (`profile.maya`). Sign Up with an empty Name creates the deterministic fictional Profile **Quiet Pine**, with initials **QP**. These fixture identities are team-facing test data and never expose credential values or fixture identifiers in product UI or accessibility output.

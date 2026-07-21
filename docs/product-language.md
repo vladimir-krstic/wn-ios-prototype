@@ -17,7 +17,7 @@ Write calmly, directly, and with light warmth. Lead with the person's task and c
 
 - Buttons name their result: **Sign In**, **Retry**, **Remove Profile**, **Open Settings**, **Cancel**.
 - Empty states say what is absent and offer the most useful next action.
-- Progress uses the action: **Signing In…**, **Creating Profile…**.
+- Progress uses the action: **Signing In…**, **Signing Up…**. Use **Creating Profile…** only when the initiating action is explicitly **Create Profile**.
 - Failures begin with what could not be completed, add a useful reason when known, then recovery. Prefer **Couldn't…** over **Failed to…**.
 - Destructive copy names exactly what is removed, what remains, recovery, and device-local consequences once.
 - Permission copy explains the feature benefit immediately before the system prompt. Denial explains what is unavailable and offers **Open Settings** when applicable.

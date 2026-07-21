@@ -13,7 +13,7 @@ Show the approved adaptive White Noise logomark without a headline, slogan, body
 
 ## Entry, exit, and navigation
 
-- Entry: normal unconfigured launch; scenario `welcome-default`; returning from either child destination.
+- Entry: normal unconfigured launch; scenario `onboarding.welcome.default`; returning from either child destination.
 - **Login** pushes `onboarding.sign-in` on the product `NavigationStack`.
 - **Sign Up** pushes `onboarding.sign-up` on the same stack.
 - The Welcome destination is the root and has no Back control.
@@ -24,7 +24,7 @@ Show the approved adaptive White Noise logomark without a headline, slogan, body
 
 - One root `NavigationStack` owned by the onboarding flow.
 - A layout built from native SwiftUI containers and safe-area-aware spacing.
-- The approved adaptive logomark is the only custom visual asset. It keeps its aspect ratio, remains visually prominent without crowding the actions, and never becomes a tappable control.
+- The approved adaptive logomark is the only custom visual asset. It keeps its aspect ratio, is roughly two-thirds of the compact-screen content width, scales down when needed to protect the actions and safe areas, and never becomes a tappable control.
 - **Login** and **Sign Up** are full-width native buttons. **Login** uses the system bordered secondary treatment; **Sign Up** uses the system prominent primary treatment. Their appearance follows iOS 27 and the approved adaptive accent; custom Liquid Glass treatment is not authorized.
 - Keep both actions visible without scrolling on supported iPhones at default text sizes. At accessibility text sizes, content may reflow or scroll rather than clip or overlap.
 
@@ -50,7 +50,7 @@ The screen has one deterministic state. It does not own loading, empty, offline,
 
 - Light and Dark appearance use the approved corresponding logomark treatment and semantic system background/foreground colors.
 - Buttons use semantic text styles and Dynamic Type. No visible text truncates at supported sizes.
-- VoiceOver order is **Login**, then **Sign Up**. Each button exposes its visible name and Button trait; do not add redundant hints such as “button.”
+- VoiceOver order is **White Noise** (image), **Login**, then **Sign Up**. Each button exposes its visible name and Button trait; do not add redundant hints such as “button.”
 - The logomark exposes the approved VoiceOver label **White Noise** and no Button trait or hint.
 - Voice Control can address both controls by their visible names. Each action has at least a 44-point practical hit target.
 - Meaning and hierarchy do not depend on color. Increased Contrast and Bold Text preserve legibility.
@@ -64,7 +64,7 @@ None. Welcome must not request notifications, photos, camera, microphone, files,
 
 ## Required scenarios and previews
 
-- `welcome-default` is the canonical launch scenario.
+- `onboarding.welcome.default` is the canonical launch scenario.
 - Compile previews for default Light, Dark, accessibility Dynamic Type, and localization/RTL stress.
 - The catalog-wide error and long-content preview requirements are satisfied here by documenting them as not applicable: this screen has no fallible operation or authored long content. Accessibility-size and localization expansion previews remain mandatory.
 
@@ -109,3 +109,9 @@ These comparisons answer focused layout and hierarchy questions only. They do no
 - Asset blocker: retrieve the two approved user-supplied vectors above, bundle them without redrawing, and record source URLs, retrieval date, transformation, and intended use in the asset manifest before implementation.
 - After user approval: obtain independent non-authoring contract review and disposition every finding.
 - Do not implement until both approvals are recorded and the asset blocker is resolved.
+
+## Review
+
+- 2026-07-21 Claude contract review: response preserved in `docs/reviews/onboarding-v1-claude-raw.md`; findings and dispositions are tracked in `docs/reviews/onboarding-v1-contract-review.md`.
+- CLI version and resolved model were not included in the user-supplied response. The requested review configuration was Fable at medium effort.
+- Accepted findings are corrected. Independent approval remains pending until the materially revised onboarding packet is re-reviewed.

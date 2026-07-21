@@ -40,7 +40,7 @@ Let a person set up a new Profile with an optional avatar, name, and short About
 | Name label | **Name** |
 | About label | **About (Optional)** |
 | Primary action | **Sign Up** |
-| Progress | **Creating Profile…** |
+| Progress | **Signing Up…** |
 | Creation failure | **Couldn't create your profile. Try again.** |
 | Creation recovery | **Retry**, **Back** |
 | Partial-save failure | **Your profile was created, but some details couldn't be saved.** |
@@ -54,23 +54,23 @@ No product copy mentions uploads as a completed real network operation, fixture 
 
 | State | Behavior and recovery |
 |---|---|
-| `onboarding.sign-up.empty` | Initial monogram, empty Name and About, and enabled Sign Up. Empty Name is allowed; the success fixture receives its documented deterministic default name. |
+| `onboarding.sign-up.empty` | Initial **QP** monogram, empty Name and About, and enabled Sign Up. Empty Name is allowed; success creates `profile.quiet-pine` with display name **Quiet Pine** exactly once. |
 | `onboarding.sign-up.populated` | Fixed fictional Name and About plus a bundled local selected-avatar preview. Change and Remove work without Photos access in previews/tests. |
 | Live photo selection | PhotosPicker returns at most one image. Load and orient off the main actor, strip source metadata when materializing a temporary derivative, replace the previous selection atomically, and retain it only for this in-memory draft. |
 | Picker cancellation | Preserve the prior avatar selection and draft without feedback; cancellation is not an error. |
 | `onboarding.sign-up.photo-unavailable` | Preserve Name/About and the previous avatar, show the appropriate photo error adjacent to the avatar action, and keep selection available. No custom Photos-permission prompt or Settings route appears. |
 | `onboarding.sign-up.loading` | Keep layout stable; disable editing, picker actions, repeat submission, and unsafe Back; show progress for the fixed simulated delay. |
-| `onboarding.sign-up.error` | Preserve the complete draft and selected photo. Show creation failure with **Retry** and **Back**. Retry cannot duplicate a Profile. |
-| `onboarding.sign-up.partial-error` | The Profile fixture exists exactly once. Preserve unsaved details, show partial-save copy, and offer **Retry** or **Continue**. |
-| Success | Enter Chats once with no redundant success alert. The created Profile exists only in current process memory. |
+| `onboarding.sign-up.error` | Preserve the complete draft and selected photo. Show the creation-failure copy inline adjacent to the primary-action region with **Retry**. **Back** is the standard navigation-bar action, not a second in-content button. Retry cannot duplicate a Profile. |
+| `onboarding.sign-up.partial-error` | `profile.quiet-pine` exists exactly once when Name was empty. Preserve unsaved details, show the partial-save copy inline adjacent to **Retry** and **Continue**. |
+| Success | Enter Chats once with no redundant success alert. Empty Name creates **Quiet Pine**; a nonempty Name replaces that default in the created Profile. The created Profile exists only in current process memory. |
 | `onboarding.sign-up.accessibility-stress` | Long fictional Name/About, selected avatar, largest accessibility Dynamic Type, Bold Text, Increased Contrast, Reduce Motion, localization expansion, and RTL. |
 
 Removing or replacing an avatar deletes any prior temporary derivative. Back, reset, dismissal, success, and process end delete remaining temporary media according to the capability lifecycle.
 
 ## Accessibility and adaptation
 
-- VoiceOver order: title context, avatar preview, avatar disclosure, avatar actions, Name, About, primary or recovery actions.
-- The initial preview is labeled **Profile avatar, initials [initials]**; a selected fictional photo is **Profile avatar, selected photo**. Do not announce temporary filenames or metadata.
+- VoiceOver order: title context, avatar preview, avatar actions, avatar disclosure, Name, About, primary or recovery actions.
+- The initial preview is labeled **Profile avatar, initials QP** while Name is empty, then updates to the entered Name's initials; a selected fictional photo is **Profile avatar, selected photo**. Do not announce temporary filenames or metadata.
 - Avatar actions have visible names and at least 44-point practical targets. Voice Control can address every action by its visible name.
 - Dynamic Type can move the bottom action into the scrolling Form; the avatar, disclosure, fields, errors, and action never overlap or clip.
 - Name advances focus to About. About supports multiline editing and keyboard dismissal without losing the draft. Hardware-keyboard focus follows reading order.
@@ -97,7 +97,7 @@ Removing or replacing an avatar deletes any prior temporary derivative. Back, re
 
 ### White Noise direction
 
-- Approved `wn-ios-agile` issues #831 and #832 supply avatar consequence language, avatar actions, Name/About terminology, progress, partial-save recovery, and the no-duplicate rule. Real upload and profile publication are explicitly replaced by simulated capability results.
+- Approved `wn-ios-agile` issues #831 and #832 supply avatar consequence language, avatar actions, Name/About terminology, **Signing Up…** progress, partial-save recovery, and the no-duplicate rule. Real upload and profile publication are explicitly replaced by simulated capability results.
 - [White Noise product language](../product-language.md) fixes **Sign Up**, **Profile**, **About**, progress, and failure language.
 
 ### Mobbin comparisons
@@ -121,3 +121,9 @@ Removing or replacing an avatar deletes any prior temporary derivative. Back, re
 - User decision requested: approve or revise the Form composition, optional fields, public-avatar disclosure, PhotosPicker-only selection, exact copy, partial-save recovery, and success handoff.
 - After user approval: obtain independent non-authoring contract review and disposition every finding.
 - Do not register or create the screen implementation before both approvals.
+
+## Review
+
+- 2026-07-21 Claude contract review: response preserved in `docs/reviews/onboarding-v1-claude-raw.md`; findings and dispositions are tracked in `docs/reviews/onboarding-v1-contract-review.md`.
+- CLI version and resolved model were not included in the user-supplied response. The requested review configuration was Fable at medium effort.
+- Accepted findings are corrected. Independent approval remains pending until the materially revised onboarding packet is re-reviewed.

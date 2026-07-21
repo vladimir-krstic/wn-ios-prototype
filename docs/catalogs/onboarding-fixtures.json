@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "credentialCompletionLength": 32,
+  "fixtures": [
+    {
+      "id": "credential.maya.accepted",
+      "kind": "credential",
+      "value": "WNPROTO-ACCEPTED-MAYA-0000000001",
+      "outcome": "accepted",
+      "profileID": "profile.maya"
+    },
+    {
+      "id": "credential.maya.existing",
+      "kind": "credential",
+      "value": "WNPROTO-EXISTING-MAYA-0000000001",
+      "outcome": "existingProfile",
+      "profileID": "profile.maya"
+    },
+    {
+      "id": "credential.invalid.complete",
+      "kind": "credential",
+      "value": "WNPROTO-INVALID-INPUT-0000000001",
+      "outcome": "invalid"
+    },
+    {
+      "id": "qr.private-key.maya.accepted",
+      "kind": "qrPayload",
+      "value": "wnproto://private-key/credential.maya.accepted",
+      "outcome": "accepted",
+      "credentialFixtureID": "credential.maya.accepted"
+    },
+    {
+      "id": "qr.private-key.unknown",
+      "kind": "qrPayload",
+      "value": "wnproto://private-key/credential.unknown",
+      "outcome": "invalid"
+    },
+    {
+      "id": "profile.quiet-pine",
+      "kind": "createdProfile",
+      "personID": "person.quiet-pine",
+      "displayName": "Quiet Pine",
+      "initials": "QP",
+      "about": "",
+      "avatarAssetName": null,
+      "outcome": "created"
+    }
+  ]
+}

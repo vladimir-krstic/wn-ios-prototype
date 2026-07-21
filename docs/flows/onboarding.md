@@ -51,7 +51,7 @@ Welcome
 
 - Welcome: default Light/Dark and adaptation previews.
 - Sign In: empty, populated, invalid, existing Profile, loading, general error, offline, and accessibility stress.
-- QR Scanner: ready/live, denied, restricted, unsupported/unavailable, camera error, invalid code, and deterministic valid-code return.
+- QR Scanner: ready/live, deterministic valid-code return, denied, restricted, no camera, unsupported/unavailable, camera error, invalid code, and accessibility stress.
 - Sign Up: empty, populated/avatar selected, loading, creation error, partial-save recovery, unavailable photo, and accessibility stress.
 - Success handoff is verified once `chats.list` reaches the required approval state; onboarding implementation cannot weaken the Chats gate by creating a placeholder product screen.
 

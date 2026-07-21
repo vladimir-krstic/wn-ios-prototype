@@ -37,6 +37,7 @@ Let a person populate Sign In by scanning a fictional prototype QR code, using A
 | Denied | **Camera access is off. Allow it in Settings to scan a QR code.** |
 | Denied action | **Open Settings** |
 | Restricted | **Camera access is restricted on this device. Enter your private key instead.** |
+| No camera | **This device doesn't have a camera available. Enter your private key instead.** |
 | Unsupported/unavailable | **QR scanning isn't available on this device. Enter your private key instead.** |
 | Camera failure | **Couldn't start the camera. Try again or enter your private key instead.** |
 | Recovery actions | **Retry**, **Enter Private Key** |
@@ -51,12 +52,14 @@ The raw QR payload, fixture ID, payload scheme, and any camera diagnostic remain
 | `onboarding.qr.ready` | Check `isSupported` and `isAvailable`, request camera access contextually when needed, then start native scanning. A fictional valid code returns once to Sign In. |
 | `onboarding.qr.permission-denied` | Do not show a camera preview. Show denied copy with **Open Settings** and **Enter Private Key**. Returning from Settings rechecks capability state. |
 | `onboarding.qr.permission-restricted` | Show restricted copy and **Enter Private Key**; do not offer Settings as false recovery. |
-| `onboarding.qr.unavailable` | Cover unsupported hardware, no camera, and scanner unavailable with the approved unavailable copy and manual-entry route. Team Diagnostics may retain the precise fixture reason. |
+| `onboarding.qr.no-camera` | Show the no-camera copy and **Enter Private Key**. This simulator-only recovery state does not request permission or offer Settings. |
+| `onboarding.qr.unavailable` | Cover unsupported hardware and scanner unavailability with the unavailable copy and manual-entry route. Team Diagnostics may retain the precise fixture reason. |
 | `onboarding.qr.camera-error` | Show camera-failure copy with **Retry** and **Enter Private Key**. Retry uses a fixed simulated outcome and cannot start duplicate scanner sessions. |
-| `onboarding.qr.invalid-code` | Keep scanning, show inline material-backed error, and throttle repeated visual, VoiceOver, and error haptic feedback. Never display the decoded payload. |
-| Simulated valid result | A test-only capability action emits a cataloged fixture, produces one selection haptic, announces success, dismisses once, and populates Sign In without automatic submission. |
+| `onboarding.qr.invalid-code` | Fixture `qr.private-key.unknown` keeps scanning, shows inline material-backed error, and throttles repeated visual, VoiceOver, and error haptic feedback. Never display the decoded payload. |
+| `onboarding.qr.valid-code` | After a fixed simulated delay, a test-only capability action emits `qr.private-key.maya.accepted`, resolves `credential.maya.accepted`, produces one selection haptic, announces success, dismisses once, and populates Sign In without automatic submission. |
+| `onboarding.qr.accessibility-stress` | Render the simulated camera-error recovery at the largest accessibility Dynamic Type size with Bold Text, Increased Contrast, localization expansion, RTL, and Reduce Motion enabled. All guidance, recovery copy, and actions remain available without obscuring the simulated scanner surface. |
 
-Only payloads matching `wnproto://private-key/<fixture-id>` and resolving to an approved fictional fixture are valid. Raw `nsec` values, profile QR codes, URLs, arbitrary text, and unknown fixture IDs are invalid.
+Only the documented `qr.private-key.maya.accepted` payload, `wnproto://private-key/credential.maya.accepted`, is valid in Onboarding v1. Raw `nsec` values, profile QR codes, URLs, arbitrary text, malformed `wnproto` payloads, and unknown fixture IDs such as `qr.private-key.unknown` are invalid.
 
 ## Accessibility and adaptation
 
@@ -101,7 +104,7 @@ Only payloads matching `wnproto://private-key/<fixture-id>` and resolving to an 
 3. No real credential or QR payload is rendered, announced, logged, diagnosed, persisted, or retained.
 4. A valid result returns to Sign In exactly once, restores focus, populates only a masked fictional state, and never submits automatically.
 5. No custom reticle, scanner highlight, capture control, or decorative scanner animation is introduced.
-6. Default/live, denied, restricted, unavailable, camera-error, invalid-code, Dark, large-text, localization, and RTL previews or simulated representations compile.
+6. Default/live, valid-code, denied, restricted, no-camera, unavailable, camera-error, invalid-code, Dark, accessibility-stress, localization, and RTL previews or simulated representations compile.
 7. Unit tests cover payload allowlisting, unknown payload rejection, throttling, lifecycle idempotence, capability mapping, routes, and reset. UI tests cover every simulated state without camera dependence.
 8. Accessibility Inspector, VoiceOver, Voice Control, contrast, target size, and physical-device camera/haptic checks pass.
 
@@ -110,3 +113,9 @@ Only payloads matching `wnproto://private-key/<fixture-id>` and resolving to an 
 - User decision requested: approve or revise VisionKit-native scanning, exact copy, fictional `wnproto` allowlist, haptics, and recovery behavior.
 - After user approval: obtain independent non-authoring contract review and disposition every finding.
 - Do not register or create the screen implementation before both approvals.
+
+## Review
+
+- 2026-07-21 Claude contract review: response preserved in `docs/reviews/onboarding-v1-claude-raw.md`; findings and dispositions are tracked in `docs/reviews/onboarding-v1-contract-review.md`.
+- CLI version and resolved model were not included in the user-supplied response. The requested review configuration was Fable at medium effort.
+- Accepted findings are corrected. Independent approval remains pending until the materially revised onboarding packet is re-reviewed.

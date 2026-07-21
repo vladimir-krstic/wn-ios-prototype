@@ -1,6 +1,58 @@
 import Foundation
 
 enum FixtureUniverse {
+    enum CredentialClassification: Equatable, Sendable {
+        case neutral
+        case accepted(profileID: Profile.ID)
+        case existingProfile(profileID: Profile.ID)
+        case invalid
+    }
+
+    enum Onboarding {
+        static let credentialCompletionLength = 32
+        static let acceptedCredential = "WNPROTO-ACCEPTED-MAYA-0000000001"
+        static let existingProfileCredential = "WNPROTO-EXISTING-MAYA-0000000001"
+        static let invalidCompleteCredential = "WNPROTO-INVALID-INPUT-0000000001"
+
+        static let acceptedQRCodePayload = "wnproto://private-key/credential.maya.accepted"
+        static let invalidQRCodePayload = "wnproto://private-key/credential.unknown"
+
+        static let acceptedProfileID = "profile.maya"
+        static let defaultSignUpInitials = "QP"
+        static let defaultSignUpPerson = Person(
+            id: "person.quiet-pine",
+            name: "Quiet Pine",
+            about: "",
+            avatarAssetName: nil
+        )
+        static let defaultSignUpProfile = Profile(
+            id: OnboardingFixtureID.profileQuietPine.rawValue,
+            personID: defaultSignUpPerson.id,
+            isActive: true
+        )
+
+        static func classifyCredential(_ value: String) -> CredentialClassification {
+            guard value.count >= credentialCompletionLength else {
+                return .neutral
+            }
+
+            switch value {
+            case acceptedCredential:
+                return .accepted(profileID: acceptedProfileID)
+            case existingProfileCredential:
+                return .existingProfile(profileID: acceptedProfileID)
+            default:
+                return .invalid
+            }
+        }
+
+        static func classifyQRCodePayload(_ value: String) -> CredentialClassification {
+            value == acceptedQRCodePayload
+                ? .accepted(profileID: acceptedProfileID)
+                : .invalid
+        }
+    }
+
     static let fixedClock = Date(timeIntervalSince1970: 1_781_808_120)
 
     static let people: [Person] = [

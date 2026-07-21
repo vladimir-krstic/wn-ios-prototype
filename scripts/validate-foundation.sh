@@ -24,8 +24,10 @@ def load_json(path: pathlib.Path):
 
 screens_path = root / "docs/catalogs/screens.json"
 scenarios_path = root / "docs/catalogs/scenarios.json"
+onboarding_fixtures_path = root / "docs/catalogs/onboarding-fixtures.json"
 screens_data = load_json(screens_path)
 scenarios_data = load_json(scenarios_path)
+onboarding_fixtures_data = load_json(onboarding_fixtures_path)
 
 allowed = screens_data.get("allowedStatuses", [])
 screens = screens_data.get("screens", [])
@@ -103,6 +105,88 @@ if swift_screens != set(screen_ids):
 if swift_scenarios != set(scenario_ids):
     errors.append(f"ScenarioID Swift/catalog mismatch; swift-only={sorted(swift_scenarios-set(scenario_ids))}, catalog-only={sorted(set(scenario_ids)-swift_scenarios)}")
 
+onboarding_fixture_items = onboarding_fixtures_data.get("fixtures", [])
+onboarding_fixture_ids = [item.get("id") for item in onboarding_fixture_items]
+if len(onboarding_fixture_ids) != len(set(onboarding_fixture_ids)):
+    errors.append("duplicate FixtureID in onboarding fixture catalog")
+swift_onboarding_fixtures = swift_raw_values(root / "WhiteNoisePrototype/Foundation/OnboardingFixtureID.swift")
+if swift_onboarding_fixtures != set(onboarding_fixture_ids):
+    errors.append(
+        "OnboardingFixtureID Swift/catalog mismatch; "
+        f"swift-only={sorted(swift_onboarding_fixtures-set(onboarding_fixture_ids))}, "
+        f"catalog-only={sorted(set(onboarding_fixture_ids)-swift_onboarding_fixtures)}"
+    )
+
+credential_completion_length = onboarding_fixtures_data.get("credentialCompletionLength")
+credential_items = [item for item in onboarding_fixture_items if item.get("kind") == "credential"]
+for item in credential_items:
+    value = item.get("value")
+    if not isinstance(value, str) or len(value) != credential_completion_length:
+        errors.append(
+            f"{item.get('id')}: credential value must contain exactly "
+            f"{credential_completion_length} characters"
+        )
+
+unknown_scenario_fixtures = sorted(
+    {
+        item.get("fixture")
+        for item in scenario_items
+        if item.get("fixture") is not None
+    } - set(onboarding_fixture_ids)
+)
+if unknown_scenario_fixtures:
+    errors.append(f"scenarios reference unknown onboarding fixtures: {unknown_scenario_fixtures}")
+
+onboarding_fixture_by_id = {item.get("id"): item for item in onboarding_fixture_items}
+fixture_universe_text = (root / "WhiteNoisePrototype/Foundation/FixtureUniverse.swift").read_text()
+
+def swift_static_string(name: str):
+    match = re.search(rf'static let {re.escape(name)} = "([^"]*)"', fixture_universe_text)
+    return match.group(1) if match else None
+
+def expect_swift_fixture_value(fixture_id: str, swift_name: str):
+    expected = onboarding_fixture_by_id.get(fixture_id, {}).get("value")
+    actual = swift_static_string(swift_name)
+    if actual != expected:
+        errors.append(
+            f"{fixture_id}: Swift/catalog value mismatch; Swift={actual!r}, catalog={expected!r}"
+        )
+
+for fixture_id, swift_name in [
+    ("credential.maya.accepted", "acceptedCredential"),
+    ("credential.maya.existing", "existingProfileCredential"),
+    ("credential.invalid.complete", "invalidCompleteCredential"),
+    ("qr.private-key.maya.accepted", "acceptedQRCodePayload"),
+    ("qr.private-key.unknown", "invalidQRCodePayload"),
+]:
+    expect_swift_fixture_value(fixture_id, swift_name)
+
+swift_completion_length_match = re.search(
+    r'static let credentialCompletionLength = (\d+)',
+    fixture_universe_text,
+)
+swift_completion_length = int(swift_completion_length_match.group(1)) if swift_completion_length_match else None
+if swift_completion_length != credential_completion_length:
+    errors.append(
+        "onboarding credential completion length mismatch; "
+        f"Swift={swift_completion_length}, catalog={credential_completion_length}"
+    )
+
+quiet_pine = onboarding_fixture_by_id.get("profile.quiet-pine", {})
+quiet_pine_person_match = re.search(
+    r'static let defaultSignUpPerson = Person\(\s*id: "([^"]+)",\s*name: "([^"]+)"',
+    fixture_universe_text,
+    re.DOTALL,
+)
+swift_quiet_pine_person_id = quiet_pine_person_match.group(1) if quiet_pine_person_match else None
+swift_quiet_pine_name = quiet_pine_person_match.group(2) if quiet_pine_person_match else None
+if swift_quiet_pine_person_id != quiet_pine.get("personID"):
+    errors.append("profile.quiet-pine: Swift/catalog person ID mismatch")
+if swift_quiet_pine_name != quiet_pine.get("displayName"):
+    errors.append("profile.quiet-pine: Swift/catalog display name mismatch")
+if swift_static_string("defaultSignUpInitials") != quiet_pine.get("initials"):
+    errors.append("profile.quiet-pine: Swift/catalog initials mismatch")
+
 def swift_case_map(path: pathlib.Path) -> dict[str, str]:
     return dict(re.findall(r'case\s+(\w+)\s*=\s*"([a-z0-9.-]+)"', path.read_text()))
 
@@ -125,6 +209,35 @@ if swift_scenario_screens != catalog_scenario_screens:
         if swift_scenario_screens.get(scenario_id) != catalog_scenario_screens.get(scenario_id)
     )
     errors.append(f"ScenarioID startScreen/catalog mismatch: {mismatches}")
+
+onboarding_fixture_domain_ids = {
+    value
+    for item in onboarding_fixture_items
+    for key in ("profileID", "personID")
+    if isinstance((value := item.get(key)), str)
+}
+catalog_identifiers = (
+    set(screen_ids)
+    | set(scenario_ids)
+    | set(onboarding_fixture_ids)
+    | onboarding_fixture_domain_ids
+)
+contract_identifier_pattern = re.compile(
+    r'`((?:onboarding|chats|creation|conversation|group|profile|settings|team)\.[a-z0-9.-]+)`'
+)
+for item in screens:
+    contract_value = item.get("contract", "")
+    contract = root / contract_value
+    if not contract.is_file():
+        continue
+    unknown_contract_identifiers = sorted(
+        set(contract_identifier_pattern.findall(contract.read_text())) - catalog_identifiers
+    )
+    if unknown_contract_identifiers:
+        errors.append(
+            f"{item.get('id')}: contract references uncataloged screen/scenario identifiers: "
+            f"{unknown_contract_identifiers}"
+        )
 
 clock_match = re.search(
     r'timeIntervalSince1970:\s*([\d_]+)',

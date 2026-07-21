@@ -53,15 +53,17 @@ Product UI does not expose the fictional fixture value, its ID, the `wnproto` sc
 | State | Behavior and recovery |
 |---|---|
 | `onboarding.sign-in.empty` | Field is empty and focused. Paste and QR are available; Sign In is disabled. The simulated Paste capability inserts only the cataloged fictional valid fixture and never reads a real credential from the general pasteboard. |
-| `onboarding.sign-in.populated` | A fictional accepted fixture appears only as secure dots. Clear replaces Paste. Sign In is enabled. |
-| `onboarding.sign-in.invalid` | A fictional invalid fixture remains masked and editable; inline feedback appears; Sign In is disabled. Correction or Clear returns to neutral. No checksum or cryptographic work occurs. |
-| `onboarding.sign-in.existing-profile` | The draft is scrubbed. Show the existing-Profile explanation and **Switch Profile**; activating the fixture Profile cannot duplicate it. |
+| `onboarding.sign-in.populated` | Fixture `credential.maya.accepted` appears only as secure dots. Clear replaces Paste. Sign In is enabled and its simulated success activates Maya Chen (`profile.maya`). |
+| `onboarding.sign-in.invalid` | Fixture `credential.invalid.complete` remains masked and editable; inline feedback appears; Sign In is disabled. Correction or Clear returns to neutral. No checksum or cryptographic work occurs. |
+| `onboarding.sign-in.existing-profile` | Fixture `credential.maya.existing` is classified, then the draft is scrubbed. Show the existing-Profile explanation and **Switch Profile**; activating the seeded Maya Chen Profile cannot duplicate it. |
 | `onboarding.sign-in.loading` | Replace the primary label with progress, disable editing, repeat submission, QR, Paste/Clear, and unsafe navigation until the fixed simulated delay resolves. |
 | `onboarding.sign-in.offline` | After the fixed delay, scrub the draft, show the offline copy near the action, restore Paste and QR, and keep Sign In disabled until a new fictional fixture is entered. |
 | `onboarding.sign-in.error` | Same recovery as offline with the general failure copy. |
 | `onboarding.sign-in.accessibility-stress` | Long localized labels, RTL, largest accessibility Dynamic Type, Bold Text, Increased Contrast, and Reduce Motion without clipping or loss of actions. |
 
-Typing, user-initiated paste, QR return, Clear, Back, dismissal, failure, existing-Profile recovery, reset, and success all scrub the ephemeral string at the defined boundary. Arbitrary manually entered content can only reach the invalid UI state; it is never interpreted as a real key.
+The three cataloged credential fixtures are exactly 32 characters. Classify on every change without parsing: content shorter than 32 characters remains neutral with helper text and disabled Sign In; exact equality at 32 characters yields accepted or existing-Profile only for the two cataloged fixtures; every other value at or beyond 32 characters is invalid. Editing back below 32 characters or using Clear restores neutral. Hardware Return attempts submission only while the primary action is enabled.
+
+Typing, user-initiated paste, QR return, Clear, Back, dismissal, failure, existing-Profile recovery, reset, and success all scrub the ephemeral string at the defined boundary. Arbitrary manually entered content can only reach the invalid UI state after the completion threshold; it is never interpreted as a real key.
 
 ## Accessibility and adaptation
 
@@ -108,7 +110,7 @@ Typing, user-initiated paste, QR return, Clear, Back, dismissal, failure, existi
 4. Invalid, offline, and general failures remain adjacent, textual, recoverable, and distinguishable without color.
 5. Sign In success can hand off only to an approved `chats.list`; no placeholder product destination bypasses that gate.
 6. Default, Dark, invalid/error, loading, existing-Profile, offline, accessibility-size, long-localization, and RTL previews compile.
-7. Unit tests cover state classification, action enablement, scrubbing boundaries, duplicate prevention, fixed delays, routes, and reset. UI tests cover the primary journey, QR return, Back, keyboard, and recovery without entering credential text into test logs.
+7. Unit tests cover the 32-character classification threshold, exact fixture outcomes, longer invalid input, action enablement, scrubbing boundaries, duplicate prevention, fixed delays, routes, and reset. UI tests cover the primary journey, QR return, Back, keyboard, and recovery without entering credential text into test logs.
 8. Simulator and manual QA pass on the required iPhones; physical-device keyboard behavior is checked before acceptance.
 
 ## Approval gate
@@ -116,3 +118,9 @@ Typing, user-initiated paste, QR return, Clear, Back, dismissal, failure, existi
 - User decision requested: approve or revise the Form-based composition, exact copy, simulated Paste behavior, existing-Profile state, and success handoff.
 - After user approval: obtain independent non-authoring contract review and disposition every finding.
 - Do not register or create the screen implementation before both approvals.
+
+## Review
+
+- 2026-07-21 Claude contract review: response preserved in `docs/reviews/onboarding-v1-claude-raw.md`; findings and dispositions are tracked in `docs/reviews/onboarding-v1-contract-review.md`.
+- CLI version and resolved model were not included in the user-supplied response. The requested review configuration was Fable at medium effort.
+- Accepted findings are corrected. Independent approval remains pending until the materially revised onboarding packet is re-reviewed.

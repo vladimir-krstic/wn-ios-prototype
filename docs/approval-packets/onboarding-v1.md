@@ -1,7 +1,7 @@
 # Onboarding v1 approval packet
 
 - Prepared: 2026-07-21
-- Status: awaiting user approval
+- Status: corrected after independent review; re-review and user approval pending
 - Shared flow: [Onboarding flow contract](../flows/onboarding.md)
 - Screens: [Welcome](../screen-contracts/onboarding-welcome.md), [Sign In](../screen-contracts/onboarding-sign-in.md), [QR Scanner](../screen-contracts/onboarding-qr-scanner.md), [Sign Up](../screen-contracts/onboarding-sign-up.md)
 
@@ -35,3 +35,9 @@
 3. Fix or disposition every finding; move passing screens to `independentlyApproved`.
 4. Register implementation paths, then implement Welcome → Sign In/QR → Sign Up with previews and tests.
 5. Present sanitized simulator evidence for user visual acceptance; physical camera and Photos checks remain required before final acceptance.
+
+## Independent review status
+
+- Claude's 2026-07-21 response is preserved in [the raw review artifact](../reviews/onboarding-v1-claude-raw.md).
+- Codex's evidence-backed dispositions are tracked in [the contract review record](../reviews/onboarding-v1-contract-review.md).
+- All accepted findings are corrected. The confirmed fixture identities are Maya Chen for successful Sign In and Quiet Pine (`QP`) for empty-Name Sign Up. All materially revised contracts now require a neutral Claude re-review before independent approval.
