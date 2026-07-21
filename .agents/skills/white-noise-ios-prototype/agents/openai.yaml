@@ -1,0 +1,4 @@
+interface:
+  display_name: "White Noise iOS Prototype"
+  short_description: "Build and review native White Noise iOS screens"
+  default_prompt: "Use $white-noise-ios-prototype to prepare or implement an approved White Noise iOS prototype screen."
