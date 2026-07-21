@@ -6,6 +6,8 @@ A deterministic, native iPhone prototype for exploring the complete White Noise 
 
 Foundation v1 is scaffolded. All product and team screens remain `draft` until their individual user and independent-review gates pass. The current app target intentionally renders no product screen.
 
+Current review packet: [Onboarding v1](docs/approval-packets/onboarding-v1.md).
+
 ## Fixed boundaries
 
 - Xcode 27 beta, Swift 6.4, SwiftUI, iOS 27, iPhone, portrait.

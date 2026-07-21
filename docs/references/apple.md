@@ -29,6 +29,9 @@ Last verified: 2026-07-21. Agents must cite a specific entry when a platform cla
 | APPLE-NAV-002 | [Understanding the navigation stack](https://developer.apple.com/documentation/swiftui/understanding-the-navigation-stack) | Typed, lightweight route state | All destinations |
 | APPLE-SEARCH-001 | [Adding a search interface](https://developer.apple.com/documentation/SwiftUI/Adding-a-search-interface-to-your-app) | Native searchable implementation | Chats, recipients, conversations, members, media |
 | APPLE-SEARCH-002 | [Design intuitive search experiences](https://developer.apple.com/videos/play/wwdc2026/292/) | Search scope, entry and results behavior | Search destinations |
+| APPLE-INPUT-001 | [SecureField](https://developer.apple.com/documentation/swiftui/securefield) | Masked sensitive text entry and screenshot behavior | Sign In |
+| APPLE-INPUT-002 | [Form](https://developer.apple.com/documentation/swiftui/form) | Platform-appropriate grouping of data-entry controls | Sign In, Sign Up |
+| APPLE-INPUT-003 | [FocusState](https://developer.apple.com/documentation/swiftui/focusstate) | Keyboard focus and error recovery | Sign In, Sign Up |
 
 ## Accessibility and system integration
 
@@ -39,7 +42,10 @@ Last verified: 2026-07-21. Agents must cite a specific entry when a platform cla
 | APPLE-A11Y-003 | [Dynamic Type](https://developer.apple.com/documentation/swiftui/environmentvalues/dynamictypesize) | Content-size response and stress | All |
 | APPLE-A11Y-004 | [Reduce Motion](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion) | Motion adaptation | Animated surfaces |
 | APPLE-PHOTOS-001 | [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker) | Profile and message media selection | Sign Up, Edit Profile, Conversation |
+| APPLE-PHOTOS-002 | [Improve access to Photos in your app](https://developer.apple.com/videos/play/wwdc2021/10046/) | Privacy-preserving system photo selection | Sign Up, Edit Profile, Conversation |
 | APPLE-VISION-001 | [VisionKit](https://developer.apple.com/documentation/visionkit) | Native fictional QR scanning | QR Scanner |
+| APPLE-VISION-002 | [DataScannerViewController](https://developer.apple.com/documentation/visionkit/datascannerviewcontroller) | Live camera scanning, support and availability checks | QR Scanner |
+| APPLE-VISION-003 | [Scanning data with the camera](https://developer.apple.com/documentation/visionkit/scanning-data-with-the-camera) | Permission, system guidance, highlighting and unavailable recovery | QR Scanner |
 | APPLE-NOTIFY-001 | [Notification permission](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications) | Contextual permission and recovery | Notification Settings |
 | APPLE-AGENT-001 | [Create UI prototypes using agents in Xcode](https://developer.apple.com/videos/play/wwdc2026/227/) | Fixtures, previews, states and iteration | Foundation |
 | APPLE-AGENT-002 | [Xcode, agents, and you](https://developer.apple.com/videos/play/wwdc2026/259/) | Agent workflow and review | Foundation |

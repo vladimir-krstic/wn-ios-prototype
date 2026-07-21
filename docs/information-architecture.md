@@ -4,6 +4,8 @@
 
 - An unconfigured launch enters Welcome.
 - Simulated Sign Up or Sign In activates a profile and enters Chats.
+- Profile switching, adding, and removal belong to `settings.profiles`; onboarding never inserts a Choose Profile destination at launch.
+- **Add Profile** from Settings presents the same Welcome flow in a dismissible sheet, then returns to the signed-in product hierarchy after a simulated Login or Sign Up outcome.
 - Chats is the signed-in root. Native hierarchical navigation reaches chats, people, groups, profiles, and Settings.
 - The current profile avatar opens the Settings profile hub. Do not introduce a macOS sidebar, multiwindow model, or desktop Settings assumptions.
 

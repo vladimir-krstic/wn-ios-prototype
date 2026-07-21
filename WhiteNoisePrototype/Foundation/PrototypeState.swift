@@ -29,7 +29,7 @@ struct PrototypeState: Equatable, Sendable {
             chats: hasPopulatedData ? FixtureUniverse.chats : [],
             messages: hasPopulatedData ? FixtureUniverse.messages : [],
             permissions: [:],
-            isOffline: scenarioID == .chatsOffline || scenarioID == .conversationOffline
+            isOffline: scenarioID == .onboardingSignInOffline || scenarioID == .chatsOffline || scenarioID == .conversationOffline
         )
     }
 }

@@ -6,14 +6,21 @@ enum ScenarioID: String, CaseIterable, Codable, Sendable {
     case onboardingSignInExistingProfile = "onboarding.sign-in.existing-profile"
     case onboardingSignInLoading = "onboarding.sign-in.loading"
     case onboardingSignInError = "onboarding.sign-in.error"
+    case onboardingSignInOffline = "onboarding.sign-in.offline"
+    case onboardingSignInAccessibilityStress = "onboarding.sign-in.accessibility-stress"
     case onboardingQRReady = "onboarding.qr.ready"
     case onboardingQRPermissionDenied = "onboarding.qr.permission-denied"
+    case onboardingQRPermissionRestricted = "onboarding.qr.permission-restricted"
+    case onboardingQRUnavailable = "onboarding.qr.unavailable"
+    case onboardingQRCameraError = "onboarding.qr.camera-error"
     case onboardingQRInvalidCode = "onboarding.qr.invalid-code"
     case onboardingSignUpEmpty = "onboarding.sign-up.empty"
+    case onboardingSignUpPopulated = "onboarding.sign-up.populated"
     case onboardingSignUpLoading = "onboarding.sign-up.loading"
     case onboardingSignUpError = "onboarding.sign-up.error"
-    case onboardingSignUpPhotosDenied = "onboarding.sign-up.photos-denied"
-    case onboardingProfileSelectionPopulated = "onboarding.profile-selection.populated"
+    case onboardingSignUpPartialError = "onboarding.sign-up.partial-error"
+    case onboardingSignUpPhotoUnavailable = "onboarding.sign-up.photo-unavailable"
+    case onboardingSignUpAccessibilityStress = "onboarding.sign-up.accessibility-stress"
     case chatsPopulated = "chats.populated"
     case chatsEmpty = "chats.empty"
     case chatsLoading = "chats.loading"
@@ -54,14 +61,16 @@ enum ScenarioID: String, CaseIterable, Codable, Sendable {
         switch self {
         case .onboardingWelcomeDefault: .onboardingWelcome
         case .onboardingSignInEmpty, .onboardingSignInPopulated, .onboardingSignInInvalid,
-             .onboardingSignInExistingProfile, .onboardingSignInLoading, .onboardingSignInError:
+             .onboardingSignInExistingProfile, .onboardingSignInLoading, .onboardingSignInError,
+             .onboardingSignInOffline, .onboardingSignInAccessibilityStress:
             .onboardingSignIn
-        case .onboardingQRReady, .onboardingQRPermissionDenied, .onboardingQRInvalidCode:
+        case .onboardingQRReady, .onboardingQRPermissionDenied, .onboardingQRPermissionRestricted,
+             .onboardingQRUnavailable, .onboardingQRCameraError, .onboardingQRInvalidCode:
             .onboardingQRScanner
-        case .onboardingSignUpEmpty, .onboardingSignUpLoading, .onboardingSignUpError,
-             .onboardingSignUpPhotosDenied:
+        case .onboardingSignUpEmpty, .onboardingSignUpPopulated, .onboardingSignUpLoading,
+             .onboardingSignUpError, .onboardingSignUpPartialError,
+             .onboardingSignUpPhotoUnavailable, .onboardingSignUpAccessibilityStress:
             .onboardingSignUp
-        case .onboardingProfileSelectionPopulated: .onboardingProfileSelection
         case .chatsPopulated, .chatsEmpty, .chatsLoading, .chatsOffline, .chatsError,
              .chatsUnread, .chatsArchived, .chatsLongContent, .chatsAccessibilityStress:
             .chatsList

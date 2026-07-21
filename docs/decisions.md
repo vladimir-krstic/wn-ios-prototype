@@ -32,3 +32,11 @@ Records are append-only. Supersede; do not rewrite history.
 - Date: 2026-07-21
 - Status: approved
 - Decision: Mix locally bundled, documented Open Peeps/DiceBear Open Peeps avatars with native initial monograms. No runtime fetching or generation.
+
+## WN-PROTOTYPE-0006 — Profile management is not onboarding
+
+- Date: 2026-07-21
+- Status: approved
+- Authority: explicit user direction
+- Decision: Normal launch never presents a stored-profile chooser. Onboarding contains Welcome, Sign In, the Sign In QR Scanner, and Sign Up only. Profile switching, adding, and removal belong to `settings.profiles`; **Add Profile** may reuse Welcome as a dismissible Settings flow.
+- Supersedes: the Foundation v1 `onboarding.profile-selection` catalog entry and scenario.

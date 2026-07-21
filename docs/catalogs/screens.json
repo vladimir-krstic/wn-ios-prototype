@@ -13,7 +13,6 @@
     {"id":"onboarding.sign-in","title":"Sign In","audience":"product","family":"onboarding","status":"draft","contract":"docs/screen-contracts/onboarding-sign-in.md","implementation":null},
     {"id":"onboarding.qr-scanner","title":"QR Scanner","audience":"product","family":"onboarding","status":"draft","contract":"docs/screen-contracts/onboarding-qr-scanner.md","implementation":null},
     {"id":"onboarding.sign-up","title":"Sign Up","audience":"product","family":"onboarding","status":"draft","contract":"docs/screen-contracts/onboarding-sign-up.md","implementation":null},
-    {"id":"onboarding.profile-selection","title":"Choose Profile","audience":"product","family":"onboarding","status":"draft","contract":"docs/screen-contracts/onboarding-profile-selection.md","implementation":null},
     {"id":"chats.list","title":"Chats","audience":"product","family":"chats","status":"draft","contract":"docs/screen-contracts/chats-list.md","implementation":null},
     {"id":"chats.new-direct","title":"New Chat","audience":"product","family":"creation","status":"draft","contract":"docs/screen-contracts/chats-new-direct.md","implementation":null},
     {"id":"chats.new-group-members","title":"New Group Members","audience":"product","family":"creation","status":"draft","contract":"docs/screen-contracts/chats-new-group-members.md","implementation":null},

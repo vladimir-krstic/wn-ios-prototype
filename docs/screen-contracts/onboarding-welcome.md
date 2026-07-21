@@ -25,7 +25,7 @@ Show the approved adaptive White Noise logomark without a headline, slogan, body
 - One root `NavigationStack` owned by the onboarding flow.
 - A layout built from native SwiftUI containers and safe-area-aware spacing.
 - The approved adaptive logomark is the only custom visual asset. It keeps its aspect ratio, remains visually prominent without crowding the actions, and never becomes a tappable control.
-- **Login** and **Sign Up** are native buttons with equal available width and consistent hierarchy. Their appearance follows the iOS 27 system and the approved White Noise adaptive accent; custom Liquid Glass treatment is not authorized.
+- **Login** and **Sign Up** are full-width native buttons. **Login** uses the system bordered secondary treatment; **Sign Up** uses the system prominent primary treatment. Their appearance follows iOS 27 and the approved adaptive accent; custom Liquid Glass treatment is not authorized.
 - Keep both actions visible without scrolling on supported iPhones at default text sizes. At accessibility text sizes, content may reflow or scroll rather than clip or overlap.
 
 ## Exact product copy
@@ -51,7 +51,7 @@ The screen has one deterministic state. It does not own loading, empty, offline,
 - Light and Dark appearance use the approved corresponding logomark treatment and semantic system background/foreground colors.
 - Buttons use semantic text styles and Dynamic Type. No visible text truncates at supported sizes.
 - VoiceOver order is **Login**, then **Sign Up**. Each button exposes its visible name and Button trait; do not add redundant hints such as “button.”
-- The logomark is hidden from accessibility because it conveys no additional action or information. The app process name and surrounding context identify White Noise; if testing disproves that assumption, add a localized accessibility label without adding visible copy.
+- The logomark exposes the approved VoiceOver label **White Noise** and no Button trait or hint.
 - Voice Control can address both controls by their visible names. Each action has at least a 44-point practical hit target.
 - Meaning and hierarchy do not depend on color. Increased Contrast and Bold Text preserve legibility.
 - There is no custom motion or haptic. Native navigation respects Reduce Motion automatically.
@@ -93,6 +93,8 @@ None. Welcome must not request notifications, photos, camera, microphone, files,
 
 - `wn-ios-agile` issues #827 and #830 establish the current sparse Welcome direction and entry terminology.
 - [White Noise product language](../product-language.md) fixes **Login** on Welcome and **Sign Up** for new-profile entry.
+- Approved Light asset: [black vector logomark](https://github.com/user-attachments/assets/380c4ced-474f-4a54-83a4-169db2164f8c).
+- Approved Dark asset: [white vector logomark](https://github.com/user-attachments/assets/1bd78fac-3d62-4bd8-90a5-30e3fbdb6072).
 
 ### Mobbin comparisons
 
@@ -104,6 +106,6 @@ These comparisons answer focused layout and hierarchy questions only. They do no
 ## Approval gate
 
 - User decision requested: approve or revise the proposed outcome, exact copy, action order, and navigation.
-- Asset blocker: transfer the approved Light/Dark White Noise logomark files and record their provenance before implementation.
+- Asset blocker: retrieve the two approved user-supplied vectors above, bundle them without redrawing, and record source URLs, retrieval date, transformation, and intended use in the asset manifest before implementation.
 - After user approval: obtain independent non-authoring contract review and disposition every finding.
 - Do not implement until both approvals are recorded and the asset blocker is resolved.

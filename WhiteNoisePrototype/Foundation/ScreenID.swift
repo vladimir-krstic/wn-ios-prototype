@@ -3,7 +3,6 @@ enum ScreenID: String, CaseIterable, Codable, Sendable {
     case onboardingSignIn = "onboarding.sign-in"
     case onboardingQRScanner = "onboarding.qr-scanner"
     case onboardingSignUp = "onboarding.sign-up"
-    case onboardingProfileSelection = "onboarding.profile-selection"
     case chatsList = "chats.list"
     case chatsNewDirect = "chats.new-direct"
     case chatsNewGroupMembers = "chats.new-group-members"
