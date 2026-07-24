@@ -74,13 +74,23 @@ struct ChatListRow: View {
 
     private var preview: Text {
         if chat.isDraft {
-            Text("Draft: \(chat.preview)")
+            Text("Draft: \(chat.visiblePreview)")
         } else if let previewAuthor = chat.previewAuthor {
             Text(
-                "\(Text("\(previewAuthor): ").bold())\(Text(chat.preview))"
+                "\(Text("\(previewAuthor): ").bold())\(previewContent)"
             )
         } else {
-            Text(chat.preview)
+            previewContent
+        }
+    }
+
+    private var previewContent: Text {
+        if let attachmentPreview = chat.attachmentPreview {
+            Text(
+                "\(Image(systemName: attachmentPreview.symbol)) \(chat.visiblePreview)"
+            )
+        } else {
+            Text(chat.visiblePreview)
         }
     }
 

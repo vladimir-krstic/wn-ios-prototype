@@ -11,11 +11,75 @@ struct ChatListItem: Identifiable {
         case failed
     }
 
+    enum AttachmentPreview {
+        case photo
+        case photos(Int)
+        case video
+        case voiceMessage
+        case file(String)
+        case location
+        case contact(String)
+        case link
+        case gif
+        case sticker
+
+        var symbol: String {
+            switch self {
+            case .photo:
+                "photo"
+            case .photos:
+                "photo.stack"
+            case .video:
+                "video.fill"
+            case .voiceMessage:
+                "waveform"
+            case .file:
+                "doc.fill"
+            case .location:
+                "location.fill"
+            case .contact:
+                "person.crop.circle"
+            case .link:
+                "link"
+            case .gif:
+                "play.rectangle.fill"
+            case .sticker:
+                "face.smiling"
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .photo:
+                "Photo"
+            case let .photos(count):
+                "\(count) Photos"
+            case .video:
+                "Video"
+            case .voiceMessage:
+                "Voice message"
+            case let .file(name):
+                name
+            case .location:
+                "Location"
+            case let .contact(name):
+                "Contact: \(name)"
+            case .link:
+                "Link"
+            case .gif:
+                "GIF"
+            case .sticker:
+                "Sticker"
+            }
+        }
+    }
+
     let id: String
     let title: String
     let avatar: Avatar
     let preview: String
     let previewAuthor: String?
+    let attachmentPreview: AttachmentPreview?
     let timestamp: String
     let isArchived: Bool
     let unreadCount: Int
@@ -29,6 +93,7 @@ struct ChatListItem: Identifiable {
         avatar: Avatar,
         preview: String,
         previewAuthor: String? = nil,
+        attachmentPreview: AttachmentPreview? = nil,
         timestamp: String,
         isArchived: Bool,
         unreadCount: Int,
@@ -41,6 +106,7 @@ struct ChatListItem: Identifiable {
         self.avatar = avatar
         self.preview = preview
         self.previewAuthor = previewAuthor
+        self.attachmentPreview = attachmentPreview
         self.timestamp = timestamp
         self.isArchived = isArchived
         self.unreadCount = unreadCount
@@ -54,8 +120,18 @@ struct ChatListItem: Identifiable {
     }
 
     var searchablePreview: String {
+        let content = visiblePreview
+
         if let previewAuthor {
-            "\(previewAuthor): \(preview)"
+            return "\(previewAuthor): \(content)"
+        } else {
+            return content
+        }
+    }
+
+    var visiblePreview: String {
+        if preview.isEmpty, let attachmentPreview {
+            attachmentPreview.label
         } else {
             preview
         }
@@ -144,8 +220,9 @@ enum ChatListFixtures {
             id: "nora-bennett",
             title: "Nora Bennett",
             avatar: .asset("AvatarNoraBennett"),
-            preview: "Photo",
+            preview: "",
             previewAuthor: "You",
+            attachmentPreview: .photo,
             timestamp: "Tuesday",
             isArchived: false,
             unreadCount: 0,
@@ -170,7 +247,8 @@ enum ChatListFixtures {
             id: "theo-grant",
             title: "Theo Grant",
             avatar: .asset("AvatarTheoGrant"),
-            preview: "Voice message",
+            preview: "",
+            attachmentPreview: .voiceMessage,
             timestamp: "Sunday",
             isArchived: false,
             unreadCount: 1,
@@ -182,7 +260,8 @@ enum ChatListFixtures {
             id: "aisha-rahman",
             title: "Aisha Rahman",
             avatar: .asset("AvatarAishaRahman"),
-            preview: "Photo",
+            preview: "",
+            attachmentPreview: .photos(3),
             timestamp: "7/18/26",
             isArchived: false,
             unreadCount: 0,
@@ -256,8 +335,9 @@ enum ChatListFixtures {
             id: "sofia-alvarez",
             title: "Sofia Alvarez",
             avatar: .asset("AvatarSofiaAlvarez"),
-            preview: "Voice message",
+            preview: "",
             previewAuthor: "You",
+            attachmentPreview: .video,
             timestamp: "7/11/26",
             isArchived: false,
             unreadCount: 0,
@@ -274,6 +354,89 @@ enum ChatListFixtures {
             isArchived: false,
             unreadCount: 1,
             isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
+            id: "project-files",
+            title: "Project Files",
+            avatar: .monogram("P"),
+            preview: "",
+            previewAuthor: "You",
+            attachmentPreview: .file("Project Brief.pdf"),
+            timestamp: "7/8/26",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
+            id: "neighborhood",
+            title: "Neighborhood",
+            avatar: .monogram("N"),
+            preview: "",
+            previewAuthor: "Maya",
+            attachmentPreview: .location,
+            timestamp: "7/7/26",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
+            id: "jamie-cooper",
+            title: "Jamie Cooper",
+            avatar: .monogram("J"),
+            preview: "",
+            attachmentPreview: .contact("Avery Stone"),
+            timestamp: "7/6/26",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
+            id: "reading-list",
+            title: "Reading List",
+            avatar: .monogram("R"),
+            preview: "",
+            previewAuthor: "Owen",
+            attachmentPreview: .link,
+            timestamp: "7/5/26",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
+            id: "family-group",
+            title: "Family Group",
+            avatar: .monogram("F"),
+            preview: "",
+            previewAuthor: "Nora",
+            attachmentPreview: .gif,
+            timestamp: "7/4/26",
+            isArchived: false,
+            unreadCount: 3,
+            isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
+            id: "sticker-swap",
+            title: "Sticker Swap",
+            avatar: .monogram("S"),
+            preview: "",
+            previewAuthor: "You",
+            attachmentPreview: .sticker,
+            timestamp: "7/3/26",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: true,
             isDraft: false,
             deliveryState: .none
         ),
@@ -320,8 +483,9 @@ enum ChatListFixtures {
             id: "design-notes",
             title: "Design Notes",
             avatar: .monogram("D"),
-            preview: "File",
+            preview: "",
             previewAuthor: "You",
+            attachmentPreview: .file("Project Notes.pdf"),
             timestamp: "6/21/26",
             isArchived: true,
             unreadCount: 0,

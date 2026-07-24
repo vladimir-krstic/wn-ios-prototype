@@ -39,6 +39,7 @@ Show the main Chats destination when the current profile has no chats. The profi
 - Populated fixtures demonstrate the Signal-style compact recency sequence: **Now**, **1m–59m**, a clock time for older messages today, **Yesterday**, weekday, then date. Labels remain fixed and deterministic rather than using the current clock.
 - In populated rows, the avatar is vertically centered against the complete text block; title and timestamp share the top row; unread and failure indicators align to the top of the preview row so they track its first line even when the preview wraps.
 - Group senders and **You:** use the emphasized variant of Apple’s semantic `subheadline` while the message remains Regular. The entire preview retains the same secondary color and Dynamic Type behavior.
+- Attachment previews use one baseline-aligned SF Symbol plus concise text, all inheriting the same semantic `subheadline`, secondary color, and Dynamic Type behavior. The deterministic active list covers Photo, multiple Photos, Video, Voice message, File, Location, Contact, Link, GIF, and Sticker. No icon receives a custom frame or point size.
 - Chats, Unread, and Archived update the empty-state copy.
 - Each scope’s empty state uses the same SF Symbol as its filter-menu choice.
 - Filter and Search remain inside one shared Liquid Glass capsule in every scope, with no capsule resizing between states. Filtered scope is communicated by the selected Filter artwork, the menu checkmark, and the empty-state copy rather than a navigation title.
@@ -65,6 +66,9 @@ Show the main Chats destination when the current profile has no chats. The profi
 - [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
 - [Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+- [Send and reply to messages on iPhone](https://support.apple.com/en-ca/guide/iphone/-iph82fb73ba3/ios)
+- [About iMessage](https://support.apple.com/guide/iphone/about-imessage-iph4e9799206/ios)
+- [Use iMessage apps in Messages on iPhone](https://support.apple.com/guide/iphone/use-imessage-apps-iphf9c9c01d3/ios)
 
 ## Comparative reference
 

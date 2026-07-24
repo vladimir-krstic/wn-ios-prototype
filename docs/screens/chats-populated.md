@@ -24,13 +24,13 @@ Show a deterministic populated Chats destination after either onboarding path. T
 
 ## Deterministic data and behavior
 
-- The populated profile has exactly 21 conversations: 17 active and 4 archived.
+- The populated profile has exactly 27 conversations: 23 active and 4 archived.
 - Chats contains active conversations only; Archived conversations appear only in the separate Archived scope.
 - Unread contains active conversations with an unread count.
 - Archived contains archived conversations, including one archived conversation that retains unread state without appearing in Unread.
 - Search matches title and preview within the selected scope, ignoring case and diacritics.
 - Fixture order, names, previews, timestamps, and status values never use randomness or the current clock.
-- Representative rows cover ordinary, unread count, muted, draft, failed, attachment, direct-chat, and group-chat presentation.
+- Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
 - Empty fixtures remain available for the future empty profile and for previews.
 
 ## Status presentation
@@ -42,6 +42,12 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - Unread and Failed share a 22-point status region. The unread badge fills that height; the 20-point outline SF Symbol is centered inside it as an optical correction because equal rendered bounds made the hollow symbol appear larger.
 - Unread labels use tabular digits and a system-centered text frame. Counts greater than 99 display as **99+**.
 - No Sent, mention, or sending state appears in the Chats list.
+
+## Attachment previews
+
+- Every attachment preview is present in the active Chats scope: Photo, multiple Photos, Video, Voice message, File, Location, Contact, Link, GIF, and Sticker.
+- Each uses a baseline-aligned SF Symbol plus concise text in the same regular secondary `subheadline` style as an ordinary message preview.
+- These fixtures verify list presentation only. They do not imply that the corresponding composer or sending flow is implemented.
 
 ## Avatar provenance
 
@@ -86,10 +92,12 @@ The list mixes 14 locally bundled Unsplash portraits with seven native one-lette
 - [BadgeProminence](https://developer.apple.com/documentation/swiftui/badgeprominence)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
 - [Accessibility fundamentals](https://developer.apple.com/documentation/swiftui/accessibility-fundamentals)
+- [About iMessage](https://support.apple.com/guide/iphone/about-imessage-iph4e9799206/ios)
+- [Use iMessage apps in Messages on iPhone](https://support.apple.com/guide/iphone/use-imessage-apps-iphf9c9c01d3/ios)
 
 ## Acceptance
 
-- The populated account displays 17 active and 4 archived conversations.
+- The populated account displays 23 active and 4 archived conversations.
 - Unread and Archived show correct deterministic subsets without adding scope titles.
 - Search filters the selected scope and restores the existing native no-results state when empty.
 - Rows use 56-point avatars, one-letter monograms, no separators, no chevrons, and support two-line previews while scrolling.
@@ -99,6 +107,7 @@ The list mixes 14 locally bundled Unsplash portraits with seven native one-lette
 - The visible fixtures include one-digit, two-digit, and capped **99+** unread values.
 - Mute appears beside the chat name; the timestamp shares that top row.
 - Fixtures demonstrate time, Yesterday, weekday, and date timestamp variants in chronological order.
+- The active list contains all ten documented attachment-preview treatments.
 - Both onboarding paths open the populated account.
 - Empty profile previews remain directly inspectable.
 - No swipe actions, bulk editing, account switching, refresh control, or conversation destination is introduced.
