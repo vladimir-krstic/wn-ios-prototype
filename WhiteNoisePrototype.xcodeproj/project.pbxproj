@@ -48,9 +48,27 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A00000000000000000000021 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000024 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000027 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000024 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000027 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -85,11 +103,16 @@
 				A00000000000000000000021 /* Frameworks */,
 				A00000000000000000000022 /* Resources */,
 			);
-			buildRules = ();
-			dependencies = ();
-			fileSystemSynchronizedGroups = (A00000000000000000000004 /* WhiteNoisePrototype */);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A00000000000000000000004 /* WhiteNoisePrototype */,
+			);
 			name = WhiteNoisePrototype;
-			packageProductDependencies = ();
+			packageProductDependencies = (
+			);
 			productName = WhiteNoisePrototype;
 			productReference = A00000000000000000000010 /* WhiteNoisePrototype.app */;
 			productType = "com.apple.product-type.application";
@@ -102,11 +125,17 @@
 				A00000000000000000000024 /* Frameworks */,
 				A00000000000000000000025 /* Resources */,
 			);
-			buildRules = ();
-			dependencies = (A00000000000000000000042 /* PBXTargetDependency */);
-			fileSystemSynchronizedGroups = (A00000000000000000000005 /* WhiteNoisePrototypeTests */);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000042 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A00000000000000000000005 /* WhiteNoisePrototypeTests */,
+			);
 			name = WhiteNoisePrototypeTests;
-			packageProductDependencies = ();
+			packageProductDependencies = (
+			);
 			productName = WhiteNoisePrototypeTests;
 			productReference = A00000000000000000000011 /* WhiteNoisePrototypeTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -119,11 +148,17 @@
 				A00000000000000000000027 /* Frameworks */,
 				A00000000000000000000028 /* Resources */,
 			);
-			buildRules = ();
-			dependencies = (A00000000000000000000043 /* PBXTargetDependency */);
-			fileSystemSynchronizedGroups = (A00000000000000000000006 /* WhiteNoisePrototypeUITests */);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000043 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A00000000000000000000006 /* WhiteNoisePrototypeUITests */,
+			);
 			name = WhiteNoisePrototypeUITests;
-			packageProductDependencies = ();
+			packageProductDependencies = (
+			);
 			productName = WhiteNoisePrototypeUITests;
 			productReference = A00000000000000000000012 /* WhiteNoisePrototypeUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -138,15 +173,26 @@
 				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
-					A00000000000000000000030 = {CreatedOnToolsVersion = 27.0; };
-					A00000000000000000000031 = {CreatedOnToolsVersion = 27.0; TestTargetID = A00000000000000000000030; };
-					A00000000000000000000032 = {CreatedOnToolsVersion = 27.0; TestTargetID = A00000000000000000000030; };
+					A00000000000000000000030 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					A00000000000000000000031 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = A00000000000000000000030;
+					};
+					A00000000000000000000032 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = A00000000000000000000030;
+					};
 				};
 			};
 			buildConfigurationList = A00000000000000000000052 /* Build configuration list for PBXProject "WhiteNoisePrototype" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (
+				en,
+				Base,
+			);
 			mainGroup = A00000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
@@ -162,20 +208,64 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A00000000000000000000022 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000025 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000028 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000025 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000028 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A00000000000000000000020 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000023 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000026 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000020 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000023 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000026 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		A00000000000000000000042 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A00000000000000000000030 /* WhiteNoisePrototype */; targetProxy = A00000000000000000000040 /* PBXContainerItemProxy */; };
-		A00000000000000000000043 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A00000000000000000000030 /* WhiteNoisePrototype */; targetProxy = A00000000000000000000041 /* PBXContainerItemProxy */; };
+		A00000000000000000000042 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000030 /* WhiteNoisePrototype */;
+			targetProxy = A00000000000000000000040 /* PBXContainerItemProxy */;
+		};
+		A00000000000000000000043 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000030 /* WhiteNoisePrototype */;
+			targetProxy = A00000000000000000000041 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -221,12 +311,16 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan a QR code to enter your private key.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.ipf.whitenoise.ios.prototype;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -249,12 +343,16 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan a QR code to enter your private key.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.ipf.whitenoise.ios.prototype;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -341,10 +439,42 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A00000000000000000000052 /* Build configuration list for PBXProject "WhiteNoisePrototype" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000050 /* Debug */, A00000000000000000000051 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		A00000000000000000000055 /* Build configuration list for PBXNativeTarget "WhiteNoisePrototype" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000053 /* Debug */, A00000000000000000000054 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		A00000000000000000000058 /* Build configuration list for PBXNativeTarget "WhiteNoisePrototypeTests" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000056 /* Debug */, A00000000000000000000057 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		A0000000000000000000005B /* Build configuration list for PBXNativeTarget "WhiteNoisePrototypeUITests" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000059 /* Debug */, A0000000000000000000005A /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000000000000000000052 /* Build configuration list for PBXProject "WhiteNoisePrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000050 /* Debug */,
+				A00000000000000000000051 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000055 /* Build configuration list for PBXNativeTarget "WhiteNoisePrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000053 /* Debug */,
+				A00000000000000000000054 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000058 /* Build configuration list for PBXNativeTarget "WhiteNoisePrototypeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000056 /* Debug */,
+				A00000000000000000000057 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0000000000000000000005B /* Build configuration list for PBXNativeTarget "WhiteNoisePrototypeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000059 /* Debug */,
+				A0000000000000000000005A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = A00000000000000000000001 /* Project object */;

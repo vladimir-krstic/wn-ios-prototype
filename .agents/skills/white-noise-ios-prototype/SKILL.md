@@ -1,19 +1,17 @@
 ---
 name: white-noise-ios-prototype
-description: Plan, contract, implement, test, or review White Noise native iPhone prototype screens, flows, scenarios, product copy, fixtures, system integrations, and team-only tools. Use for any work in the wn-ios-prototype repository that can affect UI behavior, navigation, deterministic state, accessibility, evidence, or screen acceptance.
+description: Build, iterate, or review one agreed White Noise native iPhone prototype screen or bounded flow using SwiftUI and public Apple APIs. Use for UI, navigation, copy, previews, dummy state, system integrations, accessibility, or simulator work in wn-ios-prototype.
 ---
 
 # White Noise iOS Prototype
 
-1. Read `AGENTS.md`, the target entry in `docs/catalogs/screens.json`, its contract, relevant decisions, `docs/product-language.md`, and the cited Apple sources.
-2. Treat `../wn-ios-agile` and `../whitenoise-ios` as read-only. Prefer latest user direction over both.
-3. Stop before implementation unless the screen is `independentlyApproved`. Draft or revise the contract instead. Once approved, register its `WhiteNoisePrototype/Screens/` implementation path in the catalog before creating the file.
-4. Define purpose, audience, entry/exit, native component choices, exact copy, actions, all relevant states, accessibility, Light/Dark, Dynamic Type, Reduce Motion, and verification.
-5. Use Mobbin only for two to four focused comparisons. Record what was accepted or rejected; never copy shipped-app UI or assets.
-6. Require standard SwiftUI/UIKit components and SF Symbols. Record why any custom view is necessary before building it.
-7. Keep product UI calm and human. Keep `ScreenID`, `ScenarioID`, fixture controls, and technical diagnostics inside team-only surfaces.
-8. Use fixed IDs, clocks, ordering, delays, and outcomes. Add no networking, authentication, cryptography, real persistence, or third-party runtime dependency.
-9. Implement only the approved contract. Add previews, unit/UI coverage, accessibility checks, sanitized evidence, and review disposition.
-10. Run `./scripts/validate-foundation.sh` and Xcode 27 tests. For each independent Claude review, give the user a neutral copyable prompt that does not predict a pass or seed expected findings. Keep Claude read-only; have it return evidence-backed findings and concrete fixes for Codex to apply or disposition. Re-review material revisions before user acceptance.
+1. Read `AGENTS.md`, `docs/product-language.md`, the relevant entries in `docs/references/apple.md`, and the current screen brief if it exists.
+2. Limit work to the user-agreed screen or tightly related flow. Do not prepare future screens or speculative shared architecture.
+3. Prefer native SwiftUI/UIKit components, SF Symbols, semantic type, system colors, standard navigation, and system motion. Let standard controls own their metrics; use safe areas, system margins, and default spacing instead of numeric recipes. Apply explicit sizing only to a user-approved custom brand element documented in the current brief.
+4. Create or update one concise brief in `docs/screens/` only after the user selects the screen.
+5. Add fixed in-memory dummy data and capability wrappers only when the selected screen requires them.
+6. Build with Xcode 27 beta, compile relevant previews, launch the app, and present the result for direct user inspection.
+7. Add tests only for meaningful nonvisual logic or a confirmed regression.
+8. Never invoke Claude. If the user requests a major review, provide a neutral copyable prompt.
 
-Stop and request direction when product scope, navigation, data-loss consequences, safety language, custom UI, or a visual decision is unresolved.
+Stop and ask only when an unresolved decision would materially change the product experience.

@@ -1,26 +1,28 @@
 # White Noise product language
 
-Source baseline: the approved `wn-ios-agile` product-language and terminology references as reviewed on 2026-07-21. Latest explicit user direction always wins.
+Product UI is written for everyday people. Keep it calm, direct, concise, and specific about the result of an action.
 
-## Product voice
+## Voice
 
-Write calmly, directly, and with light warmth. Lead with the person's task and concrete outcome. Avoid hype, fear, blame, jokes, exclamation marks, false reassurance, and repetitive privacy marketing.
+- Use familiar words and short sentences.
+- Name the action instead of the implementation.
+- Explain errors in human terms and offer a clear recovery.
+- Avoid protocol, relay, cryptography, fixture, scenario, and developer terminology in ordinary product UI.
+- Use sentence case. Avoid hype, jokes, blame, and unnecessary reassurance.
 
-- Welcome entry action: **Login**.
-- Existing-profile credential screen and action: **Sign In**.
-- New profile entry and action: **Sign Up**.
-- Use **Profile**, **Private Key**, **Public Key**, **Chat**, **Group**, **Person/People**, **Member** inside a group, **Relays**, **Sign Out**, **Remove Profile**, and **Sign Out and Remove Data**.
-- Do not use identity, account, session, thread, peer, MLS, NIP numbers, Marmot, event, epoch, control plane, raw codes, or raw engine errors in ordinary product UI.
-- Developer Tools and Diagnostics may use precise technical terminology when that precision is the purpose.
+## Approved terms
 
-## Interface rules
+| Use | Meaning |
+| --- | --- |
+| Sign in | Use an existing White Noise profile |
+| Sign up | Create a new White Noise profile |
+| Profile | A person’s identity in White Noise |
+| Profile key | User-facing name for a key when that feature is explicitly being discussed |
+| Chat | A direct or group conversation |
+| Group | A chat with multiple members |
+| Person | Someone discoverable before joining a group |
+| Member | Someone already in a group |
+| Sign out | Stop using the active profile on this device |
+| Remove profile | Remove a stored profile from this device |
 
-- Buttons name their result: **Sign In**, **Retry**, **Remove Profile**, **Open Settings**, **Cancel**.
-- Empty states say what is absent and offer the most useful next action.
-- Progress uses the action: **Signing In…**, **Signing Up…**. Use **Creating Profile…** only when the initiating action is explicitly **Create Profile**.
-- Failures begin with what could not be completed, add a useful reason when known, then recovery. Prefer **Couldn't…** over **Failed to…**.
-- Destructive copy names exactly what is removed, what remains, recovery, and device-local consequences once.
-- Permission copy explains the feature benefit immediately before the system prompt. Denial explains what is unavailable and offers **Open Settings** when applicable.
-- Never expose sensitive values in examples, logs, screenshots, errors, or accessibility output.
-
-English is the authored language. Every custom layout must tolerate localization expansion and right-to-left presentation without inventing translations.
+Use technical terms only on team-only diagnostics or when the selected product feature genuinely requires and explains them.

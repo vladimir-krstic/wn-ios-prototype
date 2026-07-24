@@ -1,51 +1,45 @@
-# Apple reference index
+# Official Apple references
 
-Last verified: 2026-07-21. Agents must cite a specific entry when a platform claim affects a contract or implementation decision. Add feature-specific official sources to this index before relying on them.
+Last verified: 2026-07-23.
 
-## Design and writing
+Agents must use official Apple sources for platform claims. Add feature-specific references only when the selected screen needs them.
 
-| ID | Source | Governs | Contracts |
-|---|---|---|---|
-| APPLE-DESIGN-001 | [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) | Primary platform patterns, hierarchy, feedback, permissions, privacy | All |
-| APPLE-DESIGN-002 | [Apple Design Resources](https://developer.apple.com/design/resources/) | iOS 27 UI kits, templates, SF fonts and symbols | All |
-| APPLE-DESIGN-003 | [Accessibility HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility) | Inclusive visual, motor, hearing, cognitive behavior | All |
-| APPLE-DESIGN-004 | [SF Symbols](https://developer.apple.com/sf-symbols/) | Standard iconography and version availability | All |
-| APPLE-WRITING-001 | [Writing for interfaces](https://developer.apple.com/videos/play/wwdc2022/10037/) | Clear, contextual, empathetic interface copy | All product surfaces |
-| APPLE-DESIGN-005 | [Principles of great design](https://developer.apple.com/videos/play/wwdc2026/250/) | WWDC26 product-design evaluation | All |
-| APPLE-BRAND-001 | [Communicate your brand identity on iOS](https://developer.apple.com/videos/play/wwdc2026/251/) | White Noise identity within native structure | All |
+## Design
 
-## Xcode 27 and SwiftUI
+- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) — interaction, hierarchy, navigation, feedback, privacy, and platform conventions.
+- [Apple Design Resources](https://developer.apple.com/design/resources/) — current iOS UI kits, templates, fonts, symbols, and icon resources.
+- [Accessibility HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility) — inclusive visual, motor, hearing, and cognitive design.
+- [SF Symbols](https://developer.apple.com/sf-symbols/) — system icon selection, rendering, localization, and effects.
+- [Writing for interfaces](https://developer.apple.com/videos/play/wwdc2022/10037/) — clear and useful interface language.
 
-| ID | Source | Governs | Contracts |
-|---|---|---|---|
-| APPLE-XCODE-001 | [Xcode 27 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes) | Toolchain and beta changes | All implementation |
-| APPLE-SWIFTUI-001 | [SwiftUI documentation](https://developer.apple.com/documentation/swiftui/) | Primary implementation API | All implementation |
-| APPLE-SWIFTUI-002 | [SwiftUI updates](https://developer.apple.com/documentation/updates/swiftui) | iOS 27 API changes | All implementation |
-| APPLE-SWIFTUI-003 | [WWDC26 SwiftUI guide](https://developer.apple.com/wwdc26/guides/swiftui/) | Current sessions and guidance | All implementation |
-| APPLE-SWIFTUI-004 | [What's new in SwiftUI](https://developer.apple.com/videos/play/wwdc2026/269/) | Current presentation, data flow and performance | All implementation |
-| APPLE-GLASS-001 | [Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) | Native-first iOS 27 visual adoption | All |
-| APPLE-GLASS-002 | [Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views) | Approved custom-view exceptions only | Contract-specific |
-| APPLE-NAV-001 | [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack) | Hierarchical iPhone navigation | All destinations |
-| APPLE-NAV-002 | [Understanding the navigation stack](https://developer.apple.com/documentation/swiftui/understanding-the-navigation-stack) | Typed, lightweight route state | All destinations |
-| APPLE-SEARCH-001 | [Adding a search interface](https://developer.apple.com/documentation/SwiftUI/Adding-a-search-interface-to-your-app) | Native searchable implementation | Chats, recipients, conversations, members, media |
-| APPLE-SEARCH-002 | [Design intuitive search experiences](https://developer.apple.com/videos/play/wwdc2026/292/) | Search scope, entry and results behavior | Search destinations |
-| APPLE-INPUT-001 | [SecureField](https://developer.apple.com/documentation/swiftui/securefield) | Masked sensitive text entry and screenshot behavior | Sign In |
-| APPLE-INPUT-002 | [Form](https://developer.apple.com/documentation/swiftui/form) | Platform-appropriate grouping of data-entry controls | Sign In, Sign Up |
-| APPLE-INPUT-003 | [FocusState](https://developer.apple.com/documentation/swiftui/focusstate) | Keyboard focus and error recovery | Sign In, Sign Up |
+## SwiftUI and iOS 27
 
-## Accessibility and system integration
+- [Xcode 27 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes) — toolchain, SDK, compiler, and beta changes.
+- [SwiftUI documentation](https://developer.apple.com/documentation/swiftui/) — primary implementation reference.
+- [SwiftUI updates](https://developer.apple.com/documentation/updates/swiftui) — current framework changes.
+- [WWDC26 SwiftUI guide](https://developer.apple.com/wwdc26/guides/swiftui/) — current sessions and documentation.
+- [What’s new in SwiftUI](https://developer.apple.com/videos/play/wwdc2026/269/) — current SwiftUI capabilities and visual-system changes.
+- [Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) — system-first adoption guidance.
+- [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack) — native stack navigation.
+- [DataScannerViewController](https://developer.apple.com/documentation/visionkit/datascannerviewcontroller) — native live camera scanning for QR codes.
+- [Scanning data with the camera](https://developer.apple.com/documentation/visionkit/scanning-data-with-the-camera) — VisionKit guidance, highlighting, availability, and recognized-item handling.
+- [Camera authorization](https://developer.apple.com/documentation/avfoundation/requesting-authorization-to-capture-and-save-media) — system camera permission state and request behavior.
+- [Open Settings](https://developer.apple.com/documentation/uikit/uiapplication/opensettingsurlstring) — recovery after a person denies camera access.
+- [Privacy HIG](https://developer.apple.com/design/human-interface-guidelines/privacy) — contextual permission requests and recovery language.
+- [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview) — native empty, unavailable, and no-results presentation.
+- [Refining Liquid Glass in toolbars](https://developer.apple.com/documentation/swiftui/landmarks-refining-the-system-provided-glass-effect-in-toolbars) — native toolbar grouping and system-provided Liquid Glass.
+- [What’s new in SwiftUI](https://developer.apple.com/videos/play/wwdc2025/256/) — system toolbar grouping, separation, and prominent tinted toolbar controls.
+- [ToolbarSpacer](https://developer.apple.com/documentation/swiftui/toolbarspacer) — logical separation between toolbar groups.
+- [sharedBackgroundVisibility](https://developer.apple.com/documentation/swiftui/toolbarcontent/sharedbackgroundvisibility(_:)) — suppressing an individual toolbar item’s automatic shared Liquid Glass background.
+- [Search modifiers](https://developer.apple.com/documentation/swiftui/view-search) — native search presentation and programmatic activation.
+- [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands) — native compact command and selection menus.
+- [Lists and tables HIG](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) — native list hierarchy, row content, disclosure, and interaction guidance.
+- [List](https://developer.apple.com/documentation/swiftui/list) — native single-column row presentation, scrolling, separators, and selection behavior.
+- [Displaying data in lists](https://developer.apple.com/documentation/swiftui/displaying-data-in-lists) — SwiftUI list composition and hierarchical navigation patterns.
 
-| ID | Source | Governs | Contracts |
-|---|---|---|---|
-| APPLE-A11Y-001 | [SwiftUI accessibility fundamentals](https://developer.apple.com/documentation/swiftui/accessibility-fundamentals) | Labels, values, order, grouping and actions | All |
-| APPLE-A11Y-002 | [Performing accessibility audits](https://developer.apple.com/documentation/accessibility/performing-accessibility-audits-for-your-app) | Automated and manual accessibility review | All |
-| APPLE-A11Y-003 | [Dynamic Type](https://developer.apple.com/documentation/swiftui/environmentvalues/dynamictypesize) | Content-size response and stress | All |
-| APPLE-A11Y-004 | [Reduce Motion](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion) | Motion adaptation | Animated surfaces |
-| APPLE-PHOTOS-001 | [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker) | Profile and message media selection | Sign Up, Edit Profile, Conversation |
-| APPLE-PHOTOS-002 | [Improve access to Photos in your app](https://developer.apple.com/videos/play/wwdc2021/10046/) | Privacy-preserving system photo selection | Sign Up, Edit Profile, Conversation |
-| APPLE-VISION-001 | [VisionKit](https://developer.apple.com/documentation/visionkit) | Native fictional QR scanning | QR Scanner |
-| APPLE-VISION-002 | [DataScannerViewController](https://developer.apple.com/documentation/visionkit/datascannerviewcontroller) | Live camera scanning, support and availability checks | QR Scanner |
-| APPLE-VISION-003 | [Scanning data with the camera](https://developer.apple.com/documentation/visionkit/scanning-data-with-the-camera) | Permission, system guidance, highlighting and unavailable recovery | QR Scanner |
-| APPLE-NOTIFY-001 | [Notification permission](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications) | Contextual permission and recovery | Notification Settings |
-| APPLE-AGENT-001 | [Create UI prototypes using agents in Xcode](https://developer.apple.com/videos/play/wwdc2026/227/) | Fixtures, previews, states and iteration | Foundation |
-| APPLE-AGENT-002 | [Xcode, agents, and you](https://developer.apple.com/videos/play/wwdc2026/259/) | Agent workflow and review | Foundation |
+## Accessibility
+
+- [SwiftUI accessibility fundamentals](https://developer.apple.com/documentation/swiftui/accessibility-fundamentals) — labels, values, grouping, actions, and standard-control behavior.
+- [Performing accessibility audits](https://developer.apple.com/documentation/accessibility/performing-accessibility-audits-for-your-app) — automated and manual accessibility review.
+- [Dynamic Type](https://developer.apple.com/documentation/swiftui/environmentvalues/dynamictypesize) — content-size behavior.
+- [Reduce Motion](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion) — motion adaptation.

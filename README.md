@@ -1,29 +1,38 @@
 # White Noise iOS Prototype
 
-A deterministic, native iPhone prototype for exploring the complete White Noise product experience with fictional data. Product UI is written for everyday people; Scenario Lab, diagnostics, contracts, and review evidence serve the White Noise team.
+A fast, native iPhone prototype workspace for building and inspecting one screen at a time.
 
-## Status
+## Current state
 
-Foundation v1 is scaffolded. All product and team screens remain `draft` until their individual user and independent-review gates pass. The current app target intentionally renders no product screen.
+The app contains only a development placeholder. No product screen, flow, fixture, scenario, or feature permission is implemented yet.
 
-Current review packet: [Onboarding v1](docs/approval-packets/onboarding-v1.md).
+## Requirements
 
-## Fixed boundaries
+- Xcode 27 beta at `/Applications/Xcode-beta.app`
+- iOS 27 simulator
+- SwiftUI and public Apple APIs only
 
-- Xcode 27 beta, Swift 6.4, SwiftUI, iOS 27, iPhone, portrait.
-- Public Apple APIs only; no third-party runtime packages.
-- No backend, networking, Nostr, Marmot, Rust, authentication, cryptography, or app-owned persistence.
-- Never modify `../whitenoise-ios` or `../wn-ios-agile`; both are read-only references.
-- Latest explicit user direction outranks every other source.
-
-## Commands
+## Build
 
 ```sh
-./scripts/validate-foundation.sh
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
-  xcodebuild -project WhiteNoisePrototype.xcodeproj \
+xcodebuild \
+  -project WhiteNoisePrototype.xcodeproj \
   -scheme WhiteNoisePrototype \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.0' test
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0' \
+  build
 ```
 
-Before any screen work, read `AGENTS.md`, invoke `$white-noise-ios-prototype`, and follow that screen's contract gate.
+Open `WhiteNoisePrototype.xcodeproj`, select the shared `WhiteNoisePrototype` scheme and an iPhone 17 simulator, then press Run to inspect the app.
+
+Normal prototype launches use Light Mode. In the Xcode 27 beta, Device Hub's appearance control may not propagate to the debugged app. For a requested Dark Mode inspection, use Xcode's Environment Overrides, set Appearance to Dark, and disable the override afterward. The prototype does not include an in-app appearance switch.
+
+## Screen workflow
+
+1. Agree on one screen or tightly related flow.
+2. Add a concise brief under `docs/screens/`.
+3. Build it with native Apple components and only the state it actually needs.
+4. Compile its previews, build, and launch it for direct inspection.
+5. Iterate until the user accepts it, then move to the next screen.
+
+Tests are added only for meaningful nonvisual behavior or a real regression. Claude is never invoked automatically.

@@ -2,23 +2,54 @@ import SwiftUI
 
 @main
 struct WhiteNoisePrototypeApp: App {
-    private let launchConfiguration = LaunchConfiguration.current
-
     var body: some Scene {
         WindowGroup {
-            EmptyView()
-                .environment(\.prototypeLaunchConfiguration, launchConfiguration)
+            PrototypeRootView()
+            .tint(Color("AccentColor"))
         }
     }
 }
 
-private struct PrototypeLaunchConfigurationKey: EnvironmentKey {
-    static let defaultValue = LaunchConfiguration.default
-}
+private struct PrototypeRootView: View {
+    @State private var isShowingChats = false
+    @State private var isShowingLogin = false
+    @State private var isShowingSignUp = false
 
-extension EnvironmentValues {
-    var prototypeLaunchConfiguration: LaunchConfiguration {
-        get { self[PrototypeLaunchConfigurationKey.self] }
-        set { self[PrototypeLaunchConfigurationKey.self] = newValue }
+    var body: some View {
+        Group {
+            if isShowingChats {
+                NavigationStack {
+                    ChatsView(
+                        chats: ChatListFixtures.populated,
+                        onNewMessage: {}
+                    )
+                }
+            } else {
+                NavigationStack {
+                    WelcomeView(
+                        onLogin: {
+                            isShowingLogin = true
+                        },
+                        onSignUp: {
+                            isShowingSignUp = true
+                        }
+                    )
+                    .navigationDestination(
+                        isPresented: $isShowingLogin
+                    ) {
+                        LoginView {
+                            isShowingChats = true
+                        }
+                    }
+                    .navigationDestination(
+                        isPresented: $isShowingSignUp
+                    ) {
+                        SignUpView {
+                            isShowingChats = true
+                        }
+                    }
+                }
+            }
+        }
     }
 }
