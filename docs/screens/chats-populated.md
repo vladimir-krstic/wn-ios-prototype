@@ -2,41 +2,81 @@
 
 ## Purpose and navigation
 
-Show a deterministic populated Chats destination after either onboarding path. The profile avatar, New Message action, and conversation destinations remain reserved for later screens. Rows remain visually static until conversation navigation is built.
+Show a deterministic populated Chats destination after either onboarding path. The profile avatar, New Message action, and conversation destinations remain reserved for later screens. Rows support native swipe actions but do not navigate until the conversation screen is built.
 
 ## Copy
 
 - Search prompt: **Search Chats**
 - Filter choices: **Chats**, **Unread**, **Archived**
+- Unread bulk action: **Read All**
+- Leading swipe actions: **Read**, **Unread**
+- Trailing swipe actions: **Mute**, **Unmute**, **Archive**, **Unarchive**, **Leave**, **Delete**
+- Mute dialog title: **Mute Notifications**
+- Mute choices: **1 Hour**, **8 Hours**, **1 Day**, **1 Week**, **Always**
+- Leave confirmation title: **Leave “Chat Name”?**
+- Leave confirmation message: **You’ll stop receiving new messages. This chat will remain on this device as read-only history until you delete it.**
+- Leave confirmation action: **Leave Chat**
+- Delete confirmation title: **Delete “Chat Name” from this device?**
+- Delete confirmation message: **This permanently removes the chat and its messages from this device. Signing in again won’t restore them.**
+- Delete confirmation action: **Delete Chat**
+- Ended-membership previews: **You left this chat.**, **You were removed from this chat.**
 - Empty and no-results copy remains defined by `chats-empty.md`.
 - Fixture names and messages are fictional and stable.
 
 ## Native components
 
-- A plain SwiftUI `List` owns scrolling, safe-area behavior, row placement, separators, and system background. Its visible scroll indicator is hidden.
+- A public UIKit list built with `UICollectionLayoutListConfiguration` owns scrolling, safe-area behavior, row placement, swipe geometry, system motion, dimming, and the system background. Its visible scroll indicator and separators are hidden.
+- `UIHostingConfiguration` hosts the existing SwiftUI conversation-row composition inside each native list cell.
 - Each conversation row is composed from native `Image`, `Text`, `Circle`, and SF Symbols because SwiftUI does not provide a stock Messages conversation row.
 - The approved row avatar is a 56-point circle containing either a bundled photorealistic fictional portrait or a one-letter native monogram. SwiftUI has no stock avatar control or avatar size variants; 56 points is the user-approved custom list metric.
 - Titles use semantic headline typography. Previews use semantic subheadline typography and may occupy two lines.
 - Every preview uses the same regular secondary style, regardless of unread state.
 - Timestamps use semantic caption typography in the title row. The deterministic fixtures cover today’s time, Yesterday, weekday, and calendar-date variants in chronological order.
 - Row separators and disclosure chevrons are hidden to keep the dense status list visually quiet.
+- Public `UIContextualAction` and `UISwipeActionsConfiguration` own the swipe actions. Their completion handler is deliberately deferred while Mute, Leave, or Delete is presented, which keeps the row revealed beneath the system dimming treatment.
+- While a row is swiped, public `UICellConfigurationState.isSwiped` applies the adaptive `secondarySystemFill` background as a capsule derived from the current cell height. Contextual actions show system SF Symbols without visible text so UIKit centers each action in the row; their action and image accessibility labels retain the command names.
+- Native `UIAlertController` action sheets own the Signal-derived mute duration picker and the destructive Leave and Delete confirmations. The sheet is anchored to the originating contextual action with no popover arrow; no custom modal, pointer, dimming layer, or transition is drawn by the app.
+- A native bottom-bar `Button` presents **Read All** at the leading edge only while the Unread scope contains unread chats. The bottom bar is explicitly hidden otherwise so Chats, Archived, and the completed Unread empty state reserve no empty strip. The system toolbar owns the button’s Liquid Glass capsule, spacing, safe-area placement, hit target, and feedback.
 - The existing native search, menu, Picker, toolbar grouping, Liquid Glass, and prominent New Message action remain unchanged.
 
 ## Deterministic data and behavior
 
-- The populated profile has exactly 27 conversations: 23 active and 4 archived.
-- Chats contains active conversations only; Archived conversations appear only in the separate Archived scope.
-- Unread contains active conversations with an unread count.
+- The populated profile has exactly 27 conversations: 23 nonarchived and 4 archived.
+- Chats contains nonarchived conversations, including retained read-only history after a person leaves or is removed. Archived conversations appear only in the separate Archived scope.
+- Unread contains nonarchived conversations with an unread count or a manual unread reminder.
 - Archived contains archived conversations, including one archived conversation that retains unread state without appearing in Unread.
 - Search matches title and preview within the selected scope, ignoring case and diacritics.
+- Swipe mutations update the same in-memory collection used by Chats, Unread, Archived, and Search, so every filtered projection stays consistent.
+- **Read All** clears every nonarchived unread count and manual unread marker, including matches outside an active search query. The Unread scope then resolves to its existing **No Unread Chats** state.
 - Fixture order, names, previews, timestamps, and status values never use randomness or the current clock.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
+- Mina Park is the visible recent draft example and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
 - Empty fixtures remain available for the future empty profile and for previews.
+
+## Swipe actions
+
+- Leading swipe toggles Read and Unread. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 22-point monochrome badge with no number.
+- An active row in Chats or Unread exposes Mute/Unmute, Archive, and Leave. Leave applies to both named one-to-one chats and groups because both use White Noise membership.
+- An inactive retained row in Chats exposes Archive and Delete; it no longer exposes Mute, Unmute, or Leave.
+- An active row in Archived exposes Unarchive and Leave. An inactive row in Archived exposes Unarchive and Delete. Archived rows never expose Mute or Unmute.
+- Muting opens **Mute Notifications** with Signal’s current duration set: 1 hour, 8 hours, 1 day, 1 week, and Always. Unmute applies immediately.
+- Archive and Unarchive apply immediately and move the row between the native filtered projections. Existing mute state is preserved while archived and returns if the chat is restored.
+- Leaving clears unread and mute state, replaces the preview with **You left this chat.**, and shows `rectangle.portrait.and.arrow.right` beside the chat name.
+- One fixed fixture starts in the removed state and shows **You were removed from this chat.** with the same ended-membership symbol.
+- After membership ends, Delete replaces Leave and remains paired with Archive or Unarchive. Delete opens a destructive confirmation dialog, then removes the chat from every projection.
+- Archived rows with unread content can be marked Read. Read archived rows cannot be manually marked Unread.
+- `allowsFullSwipe` is enabled only for the reversible leading Read/Unread toggle. It is disabled for the multi-action trailing edge.
+- Leave and Delete swipe buttons use the system red contextual-action tint without completing the swipe mutation before confirmation. Their confirmation actions use UIKit’s native destructive style.
+- Mute, Leave, and Delete dialogs remain anchored to the action that opened them. The revealed swipe state stays visible under the system dimming treatment while the dialog is present; dismissing or cancelling does not require a custom reset animation.
+- The revealed row retains the approved adaptive gray capsule, and icon-only contextual actions remain vertically centered against that same dynamic row height.
+- The Unread bottom bar offers **Read All** without confirmation. It is fully hidden in Chats and Archived and disappears without retaining space after no unread chats remain.
 
 ## Status presentation
 
 - Unread counts use an adaptive monochrome circle for one digit and a capsule for two digits or the capped **99+** value.
+- A manually marked unread chat uses the same 22-point monochrome circle without a number.
 - Muted uses `bell.slash.fill` immediately after the chat name.
+- A left or removed chat uses `rectangle.portrait.and.arrow.right` in the same title-row status position.
 - Drafts use a visible **Draft:** preview prefix in the same secondary preview style.
 - Failed sending uses the system-red outline `exclamationmark.circle`.
 - Unread and Failed share a 22-point status region. The unread badge fills that height; the 20-point outline SF Symbol is centered inside it as an optical correction because equal rendered bounds made the hollow symbol appear larger.
@@ -51,7 +91,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 
 ## Avatar provenance
 
-The list mixes 14 locally bundled Unsplash portraits with seven native one-letter monograms. The photos represent fictional fixture identities only; they are not White Noise users. The user approved Unsplash photography for this internal prototype. The app performs no runtime fetching.
+The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter monograms. The photos represent fictional fixture identities only; they are not White Noise users. The user approved Unsplash photography for this internal prototype. The app performs no runtime fetching.
 
 | Asset | Fixture identity | Photographer | Unsplash source |
 | --- | --- | --- | --- |
@@ -86,8 +126,14 @@ The list mixes 14 locally bundled Unsplash portraits with seven native one-lette
 ## Apple references
 
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
-- [List](https://developer.apple.com/documentation/swiftui/list)
-- [Displaying data in lists](https://developer.apple.com/documentation/swiftui/displaying-data-in-lists)
+- [UICollectionLayoutListConfiguration](https://developer.apple.com/documentation/uikit/uicollectionlayoutlistconfiguration)
+- [UIHostingConfiguration](https://developer.apple.com/documentation/swiftui/uihostingconfiguration)
+- [UIContextualAction](https://developer.apple.com/documentation/uikit/uicontextualaction)
+- [UISwipeActionsConfiguration](https://developer.apple.com/documentation/uikit/uiswipeactionsconfiguration)
+- [UICellConfigurationState](https://developer.apple.com/documentation/uikit/uicellconfigurationstate)
+- [UIAlertController](https://developer.apple.com/documentation/uikit/uialertcontroller)
+- [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars)
+- [Action sheets](https://developer.apple.com/design/human-interface-guidelines/action-sheets)
 - [badge(_:)](https://developer.apple.com/documentation/swiftui/view/badge(_:))
 - [BadgeProminence](https://developer.apple.com/documentation/swiftui/badgeprominence)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
@@ -97,9 +143,16 @@ The list mixes 14 locally bundled Unsplash portraits with seven native one-lette
 
 ## Acceptance
 
-- The populated account displays 23 active and 4 archived conversations.
+- The populated account displays 23 nonarchived and 4 archived conversations.
 - Unread and Archived show correct deterministic subsets without adding scope titles.
+- Unread shows a native bottom-leading **Read All** action while unread chats remain; activating it clears every active unread state and reveals **No Unread Chats** without an empty bottom-bar strip.
 - Search filters the selected scope and restores the existing native no-results state when empty.
+- Read/Unread, Mute/Unmute, Archive/Unarchive, Leave, and Delete all mutate the visible deterministic state and remain correct in Chats, Unread, Archived, and Search.
+- Mute presents all five durations; choosing one displays the mute symbol, and Unmute removes it.
+- Leave and Delete require explicit confirmation and Cancel leaves the chat unchanged.
+- Opening Mute, Leave, or Delete keeps the originating swipe actions revealed and dimmed behind the native dialog.
+- Leading and trailing swipes retain the rounded adaptive gray row container and vertically centered system action symbols.
+- A left or removed chat shows the correct system preview and ended-membership symbol, then exposes Archive/Unarchive and Delete instead of Mute or Leave.
 - Rows use 56-point avatars, one-letter monograms, no separators, no chevrons, and support two-line previews while scrolling.
 - Every message preview uses the same regular secondary text style.
 - Numeric unread, mute, draft, and failed states are visibly distinct.
@@ -110,4 +163,4 @@ The list mixes 14 locally bundled Unsplash portraits with seven native one-lette
 - The active list contains all ten documented attachment-preview treatments.
 - Both onboarding paths open the populated account.
 - Empty profile previews remain directly inspectable.
-- No swipe actions, bulk editing, account switching, refresh control, or conversation destination is introduced.
+- No bulk editing, account switching, refresh control, or conversation destination is introduced.

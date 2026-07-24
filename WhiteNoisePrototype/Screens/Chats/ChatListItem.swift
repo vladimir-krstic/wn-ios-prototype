@@ -6,6 +6,39 @@ struct ChatListItem: Identifiable {
         case monogram(String)
     }
 
+    enum MembershipState: Equatable {
+        case active
+        case left
+        case removed
+    }
+
+    enum MuteDuration: String, CaseIterable, Identifiable {
+        case oneHour
+        case eightHours
+        case oneDay
+        case oneWeek
+        case always
+
+        var id: Self {
+            self
+        }
+
+        var title: String {
+            switch self {
+            case .oneHour:
+                "1 Hour"
+            case .eightHours:
+                "8 Hours"
+            case .oneDay:
+                "1 Day"
+            case .oneWeek:
+                "1 Week"
+            case .always:
+                "Always"
+            }
+        }
+    }
+
     enum DeliveryState {
         case none
         case failed
@@ -81,11 +114,13 @@ struct ChatListItem: Identifiable {
     let previewAuthor: String?
     let attachmentPreview: AttachmentPreview?
     let timestamp: String
-    let isArchived: Bool
-    let unreadCount: Int
-    let isMuted: Bool
+    var membershipState: MembershipState
+    var isArchived: Bool
+    var unreadCount: Int
+    var isMarkedUnread: Bool
+    var muteDuration: MuteDuration?
     let isDraft: Bool
-    let deliveryState: DeliveryState
+    var deliveryState: DeliveryState
 
     init(
         id: String,
@@ -95,8 +130,10 @@ struct ChatListItem: Identifiable {
         previewAuthor: String? = nil,
         attachmentPreview: AttachmentPreview? = nil,
         timestamp: String,
+        membershipState: MembershipState = .active,
         isArchived: Bool,
         unreadCount: Int,
+        isMarkedUnread: Bool = false,
         isMuted: Bool,
         isDraft: Bool,
         deliveryState: DeliveryState
@@ -108,21 +145,35 @@ struct ChatListItem: Identifiable {
         self.previewAuthor = previewAuthor
         self.attachmentPreview = attachmentPreview
         self.timestamp = timestamp
+        self.membershipState = membershipState
         self.isArchived = isArchived
         self.unreadCount = unreadCount
-        self.isMuted = isMuted
+        self.isMarkedUnread = isMarkedUnread
+        self.muteDuration = isMuted ? .always : nil
         self.isDraft = isDraft
         self.deliveryState = deliveryState
     }
 
     var isUnread: Bool {
-        unreadCount > 0
+        unreadCount > 0 || isMarkedUnread
+    }
+
+    var isMuted: Bool {
+        muteDuration != nil
+    }
+
+    var hasEndedMembership: Bool {
+        membershipState != .active
+    }
+
+    var visiblePreviewAuthor: String? {
+        hasEndedMembership ? nil : previewAuthor
     }
 
     var searchablePreview: String {
         let content = visiblePreview
 
-        if let previewAuthor {
+        if let previewAuthor = visiblePreviewAuthor {
             return "\(previewAuthor): \(content)"
         } else {
             return content
@@ -130,10 +181,19 @@ struct ChatListItem: Identifiable {
     }
 
     var visiblePreview: String {
+        switch membershipState {
+        case .left:
+            return "You left this chat."
+        case .removed:
+            return "You were removed from this chat."
+        case .active:
+            break
+        }
+
         if preview.isEmpty, let attachmentPreview {
-            attachmentPreview.label
+            return attachmentPreview.label
         } else {
-            preview
+            return preview
         }
     }
 }
@@ -166,6 +226,18 @@ enum ChatListFixtures {
             deliveryState: .none
         ),
         ChatListItem(
+            id: "mina-park",
+            title: "Mina Park",
+            avatar: .asset("AvatarMinaPark"),
+            preview: "Let’s pick this up after lunch",
+            timestamp: "4m",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: false,
+            isDraft: true,
+            deliveryState: .none
+        ),
+        ChatListItem(
             id: "elias-moreno",
             title: "Elias Moreno",
             avatar: .asset("AvatarEliasMoreno"),
@@ -189,18 +261,6 @@ enum ChatListFixtures {
             unreadCount: 128,
             isMuted: true,
             isDraft: false,
-            deliveryState: .none
-        ),
-        ChatListItem(
-            id: "mina-park",
-            title: "Mina Park",
-            avatar: .asset("AvatarMinaPark"),
-            preview: "Let’s pick this up after lunch",
-            timestamp: "10:42",
-            isArchived: false,
-            unreadCount: 0,
-            isMuted: false,
-            isDraft: true,
             deliveryState: .none
         ),
         ChatListItem(
@@ -288,9 +348,10 @@ enum ChatListFixtures {
             preview: "I’ll lock up when I leave.",
             previewAuthor: "Remy",
             timestamp: "7/16/26",
+            membershipState: .removed,
             isArchived: false,
             unreadCount: 0,
-            isMuted: true,
+            isMuted: false,
             isDraft: false,
             deliveryState: .none
         ),

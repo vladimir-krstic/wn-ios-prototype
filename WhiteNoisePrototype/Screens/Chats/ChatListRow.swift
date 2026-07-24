@@ -23,6 +23,17 @@ struct ChatListRow: View {
                             .accessibilityLabel("Muted")
                     }
 
+                    if chat.hasEndedMembership {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(
+                                chat.membershipState == .left
+                                    ? "Left chat"
+                                    : "Removed from chat"
+                            )
+                    }
+
                     Spacer(minLength: 8)
 
                     Text(chat.timestamp)
@@ -73,9 +84,9 @@ struct ChatListRow: View {
     }
 
     private var preview: Text {
-        if chat.isDraft {
+        if chat.isDraft && !chat.hasEndedMembership {
             Text("Draft: \(chat.visiblePreview)")
-        } else if let previewAuthor = chat.previewAuthor {
+        } else if let previewAuthor = chat.visiblePreviewAuthor {
             Text(
                 "\(Text("\(previewAuthor): ").bold())\(previewContent)"
             )
@@ -114,6 +125,8 @@ struct ChatListRow: View {
 
             if chat.unreadCount > 0 {
                 unreadBadge
+            } else if chat.isMarkedUnread {
+                unreadDot
             }
         }
         .frame(minHeight: Self.statusRegion)
@@ -141,5 +154,15 @@ struct ChatListRow: View {
         chat.unreadCount > 99
             ? "99+"
             : chat.unreadCount.formatted(.number.grouping(.never))
+    }
+
+    private var unreadDot: some View {
+        Circle()
+            .fill(Color("AccentColor"))
+            .frame(
+                width: Self.statusRegion,
+                height: Self.statusRegion
+            )
+            .accessibilityLabel("Unread")
     }
 }

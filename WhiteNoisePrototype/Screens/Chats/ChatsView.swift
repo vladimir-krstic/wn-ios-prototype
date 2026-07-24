@@ -33,13 +33,13 @@ struct ChatsView: View {
         }
     }
 
+    @State private var chats: [ChatListItem]
     @State private var scope = ChatScope.all
     @State private var searchText = ""
     @State private var isSearchMounted = false
     @State private var isSearchPresented = false
     @FocusState private var isSearchFocused: Bool
 
-    let chats: [ChatListItem]
     let onNewMessage: () -> Void
 
     init(
@@ -48,8 +48,8 @@ struct ChatsView: View {
         initialSearchText: String = "",
         onNewMessage: @escaping () -> Void
     ) {
-        self.chats = chats
         self.onNewMessage = onNewMessage
+        _chats = State(initialValue: chats)
         _scope = State(initialValue: initialScope)
         _searchText = State(initialValue: initialSearchText)
     }
@@ -63,11 +63,18 @@ struct ChatsView: View {
                     Text(emptyDescription)
                 }
             } else {
-                List(visibleChats) { chat in
-                    ChatListRow(chat: chat)
-                }
-                .listStyle(.plain)
-                .scrollIndicators(.hidden)
+                NativeChatList(
+                    chats: visibleChats,
+                    actions: NativeChatList.Actions(
+                        markRead: markChatRead,
+                        markUnread: markChatUnread,
+                        mute: muteChat,
+                        unmute: unmuteChat,
+                        toggleArchive: toggleArchive,
+                        leave: leaveChat,
+                        delete: deleteChat
+                    )
+                )
             }
         }
         .navigationTitle("")
@@ -118,7 +125,91 @@ struct ChatsView: View {
                 }
                 .buttonStyle(.glassProminent)
             }
+
+            if readAllIsVisible {
+                ToolbarItem(placement: .bottomBar) {
+                    Button("Read All", action: markAllChatsRead)
+                }
+
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+            }
         }
+        .toolbar(
+            readAllIsVisible ? .visible : .hidden,
+            for: .bottomBar
+        )
+    }
+
+    private func markChatRead(_ id: String) {
+        updateChat(id: id) { chat in
+            chat.unreadCount = 0
+            chat.isMarkedUnread = false
+        }
+    }
+
+    private func markAllChatsRead() {
+        for index in chats.indices
+        where !chats[index].isArchived && chats[index].isUnread {
+            chats[index].unreadCount = 0
+            chats[index].isMarkedUnread = false
+        }
+    }
+
+    private func markChatUnread(_ id: String) {
+        updateChat(id: id) { chat in
+            chat.unreadCount = 0
+            chat.isMarkedUnread = true
+        }
+    }
+
+    private func muteChat(
+        _ id: String,
+        _ duration: ChatListItem.MuteDuration
+    ) {
+        updateChat(id: id) { chat in
+            chat.muteDuration = duration
+        }
+    }
+
+    private func unmuteChat(_ id: String) {
+        updateChat(id: id) { chat in
+            chat.muteDuration = nil
+        }
+    }
+
+    private func toggleArchive(_ id: String) {
+        updateChat(id: id) { chat in
+            chat.isArchived.toggle()
+        }
+    }
+
+    private func leaveChat(_ id: String) {
+        updateChat(id: id) { chat in
+            chat.membershipState = .left
+            chat.unreadCount = 0
+            chat.isMarkedUnread = false
+            chat.muteDuration = nil
+            chat.deliveryState = .none
+        }
+    }
+
+    private func deleteChat(_ id: String) {
+        chats.removeAll { chat in
+            chat.id == id
+        }
+    }
+
+    private func updateChat(
+        id: String,
+        mutation: (inout ChatListItem) -> Void
+    ) {
+        guard let index = chats.firstIndex(where: { chat in
+            chat.id == id
+        }) else {
+            return
+        }
+
+        mutation(&chats[index])
     }
 
     private var visibleChats: [ChatListItem] {
@@ -148,6 +239,16 @@ struct ChatsView: View {
                 options: [.caseInsensitive, .diacriticInsensitive]
             ) != nil
         }
+    }
+
+    private var hasUnreadChats: Bool {
+        chats.contains { chat in
+            !chat.isArchived && chat.isUnread
+        }
+    }
+
+    private var readAllIsVisible: Bool {
+        scope == .unread && hasUnreadChats
     }
 
     private var filterMenu: some View {
