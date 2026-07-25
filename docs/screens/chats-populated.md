@@ -26,6 +26,8 @@ Show a deterministic populated Chats destination after either onboarding path. T
 ## Native components
 
 - A public UIKit list built with `UICollectionLayoutListConfiguration` owns scrolling, safe-area behavior, row placement, swipe geometry, system motion, dimming, and the system background. Its visible scroll indicator and separators are hidden.
+- The collection view extends beneath the stationary top toolbar while UIKit’s automatic safe-area inset keeps resting content unobscured. At the exact resting top offset the scroll-edge effect is hidden. Once content moves beneath the controls, UIKit’s native hard top scroll-edge effect becomes visible and creates the more opaque, clearly defined toolbar boundary. Returning fully to the top hides it again. The system owns its material and boundary; the app reads the native adjusted content offset and adds no custom gradient, blur, separator, animation, or fixed top padding.
+- The collection view extends its system background beneath the device’s bottom safe area, matching native full-screen lists. UIKit continues to adjust scroll content so the final row remains reachable above the Home indicator; no separate bottom strip is reserved.
 - `UIHostingConfiguration` hosts the existing SwiftUI conversation-row composition inside each native list cell.
 - Each conversation row is composed from native `Image`, `Text`, `Circle`, and SF Symbols because SwiftUI does not provide a stock Messages conversation row.
 - The approved row avatar is a 56-point circle containing either a bundled photorealistic fictional portrait or a one-letter native monogram. SwiftUI has no stock avatar control or avatar size variants; 56 points is the user-approved custom list metric.
@@ -36,7 +38,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - Public `UIContextualAction` and `UISwipeActionsConfiguration` own the swipe actions. Their completion handler is deliberately deferred while Mute, Leave, or Delete is presented, which keeps the row revealed beneath the system dimming treatment.
 - While a row is swiped, public `UICellConfigurationState.isSwiped` applies the adaptive `secondarySystemFill` background as a capsule derived from the current cell height. Contextual actions show system SF Symbols without visible text so UIKit centers each action in the row; their action and image accessibility labels retain the command names.
 - Native `UIAlertController` action sheets own the Signal-derived mute duration picker and the destructive Leave and Delete confirmations. The sheet is anchored to the originating contextual action with no popover arrow; no custom modal, pointer, dimming layer, or transition is drawn by the app.
-- A native bottom-bar `Button` presents **Read All** at the leading edge only while the Unread scope contains unread chats. The bottom bar is explicitly hidden otherwise so Chats, Archived, and the completed Unread empty state reserve no empty strip. The system toolbar owns the button’s Liquid Glass capsule, spacing, safe-area placement, hit target, and feedback.
+- A native bottom-bar `Button` presents **Read All** at the leading edge only while the Unread scope contains unread chats. Outside that state, the bottom toolbar modifier is not installed at all, so Chats, Archived, and the completed Unread empty state cannot reserve an invisible toolbar strip. The system toolbar owns the button’s Liquid Glass capsule, spacing, safe-area placement, hit target, and feedback.
 - The existing native search, menu, Picker, toolbar grouping, Liquid Glass, and prominent New Message action remain unchanged.
 
 ## Deterministic data and behavior
@@ -127,6 +129,12 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
 - [UICollectionLayoutListConfiguration](https://developer.apple.com/documentation/uikit/uicollectionlayoutlistconfiguration)
+- [UIScrollView topEdgeEffect](https://developer.apple.com/documentation/uikit/uiscrollview/topedgeeffect)
+- [UIScrollEdgeEffect.Style.hard](https://developer.apple.com/documentation/uikit/uiscrolledgeeffect/style-swift.class/hard)
+- [UIScrollEdgeEffect isHidden](https://developer.apple.com/documentation/uikit/uiscrolledgeeffect/ishidden)
+- [UIScrollViewDelegate](https://developer.apple.com/documentation/uikit/uiscrollviewdelegate)
+- [UIScrollView contentInsetAdjustmentBehavior](https://developer.apple.com/documentation/uikit/uiscrollview/contentinsetadjustmentbehavior-swift.property)
+- [SwiftUI ignoresSafeArea](https://developer.apple.com/documentation/swiftui/view/ignoressafearea(_:edges:))
 - [UIHostingConfiguration](https://developer.apple.com/documentation/swiftui/uihostingconfiguration)
 - [UIContextualAction](https://developer.apple.com/documentation/uikit/uicontextualaction)
 - [UISwipeActionsConfiguration](https://developer.apple.com/documentation/uikit/uiswipeactionsconfiguration)
@@ -154,6 +162,8 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 - Leading and trailing swipes retain the rounded adaptive gray row container and vertically centered system action symbols.
 - A left or removed chat shows the correct system preview and ended-membership symbol, then exposes Archive/Unarchive and Delete instead of Mute or Leave.
 - Rows use 56-point avatars, one-letter monograms, no separators, no chevrons, and support two-line previews while scrolling.
+- At rest the top toolbar has no hard container boundary. Scrolling rows beneath it reveals Apple’s native hard glass container, and returning fully to the top removes it again.
+- The list fills the viewport through the bottom device safe area without leaving a separate white strip beneath its final visible row.
 - Every message preview uses the same regular secondary text style.
 - Numeric unread, mute, draft, and failed states are visibly distinct.
 - Single-digit Unread and Failed appear optically equal in the shared status region.

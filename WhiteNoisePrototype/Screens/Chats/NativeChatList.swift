@@ -43,6 +43,10 @@ struct NativeChatList: UIViewRepresentable {
         )
         collectionView.backgroundColor = .systemBackground
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.contentInsetAdjustmentBehavior = .always
+        collectionView.topEdgeEffect.style = .hard
+        collectionView.topEdgeEffect.isHidden = true
+        collectionView.delegate = context.coordinator
 
         context.coordinator.configureDataSource(
             for: collectionView
@@ -61,7 +65,10 @@ struct NativeChatList: UIViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, UIAdaptivePresentationControllerDelegate {
+    final class Coordinator: NSObject,
+        UICollectionViewDelegate,
+        UIAdaptivePresentationControllerDelegate
+    {
         private enum Section {
             case main
         }
@@ -74,6 +81,16 @@ struct NativeChatList: UIViewRepresentable {
 
         init(parent: NativeChatList) {
             self.parent = parent
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            updateTopEdgeEffectVisibility(in: scrollView)
+        }
+
+        func scrollViewDidChangeAdjustedContentInset(
+            _ scrollView: UIScrollView
+        ) {
+            updateTopEdgeEffectVisibility(in: scrollView)
         }
 
         func configureDataSource(
@@ -409,6 +426,14 @@ struct NativeChatList: UIViewRepresentable {
             let completion = pendingCompletion
             pendingCompletion = nil
             completion?(performed)
+        }
+
+        private func updateTopEdgeEffectVisibility(
+            in scrollView: UIScrollView
+        ) {
+            let restingOffset = -scrollView.adjustedContentInset.top
+            scrollView.topEdgeEffect.isHidden =
+                scrollView.contentOffset.y <= restingOffset
         }
 
         private func contextualAction(

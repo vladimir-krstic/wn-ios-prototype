@@ -75,6 +75,10 @@ struct ChatsView: View {
                         delete: deleteChat
                     )
                 )
+                .ignoresSafeArea(
+                    .container,
+                    edges: [.top, .bottom]
+                )
             }
         }
         .navigationTitle("")
@@ -126,17 +130,12 @@ struct ChatsView: View {
                 .buttonStyle(.glassProminent)
             }
 
-            if readAllIsVisible {
-                ToolbarItem(placement: .bottomBar) {
-                    Button("Read All", action: markAllChatsRead)
-                }
-
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-            }
         }
-        .toolbar(
-            readAllIsVisible ? .visible : .hidden,
-            for: .bottomBar
+        .modifier(
+            ReadAllBottomBar(
+                isVisible: readAllIsVisible,
+                action: markAllChatsRead
+            )
         )
     }
 
@@ -317,6 +316,27 @@ struct ChatsView: View {
         }
 
         return scope.symbol
+    }
+}
+
+private struct ReadAllBottomBar: ViewModifier {
+    let isVisible: Bool
+    let action: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isVisible {
+            content
+                .toolbar {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button("Read All", action: action)
+                    }
+
+                    ToolbarSpacer(.flexible, placement: .bottomBar)
+                }
+        } else {
+            content
+        }
     }
 }
 
