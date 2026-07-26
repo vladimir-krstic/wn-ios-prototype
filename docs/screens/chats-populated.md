@@ -2,12 +2,13 @@
 
 ## Purpose and navigation
 
-Show a deterministic populated Chats destination after either onboarding path. The profile avatar, New Message action, and conversation destinations remain reserved for later screens. Rows support native swipe actions but do not navigate until the conversation screen is built.
+Show a deterministic populated Chats destination after either onboarding path. The profile avatar opens Settings; New Message and conversation destinations remain reserved for later screens. Rows support native swipe actions but do not navigate until the conversation screen is built.
 
 ## Copy
 
 - Search prompt: **Search Chats**
-- Filter choices: **Chats**, **Unread**, **Archived**
+- Filter choices: **Chats**, **Unread**, **Archived**, **Left**
+- Selected Filter labels: **Unread**, **Archived**, **Left**
 - Unread bulk action: **Read All**
 - Leading swipe actions: **Read**, **Unread**
 - Trailing swipe actions: **Mute**, **Unmute**, **Archive**, **Unarchive**, **Leave**, **Delete**
@@ -39,7 +40,9 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - While a row is swiped, public `UICellConfigurationState.isSwiped` applies the adaptive `secondarySystemFill` background as a capsule derived from the current cell height. Contextual actions show system SF Symbols without visible text so UIKit centers each action in the row; their action and image accessibility labels retain the command names.
 - Native `UIAlertController` action sheets own the Signal-derived mute duration picker and the destructive Leave and Delete confirmations. The sheet is anchored to the originating contextual action with no popover arrow; no custom modal, pointer, dimming layer, or transition is drawn by the app.
 - A native bottom-bar `Button` presents **Read All** at the leading edge only while the Unread scope contains unread chats. Outside that state, the bottom toolbar modifier is not installed at all, so Chats, Archived, and the completed Unread empty state cannot reserve an invisible toolbar strip. The system toolbar owns the button’s Liquid Glass capsule, spacing, safe-area placement, hit target, and feedback.
-- The existing native search, menu, Picker, toolbar grouping, Liquid Glass, and prominent New Message action remain unchanged.
+- The existing native search, menu, and Picker remain unchanged. Filter, Search, and New Message share one system Liquid Glass toolbar group; New Message uses the default toolbar treatment rather than a separate prominent tint.
+- The navigation toolbar remains titleless. The Filter Menu is icon-only in Chats and uses the compact adaptive symbol-plus-text selected label defined in `chats-empty.md` for Unread, Archived, and Left. No separate list header or dismissible chip is introduced.
+- The leading profile avatar is a native `NavigationLink` to Settings, allowing SwiftUI’s navigation stack to own both the Back button and interactive swipe-back lifecycle. Its avatar-specific button style returns the system link label without transient dimming so the approved monogram remains full contrast throughout the transition.
 
 ## Deterministic data and behavior
 
@@ -47,8 +50,9 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - Chats contains nonarchived conversations, including retained read-only history after a person leaves or is removed. Archived conversations appear only in the separate Archived scope.
 - Unread contains nonarchived conversations with an unread count or a manual unread reminder.
 - Archived contains archived conversations, including one archived conversation that retains unread state without appearing in Unread.
+- Left contains nonarchived retained history after the person leaves or is removed. Archiving a retained chat moves it from Left to Archived.
 - Search matches title and preview within the selected scope, ignoring case and diacritics.
-- Swipe mutations update the same in-memory collection used by Chats, Unread, Archived, and Search, so every filtered projection stays consistent.
+- Swipe mutations update the same in-memory collection used by Chats, Unread, Archived, Left, and Search, so every filtered projection stays consistent.
 - **Read All** clears every nonarchived unread count and manual unread marker, including matches outside an active search query. The Unread scope then resolves to its existing **No Unread Chats** state.
 - Fixture order, names, previews, timestamps, and status values never use randomness or the current clock.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
@@ -59,7 +63,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 
 - Leading swipe toggles Read and Unread. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 22-point monochrome badge with no number.
 - An active row in Chats or Unread exposes Mute/Unmute, Archive, and Leave. Leave applies to both named one-to-one chats and groups because both use White Noise membership.
-- An inactive retained row in Chats exposes Archive and Delete; it no longer exposes Mute, Unmute, or Leave.
+- An inactive retained row in Chats or Left exposes Archive and Delete; it no longer exposes Mute, Unmute, or Leave.
 - An active row in Archived exposes Unarchive and Leave. An inactive row in Archived exposes Unarchive and Delete. Archived rows never expose Mute or Unmute.
 - Muting opens **Mute Notifications** with Signal’s current duration set: 1 hour, 8 hours, 1 day, 1 week, and Always. Unmute applies immediately.
 - Archive and Unarchive apply immediately and move the row between the native filtered projections. Existing mute state is preserved while archived and returns if the chat is restored.
@@ -152,10 +156,10 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 ## Acceptance
 
 - The populated account displays 23 nonarchived and 4 archived conversations.
-- Unread and Archived show correct deterministic subsets without adding scope titles.
+- Unread, Archived, and Left show correct deterministic subsets and identify their scope inside the Filter Menu label; Chats uses the plain icon-only Filter label.
 - Unread shows a native bottom-leading **Read All** action while unread chats remain; activating it clears every active unread state and reveals **No Unread Chats** without an empty bottom-bar strip.
 - Search filters the selected scope and restores the existing native no-results state when empty.
-- Read/Unread, Mute/Unmute, Archive/Unarchive, Leave, and Delete all mutate the visible deterministic state and remain correct in Chats, Unread, Archived, and Search.
+- Read/Unread, Mute/Unmute, Archive/Unarchive, Leave, and Delete all mutate the visible deterministic state and remain correct in Chats, Unread, Archived, Left, and Search.
 - Mute presents all five durations; choosing one displays the mute symbol, and Unmute removes it.
 - Leave and Delete require explicit confirmation and Cancel leaves the chat unchanged.
 - Opening Mute, Leave, or Delete keeps the originating swipe actions revealed and dimmed behind the native dialog.
@@ -163,6 +167,7 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 - A left or removed chat shows the correct system preview and ended-membership symbol, then exposes Archive/Unarchive and Delete instead of Mute or Leave.
 - Rows use 56-point avatars, one-letter monograms, no separators, no chevrons, and support two-line previews while scrolling.
 - At rest the top toolbar has no hard container boundary. Scrolling rows beneath it reveals Apple’s native hard glass container, and returning fully to the top removes it again.
+- Returning from Settings by either the Back button or the interactive swipe gesture restores the profile avatar at full contrast without retaining a pressed or disabled state.
 - The list fills the viewport through the bottom device safe area without leaving a separate white strip beneath its final visible row.
 - Every message preview uses the same regular secondary text style.
 - Numeric unread, mute, draft, and failed states are visibly distinct.

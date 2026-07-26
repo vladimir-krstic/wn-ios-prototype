@@ -7,31 +7,34 @@ Show the main Chats destination when the current profile has no chats. The profi
 ## Copy
 
 - Default navigation title: none
+- Selected Filter labels: **Unread**, **Archived**, **Left**
 - Chats empty title: **No Chats**
 - Chats description: **Start a new chat to send a message.**
 - Unread empty title: **No Unread Chats**
 - Unread description: **You’re all caught up.**
 - Archived empty title: **No Archived Chats**
 - Archived description: **Chats you archive will appear here.**
+- Left empty title: **No Left Chats**
+- Left description: **Chats you leave or are removed from will appear here.**
 - Search prompt: **Search Chats**
 - Search empty title: **No Results**
 - Search empty description: **Check the spelling or try a different search.**
-- Filter choices: **Chats**, **Unread**, **Archived**
+- Filter choices: **Chats**, **Unread**, **Archived**, **Left**
 - Actions: **Profile**, **Search Chats**, **Filter Chats**, **New Message**
 
 ## Native components
 
-- `NavigationStack` without a visible navigation title.
-- `ContentUnavailableView` with the current scope’s SF Symbol: `bubble.left.and.bubble.right`, `message.badge`, or `archivebox`.
+- `NavigationStack` without a visible navigation title in any scope.
+- `ContentUnavailableView` with the current scope’s SF Symbol: `bubble.left.and.bubble.right`, `message.badge`, `archivebox`, or `rectangle.portrait.and.arrow.right`.
 - Native `.searchable` presentation triggered by the Search toolbar button.
-- `ToolbarItemGroup` containing Filter first and Search second.
+- One `ToolbarItemGroup` containing Filter, Search, and New Message in that order.
 - A native `Picker` inside the menu with SF Symbols for every scope and the system checkmark on the selected scope.
-- The Filter label always occupies one stable 34-point layout region. Its 36-point artwork receives a seven-point leading optical offset so the selected circle has visually even top, bottom, and leading insets. Unread and Archived place the plain `line.3.horizontal.decrease` symbol over the adaptive `AccentColor` circle.
+- In Chats, the native Filter `Menu` uses an icon-only `line.3.horizontal.decrease` label with no selected fill. In Unread, Archived, and Left, the same Menu label becomes a compact selected capsule inside the shared toolbar group: the filter SF Symbol appears first and the scope text appears second.
+- The selected Menu artwork has a user-approved 34-point height and ten-point trailing internal inset. Its background extends five points into the Menu item's otherwise empty leading inset, leaving the same five-point visible gap found above and below the capsule inside the 44-point toolbar control. It uses the adaptive app accent as its background and `systemBackground` as its foreground, producing black with white content in Light Mode and white with black content in Dark Mode. The native Menu and toolbar continue to own the interaction target, glass container, menu presentation, remaining outer item padding, and motion.
 - The Filter menu’s disclosure indicator is hidden so SwiftUI does not reserve unused trailing space beside the icon-only label.
-- `ToolbarSpacer(.fixed)` to separate the grouped utilities from New Message.
-- A `glassProminent` New Message button using `plus.bubble`.
+- A default toolbar New Message button using `plus.bubble`, sharing the group’s system Liquid Glass background without a prominent tint.
 - System-provided toolbar Liquid Glass, spacing, hit regions, menus, search motion, typography, and materials.
-- One approved custom profile element: the 44-point **M** monogram avatar. `sharedBackgroundVisibility(.hidden)` keeps it outside Liquid Glass while matching the native controls’ row size. Its future Settings destination is out of scope.
+- One approved custom profile element: the 44-point **M** monogram avatar. A native `NavigationLink` owns its interaction and opens Settings. Its avatar-specific button style preserves the approved full-contrast artwork during the interactive navigation transition instead of applying a transient dimmed label treatment. `sharedBackgroundVisibility(.hidden)` keeps the avatar outside Liquid Glass while matching the native controls’ row size.
 
 ## Important behavior
 
@@ -40,13 +43,15 @@ Show the main Chats destination when the current profile has no chats. The profi
 - In populated rows, the avatar is vertically centered against the complete text block; title and timestamp share the top row; unread and failure indicators align to the top of the preview row so they track its first line even when the preview wraps.
 - Group senders and **You:** use the emphasized variant of Apple’s semantic `subheadline` while the message remains Regular. The entire preview retains the same secondary color and Dynamic Type behavior.
 - Attachment previews use one baseline-aligned SF Symbol plus concise text, all inheriting the same semantic `subheadline`, secondary color, and Dynamic Type behavior. The deterministic active list covers Photo, multiple Photos, Video, Voice message, File, Location, Contact, Link, GIF, and Sticker. No icon receives a custom frame or point size.
-- Chats, Unread, and Archived update the empty-state copy.
+- Chats, Unread, Archived, and Left update the empty-state copy.
 - Each scope’s empty state uses the same SF Symbol as its filter-menu choice.
-- Filter and Search remain inside one shared Liquid Glass capsule in every scope, with no capsule resizing between states. Filtered scope is communicated by the selected Filter artwork, the menu checkmark, and the empty-state copy rather than a navigation title.
-- Filter menu icons are `bubble.left.and.bubble.right` for Chats, `message.badge` for Unread, and `archivebox` for Archived.
+- Filter, Search, and New Message remain inside one shared Liquid Glass capsule in every scope, with no prominent black New Message treatment. The toolbar remains titleless and no separate filter title or chip is inserted into the list.
+- Selecting **Chats** in the native Filter menu clears Unread, Archived, or Left without clearing an active search query.
+- List geometry is identical in every scope. At rest there is no extra header surface; Apple’s hard top scroll-edge treatment appears only when rows move under the toolbar.
+- Filter menu icons are `bubble.left.and.bubble.right` for Chats, `message.badge` for Unread, `archivebox` for Archived, and `rectangle.portrait.and.arrow.right` for Left.
 - A nonempty search query shows the search-specific empty state.
-- The profile avatar is intentionally noninteractive until Settings is built. New Message exposes a callback whose destination is deferred.
-- The toolbar contains one utility glass group and one visually separated prominent action.
+- The profile avatar opens Settings through native stack navigation. Both the Back button and interactive swipe-back return to the same enabled avatar appearance. New Message exposes a callback whose destination is deferred.
+- The toolbar contains one unified trailing glass group so the three chat-level actions read as a quiet, related control cluster.
 
 ## Accessibility
 
@@ -78,11 +83,13 @@ Show the main Chats destination when the current profile has no chats. The profi
 ## Acceptance
 
 - The empty state is centered and entirely system laid out.
-- Search and Filter appear in one system Liquid Glass group with visually consistent leading, inter-item, and trailing insets.
-- The active Filter circle nearly fills its control region and never separates into its own toolbar item.
-- New Message is a separate prominent glass action at the trailing edge.
+- Filter, Search, and New Message appear in one system Liquid Glass group with visually consistent leading, inter-item, and trailing insets.
+- Chats uses the plain Filter glyph with no black selected background. Unread, Archived, and Left show their name and Filter glyph on one compact adaptive selected capsule inside the same shared toolbar group.
+- New Message uses the same default toolbar treatment as Filter and Search and remains the trailing action inside their shared pill.
 - The profile avatar appears independently at the leading edge, without Liquid Glass, and matches the controls’ 44-point row size.
-- The top row remains title-free in every scope.
+- Tapping the profile avatar pushes Settings, and completing an interactive swipe-back restores the avatar without a stale pressed or disabled appearance.
+- The toolbar remains title-free in every scope and the list never receives a separate filter header or dismissible chip.
+- Selecting Chats in the Filter menu returns to the unfiltered scope.
 - Search presents and focuses the native field, opens the keyboard, and filters the current scope; Filter shows icons and a checked native menu choice.
 - No custom toolbar capsule, glass material, empty-state layout, menu, search field, or motion is implemented.
-- The stable 34-point label region, 36-point selected artwork, and optical leading offset are the approved custom exception required to reproduce the grouped selected-control treatment.
+- The selected Filter label’s 34-point height, ten-point trailing internal inset, five-point leading background extension, semantic capsule fill, and symbol-plus-text composition are the approved custom exception required to communicate the selected scope with even visible insets without separating the control from its native toolbar group.

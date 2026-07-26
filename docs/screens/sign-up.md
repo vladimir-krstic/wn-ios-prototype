@@ -2,7 +2,7 @@
 
 ## Purpose and navigation
 
-Create a new White Noise profile. **Sign Up** is pushed from Welcome and uses the native navigation bar and Back behavior.
+Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a native large sheet. Add Profile pushes it inside the existing onboarding sheet.
 
 ## Copy
 
@@ -20,7 +20,8 @@ Create a new White Noise profile. **Sign Up** is pushed from Welcome and uses th
 
 ## Native components
 
-- `NavigationStack` push navigation from Welcome.
+- A first-launch native large sheet with visible drag indicator and a native Close toolbar action.
+- Add Profile keeps native Back behavior inside its existing sheet.
 - Circular SwiftUI avatar preview with the first name initial or the selected image.
 - Native `Menu` for the compact source choice.
 - `PhotosPicker` limited to images.
@@ -30,7 +31,8 @@ Create a new White Noise profile. **Sign Up** is pushed from Welcome and uses th
 - Semantic system fill distinguishes the grouped cards from the white canvas while native Form geometry owns their shape and insets.
 - Native `glass` avatar action and `glassProminent` primary action.
 - Native small `ProgressView` centered inside the primary action while signing up.
-- The shared primary-action content follows the adaptive monochrome tint: white title or spinner on the black Light Mode button, and black title or spinner on the white Dark Mode button. Native `glassProminent` continues to own enabled and disabled styling.
+- Enabled primary-action content follows the adaptive monochrome tint: white title or spinner on the black Light Mode button, and black title or spinner on the white Dark Mode button.
+- If this shared control enters a disabled environment, its content returns to semantic `primary` and lets native `glassProminent` own the disabled material and reduced prominence.
 
 ## Important behavior
 
@@ -45,7 +47,7 @@ Create a new White Noise profile. **Sign Up** is pushed from Welcome and uses th
 - The avatar remains visually floating in a transparent Form row above the fields.
 - Photos and Files present their system interfaces. No camera or broad photo-library permission is requested.
 - Sign Up preserves its normal dimensions, replaces its visible title with a centered spinner, prevents repeat activation, and exposes **Signing Up** and **In progress** to assistive technologies before invoking its callback.
-- The deterministic prototype processing state lasts four seconds so the stable loading treatment is easy to inspect.
+- The deterministic prototype processing state lasts two seconds so the stable loading treatment remains inspectable without slowing the flow.
 - The primary action's post-sign-up destination is intentionally deferred until that destination is selected for implementation.
 
 ## Accessibility
@@ -68,7 +70,8 @@ Create a new White Noise profile. **Sign Up** is pushed from Welcome and uses th
 
 ## Acceptance
 
-- **Sign Up** on Welcome pushes this screen and native Back returns without custom navigation chrome.
+- **Sign Up** on Welcome presents a native large sheet; Close or swipe-down returns to Welcome.
+- **Sign Up** from Add Profile remains in the existing large onboarding sheet and native Back returns to its Welcome step.
 - The default avatar shows **M** for **Mochi**.
 - The avatar action is visually compact and clearly separated from the avatar.
 - Sign Up uses the same white system canvas as Welcome.
@@ -77,6 +80,6 @@ Create a new White Noise profile. **Sign Up** is pushed from Welcome and uses th
 - **Add Photo** opens a menu with working Photos and Files choices.
 - Choosing a supported image previews it; removing it restores the current name initial.
 - The bottom **Sign Up** action remains visible above the safe area and keyboard.
-- Sign Up shows a centered native spinner for four seconds without changing button dimensions or losing contrast.
+- Sign Up shows a centered native spinner for two seconds without changing button dimensions or losing contrast.
 - In Light Mode the prominent action has white content on black; in Dark Mode it has black content on white, including normal and loading states.
 - The layout remains usable in Light and Dark appearances and at accessibility text sizes.

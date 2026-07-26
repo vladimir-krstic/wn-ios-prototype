@@ -6,7 +6,7 @@ import UIKit
 struct SignUpView: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    @State private var name = "Mochi"
+    @State private var name: String
     @State private var about = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var avatarImage: UIImage?
@@ -17,7 +17,15 @@ struct SignUpView: View {
 
     @FocusState private var focusedField: Field?
 
-    let onSignUp: () -> Void
+    let onSignUp: (String) -> Void
+
+    init(
+        initialName: String = "Mochi",
+        onSignUp: @escaping (String) -> Void
+    ) {
+        _name = State(initialValue: initialName)
+        self.onSignUp = onSignUp
+    }
 
     private enum Field {
         case name
@@ -252,23 +260,25 @@ struct SignUpView: View {
         isSigningUp = true
 
         Task {
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(2))
             isSigningUp = false
-            onSignUp()
+            onSignUp(
+                name.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
         }
     }
 }
 
 #Preview("Sign Up — Light") {
     NavigationStack {
-        SignUpView(onSignUp: {})
+        SignUpView(onSignUp: { _ in })
     }
     .tint(Color("AccentColor"))
 }
 
 #Preview("Sign Up — Dark") {
     NavigationStack {
-        SignUpView(onSignUp: {})
+        SignUpView(onSignUp: { _ in })
     }
     .tint(Color("AccentColor"))
     .preferredColorScheme(.dark)

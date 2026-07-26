@@ -2,7 +2,7 @@
 
 ## Purpose and navigation
 
-Use an existing White Noise profile by entering its private key. **Sign In** on Welcome pushes this screen. The QR action pushes a native camera scanner and returns the scanned value to Sign In.
+Use an existing White Noise profile by entering its private key. **Sign In** on first-launch Welcome presents this screen in a native sheet. Add Profile pushes it inside the existing onboarding sheet. The QR action pushes a native camera scanner and returns the scanned value to Sign In.
 
 ## Copy
 
@@ -21,7 +21,8 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 
 ## Native components
 
-- `NavigationStack` push navigation and native Back behavior.
+- A first-launch native sheet starts at the medium detent, supports expansion to large, shows the system drag indicator, and uses a native Close toolbar action.
+- Add Profile keeps native Back behavior inside its existing sheet.
 - Native `SecureField` so the private key is never shown as plain text.
 - User-approved Login-specific SwiftUI composition using `secondarySystemFill`, native `Capsule`, system horizontal padding, and a 50-point height matching the accepted Sign Up field and large circular glass action.
 - SF Symbol buttons for Paste, Clear, and Scan QR Code.
@@ -29,7 +30,8 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - The separate circular `glass` action uses the large system control size. It displays Scan QR Code while an empty field is idle and Close while the field has keyboard focus.
 - Native `glassProminent` primary action.
 - Native small `ProgressView` centered inside the primary action while signing in.
-- The shared primary-action content follows the adaptive monochrome tint: white title or spinner on the black Light Mode button, and black title or spinner on the white Dark Mode button. Native `glassProminent` continues to own enabled and disabled styling.
+- Enabled primary-action content follows the adaptive monochrome tint: white title or spinner on the black Light Mode button, and black title or spinner on the white Dark Mode button.
+- Disabled content returns to semantic `primary` instead of retaining the enabled white override. Native `glassProminent` then owns the disabled material and reduced prominence, producing dark gray content against the Light Mode gray surface and light gray content against the Dark Mode surface.
 - VisionKit `DataScannerViewController` for QR scanning on supported iPhones.
 - Native `ContentUnavailableView` with a deterministic sample-code action when scanning is unavailable.
 
@@ -53,8 +55,9 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - Guidance and validation use native footnote typography with semantic secondary and error colors.
 - Sign In preserves its normal dimensions, replaces its visible title with a centered spinner, prevents repeat activation, and exposes **Signing In** and **In progress** to assistive technologies before invoking its callback.
 - While Sign In is processing, the entire field enters SwiftUI's native disabled environment so its native `SecureField` receives the system disabled appearance and interaction behavior; both its internal Paste or Clear action and its external Close or Scan action disappear.
-- The deterministic prototype processing state lasts four seconds so its stable spinner and disabled-field treatment are easy to inspect.
+- The deterministic prototype processing state lasts two seconds so its stable spinner and disabled-field treatment remain easy to inspect without slowing the flow.
 - A scanned QR payload returns to Sign In and is checked by the same prototype validator.
+- Opening QR Scanner expands a medium Sign In sheet to large. Returning to Sign In restores the medium detent, unless the person has manually expanded the direct sheet.
 
 ## Accessibility
 
@@ -83,7 +86,8 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 
 ## Acceptance
 
-- **Sign In** on Welcome pushes this screen and native Back returns to Welcome.
+- **Sign In** on Welcome presents a medium native sheet; Close or swipe-down returns to Welcome.
+- **Sign In** from Add Profile appears at the medium detent inside the existing onboarding sheet and native Back returns to its Welcome step.
 - The field label and helper or error copy align with the editable text inset.
 - Tapping the field focuses the native SecureField and opens the keyboard.
 - Empty and unfocused shows Paste and Scan QR Code; focused shows the outside Close action; populated and unfocused shows Clear without an outside action.
@@ -94,7 +98,8 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - The field is a 50-point filled capsule that visually belongs with the accepted Name/About fields and aligns with the circular QR action.
 - The trailing action never overlaps or obscures the secure value.
 - Sign In replaces its visible label with a centered native spinner without changing button dimensions or losing contrast.
-- In Light Mode the prominent action has white content on black; in Dark Mode it has black content on white, including normal, disabled, and loading states.
-- During the four-second processing state, the field uses SwiftUI's system disabled treatment, accepts no input, and shows no internal or external accessory actions.
+- In Light Mode the enabled action has white content on black; in Dark Mode it has black content on white. The disabled Sign In action uses semantic label color with the native disabled glass treatment instead of white text on light gray.
+- During the two-second processing state, the field uses SwiftUI's system disabled treatment, accepts no input, and shows no internal or external accessory actions.
 - Scan QR Code pushes the scanner screen and a scanned or sample payload returns to Sign In.
 - The screen uses the same white onboarding canvas as Sign Up.
+- The medium detent removes the unused full-screen whitespace while preserving room for keyboard presentation; no custom fitted height or handmade modal surface is used.

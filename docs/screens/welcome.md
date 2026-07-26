@@ -2,7 +2,7 @@
 
 ## Purpose and navigation
 
-First-launch entry screen. It presents the White Noise mark and two choices. **Sign In** opens the existing-profile flow; **Sign Up** opens profile creation.
+First-launch entry screen. It presents the White Noise mark and two choices. **Sign In** and **Sign Up** open bounded native sheets while Welcome remains visible beneath the modal presentation.
 
 ## Copy
 
@@ -13,7 +13,8 @@ First-launch entry screen. It presents the White Noise mark and two choices. **S
 
 ## Native components
 
-- `NavigationStack` at the app root for future push navigation.
+- `NavigationStack` at the app root.
+- Native SwiftUI `sheet` presentation for Sign In and Sign Up.
 - Native SwiftUI `Button` controls.
 - `glass` for **Sign In** and `glassProminent` for **Sign Up**.
 - Flexible extra-large system button sizing.
@@ -27,7 +28,9 @@ First-launch entry screen. It presents the White Noise mark and two choices. **S
 - Light appearance uses a black mark and black prominent glass with white text.
 - Dark appearance uses a white mark and white prominent glass with black text.
 - The mark occupies one-half of the available width, exactly 25% less than the previous two-thirds treatment.
-- Buttons expose closures now and will receive destinations only when those screens are selected.
+- Sign In opens at the native medium detent with a visible drag indicator and can expand to large.
+- Sign Up opens at the native large detent because profile setup contains a scrolling Form and system pickers.
+- Both sheets use a native icon-only Close toolbar action and swipe-down dismissal.
 
 ## Accessibility
 
@@ -47,6 +50,7 @@ First-launch entry screen. It presents the White Noise mark and two choices. **S
 - Welcome launches without a blank frame.
 - The only visible product content is the adaptive White Noise mark, **Sign In**, and **Sign Up**.
 - **Sign In** is visually secondary; **Sign Up** is visually primary.
+- Each action presents its corresponding native sheet without replacing Welcome in the root navigation stack.
 - Both buttons use native Liquid Glass styling and fill the available width within system margins.
 - The primary action preserves strong monochrome contrast in both appearances.
 - The adaptive mark occupies one-half of the available width.

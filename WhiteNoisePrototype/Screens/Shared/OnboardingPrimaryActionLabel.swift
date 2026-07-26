@@ -3,12 +3,17 @@ import UIKit
 
 struct OnboardingPrimaryActionLabel: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
 
     let title: LocalizedStringKey
     let isLoading: Bool
 
     private var contentColor: Color {
-        colorScheme == .dark ? .black : .white
+        guard isEnabled else {
+            return .primary
+        }
+
+        return colorScheme == .dark ? .black : .white
     }
 
     var body: some View {

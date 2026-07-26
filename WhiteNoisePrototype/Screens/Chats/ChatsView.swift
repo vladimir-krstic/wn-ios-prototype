@@ -1,10 +1,11 @@
 import SwiftUI
 
-struct ChatsView: View {
+struct ChatsView<SettingsDestination: View>: View {
     enum ChatScope: String, CaseIterable, Identifiable {
         case all
         case unread
         case archived
+        case left
 
         var id: Self {
             self
@@ -18,6 +19,8 @@ struct ChatsView: View {
                 "Unread"
             case .archived:
                 "Archived"
+            case .left:
+                "Left"
             }
         }
 
@@ -29,6 +32,8 @@ struct ChatsView: View {
                 "message.badge"
             case .archived:
                 "archivebox"
+            case .left:
+                "rectangle.portrait.and.arrow.right"
             }
         }
     }
@@ -40,14 +45,20 @@ struct ChatsView: View {
     @State private var isSearchPresented = false
     @FocusState private var isSearchFocused: Bool
 
+    let profileInitial: String
+    let settingsDestination: SettingsDestination
     let onNewMessage: () -> Void
 
     init(
         chats: [ChatListItem],
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
+        profileInitial: String = "M",
+        @ViewBuilder settingsDestination: () -> SettingsDestination,
         onNewMessage: @escaping () -> Void
     ) {
+        self.profileInitial = profileInitial
+        self.settingsDestination = settingsDestination()
         self.onNewMessage = onNewMessage
         _chats = State(initialValue: chats)
         _scope = State(initialValue: initialScope)
@@ -55,32 +66,11 @@ struct ChatsView: View {
     }
 
     var body: some View {
-        Group {
-            if visibleChats.isEmpty {
-                ContentUnavailableView {
-                    Label(emptyTitle, systemImage: emptySymbol)
-                } description: {
-                    Text(emptyDescription)
-                }
-            } else {
-                NativeChatList(
-                    chats: visibleChats,
-                    actions: NativeChatList.Actions(
-                        markRead: markChatRead,
-                        markUnread: markChatUnread,
-                        mute: muteChat,
-                        unmute: unmuteChat,
-                        toggleArchive: toggleArchive,
-                        leave: leaveChat,
-                        delete: deleteChat
-                    )
-                )
-                .ignoresSafeArea(
-                    .container,
-                    edges: [.top, .bottom]
-                )
-            }
-        }
+        chatContent
+            .ignoresSafeArea(
+                .container,
+                edges: [.top, .bottom]
+            )
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .modifier(
@@ -93,16 +83,7 @@ struct ChatsView: View {
         )
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                ZStack {
-                    Circle()
-                        .fill(.primary)
-
-                    Text("M")
-                        .font(.headline)
-                        .foregroundStyle(.background)
-                }
-                .frame(width: 44, height: 44)
-                .accessibilityLabel("Profile")
+                profileNavigationLink
             }
             .sharedBackgroundVisibility(.hidden)
 
@@ -115,11 +96,7 @@ struct ChatsView: View {
                     Label("Search Chats", systemImage: "magnifyingglass")
                         .labelStyle(.iconOnly)
                 }
-            }
 
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
-
-            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: onNewMessage) {
                     Label(
                         "New Message",
@@ -127,7 +104,6 @@ struct ChatsView: View {
                     )
                     .labelStyle(.iconOnly)
                 }
-                .buttonStyle(.glassProminent)
             }
 
         }
@@ -137,6 +113,51 @@ struct ChatsView: View {
                 action: markAllChatsRead
             )
         )
+    }
+
+    @ViewBuilder
+    private var chatContent: some View {
+        ZStack {
+            NativeChatList(
+                chats: visibleChats,
+                actions: NativeChatList.Actions(
+                    markRead: markChatRead,
+                    markUnread: markChatUnread,
+                    mute: muteChat,
+                    unmute: unmuteChat,
+                    toggleArchive: toggleArchive,
+                    leave: leaveChat,
+                    delete: deleteChat
+                )
+            )
+
+            if visibleChats.isEmpty {
+                ContentUnavailableView {
+                    Label(emptyTitle, systemImage: emptySymbol)
+                } description: {
+                    Text(emptyDescription)
+                }
+                .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private var profileNavigationLink: some View {
+        NavigationLink {
+            settingsDestination
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(.primary)
+
+                Text(profileInitial)
+                    .font(.headline)
+                    .foregroundStyle(.background)
+            }
+            .frame(width: 44, height: 44)
+        }
+        .buttonStyle(ProfileAvatarNavigationStyle())
+        .accessibilityLabel("Profile")
     }
 
     private func markChatRead(_ id: String) {
@@ -220,6 +241,8 @@ struct ChatsView: View {
                 !chat.isArchived && chat.isUnread
             case .archived:
                 chat.isArchived
+            case .left:
+                !chat.isArchived && chat.hasEndedMembership
             }
         }
 
@@ -259,25 +282,34 @@ struct ChatsView: View {
                 }
             }
         } label: {
-            ZStack {
-                Circle()
-                    .fill(Color("AccentColor"))
-                    .opacity(scope == .all ? 0 : 1)
-
-                Image(systemName: "line.3.horizontal.decrease")
-                    .foregroundStyle(
-                        scope == .all
-                            ? Color.primary
-                            : Color(uiColor: .systemBackground)
-                    )
-            }
-            .frame(width: 36, height: 36)
-            .offset(x: -7)
-            .frame(width: 34, height: 34)
+            filterMenuLabel
             .accessibilityLabel("Filter Chats")
         }
         .menuIndicator(.hidden)
         .accessibilityValue(scope.title)
+    }
+
+    @ViewBuilder
+    private var filterMenuLabel: some View {
+        if scope == .all {
+            Image(systemName: "line.3.horizontal.decrease")
+                .frame(width: 34, height: 34)
+        } else {
+            HStack {
+                Image(systemName: "line.3.horizontal.decrease")
+
+                Text(scope.title)
+            }
+            .font(.subheadline)
+            .foregroundStyle(Color(uiColor: .systemBackground))
+            .padding(.trailing, 10)
+            .frame(height: 34)
+            .background {
+                Capsule()
+                    .fill(Color("AccentColor"))
+                    .padding(.leading, -5)
+            }
+        }
     }
 
     private var emptyTitle: LocalizedStringKey {
@@ -292,6 +324,8 @@ struct ChatsView: View {
             "No Unread Chats"
         case .archived:
             "No Archived Chats"
+        case .left:
+            "No Left Chats"
         }
     }
 
@@ -307,6 +341,8 @@ struct ChatsView: View {
             "You’re all caught up."
         case .archived:
             "Chats you archive will appear here."
+        case .left:
+            "Chats you leave or are removed from will appear here."
         }
     }
 
@@ -316,6 +352,33 @@ struct ChatsView: View {
         }
 
         return scope.symbol
+    }
+}
+
+private struct ProfileAvatarNavigationStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
+}
+
+extension ChatsView where SettingsDestination == EmptyView {
+    init(
+        chats: [ChatListItem],
+        initialScope: ChatScope = .all,
+        initialSearchText: String = "",
+        profileInitial: String = "M",
+        onNewMessage: @escaping () -> Void
+    ) {
+        self.init(
+            chats: chats,
+            initialScope: initialScope,
+            initialSearchText: initialSearchText,
+            profileInitial: profileInitial,
+            settingsDestination: {
+                EmptyView()
+            },
+            onNewMessage: onNewMessage
+        )
     }
 }
 
@@ -405,6 +468,28 @@ private struct OnDemandChatSearch: ViewModifier {
         ChatsView(
             chats: ChatListFixtures.empty,
             initialScope: .archived,
+            onNewMessage: {}
+        )
+    }
+    .tint(Color("AccentColor"))
+}
+
+#Preview("Chats — Left") {
+    NavigationStack {
+        ChatsView(
+            chats: ChatListFixtures.populated,
+            initialScope: .left,
+            onNewMessage: {}
+        )
+    }
+    .tint(Color("AccentColor"))
+}
+
+#Preview("Chats — Empty Left") {
+    NavigationStack {
+        ChatsView(
+            chats: ChatListFixtures.empty,
+            initialScope: .left,
             onNewMessage: {}
         )
     }

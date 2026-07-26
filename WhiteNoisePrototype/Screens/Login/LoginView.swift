@@ -16,7 +16,16 @@ struct LoginView: View {
         SimulatedQRScanOutcome.wrongContent
     @FocusState private var isKeyFocused: Bool
 
+    let onScannerPresentationChange: (Bool) -> Void
     let onSignIn: () -> Void
+
+    init(
+        onScannerPresentationChange: @escaping (Bool) -> Void = { _ in },
+        onSignIn: @escaping () -> Void
+    ) {
+        self.onScannerPresentationChange = onScannerPresentationChange
+        self.onSignIn = onSignIn
+    }
 
     private enum KeyState {
         case empty
@@ -136,6 +145,9 @@ struct LoginView: View {
                 )
             }
         }
+        .onChange(of: isShowingScanner) {
+            onScannerPresentationChange(isShowingScanner)
+        }
         .background(.background)
     }
 
@@ -156,7 +168,7 @@ struct LoginView: View {
         isSigningIn = true
 
         Task {
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(2))
             isSigningIn = false
             onSignIn()
         }

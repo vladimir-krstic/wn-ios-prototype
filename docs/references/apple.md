@@ -21,6 +21,22 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [What’s new in SwiftUI](https://developer.apple.com/videos/play/wwdc2026/269/) — current SwiftUI capabilities and visual-system changes.
 - [Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) — system-first adoption guidance.
 - [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack) — native stack navigation.
+- [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink) — native value-driven destination navigation.
+- [Form](https://developer.apple.com/documentation/swiftui/form) — native grouped settings and data-entry container.
+- [Settings HIG](https://developer.apple.com/design/human-interface-guidelines/settings) — settings hierarchy, system preference respect, and app-specific configuration guidance.
+- [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink) — native system sharing from Share Profile.
+- [Sheets HIG](https://developer.apple.com/design/human-interface-guidelines/sheets) — scoped modal tasks and resizable iPhone sheet behavior.
+- [presentationDetents](https://developer.apple.com/documentation/swiftui/view/presentationdetents(_:)) — native medium and large sheet heights.
+- [PresentationContentInteraction](https://developer.apple.com/documentation/swiftui/presentationcontentinteraction) — native control over whether sheet gestures prioritize scrolling or resizing.
+- [Presentation modifiers](https://developer.apple.com/documentation/swiftui/view-presentation) — sheet backgrounds, sizing, detents, and interaction configuration.
+- [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:)) — places a stationary action beside scrollable content and extends the system scroll-edge effect to match.
+- [ScrollEdgeEffectStyle](https://developer.apple.com/documentation/swiftui/scrolledgeeffectstyle) — native hard, soft, or automatic transitions between scrolling content and stationary controls.
+- [systemGray5](https://developer.apple.com/documentation/uikit/uicolor/systemgray5) — opaque adaptive gray for the profile-stack overflow indicator.
+- [GlassButtonStyle](https://developer.apple.com/documentation/swiftui/glassbuttonstyle) — native secondary Liquid Glass button presentation and interaction.
+- [GlassProminentButtonStyle](https://developer.apple.com/documentation/swiftui/glassprominentbuttonstyle) — native prominent Liquid Glass action presentation and interaction.
+- [Button](https://developer.apple.com/documentation/swiftui/button) — native activation, feedback, accessibility, and keyboard behavior.
+- [ButtonBorderShape](https://developer.apple.com/documentation/swiftui/buttonbordershape) — system-owned capsule and rounded button geometry.
+- [Core Image QR code generator](https://developer.apple.com/documentation/coreimage/cifilter/qrcodegenerator()) — deterministic local QR image generation.
 - [DataScannerViewController](https://developer.apple.com/documentation/visionkit/datascannerviewcontroller) — native live camera scanning for QR codes.
 - [Scanning data with the camera](https://developer.apple.com/documentation/visionkit/scanning-data-with-the-camera) — VisionKit guidance, highlighting, availability, and recognized-item handling.
 - [Camera authorization](https://developer.apple.com/documentation/avfoundation/requesting-authorization-to-capture-and-save-media) — system camera permission state and request behavior.
@@ -36,6 +52,15 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [Lists and tables HIG](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) — native list hierarchy, row content, disclosure, and interaction guidance.
 - [List](https://developer.apple.com/documentation/swiftui/list) — native single-column row presentation, scrolling, separators, and selection behavior.
 - [Displaying data in lists](https://developer.apple.com/documentation/swiftui/displaying-data-in-lists) — SwiftUI list composition and hierarchical navigation patterns.
+- [Picker](https://developer.apple.com/documentation/swiftui/picker) — native single-choice settings and selection presentation.
+- [Toggle](https://developer.apple.com/documentation/swiftui/toggle) — native binary preference controls and accessibility behavior.
+- [TextField](https://developer.apple.com/documentation/swiftui/textfield) — native editable text entry.
+- [SecureField](https://developer.apple.com/documentation/swiftui/securefield) — native obscured text entry for backup-password prototypes.
+- [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker) — privacy-preserving system photo selection.
+- [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:)) — system file selection.
+- [ProgressView](https://developer.apple.com/documentation/swiftui/progressview) — determinate and indeterminate progress feedback.
+- [Alerts HIG](https://developer.apple.com/design/human-interface-guidelines/alerts) — concise warnings, confirmations, and destructive consequences.
+- [confirmationDialog](https://developer.apple.com/documentation/swiftui/view/confirmationdialog(_:ispresented:titlevisibility:presenting:actions:message:)) — native action-sheet confirmation behavior.
 
 ## Accessibility
 
