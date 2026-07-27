@@ -18,6 +18,7 @@ Build a polished native iPhone prototype quickly, one user-agreed screen or tigh
 - Use Xcode 27 beta, SwiftUI, public Apple APIs, iOS 27, iPhone only, and portrait only.
 - Do not add backend, networking, Nostr, Marmot, Rust, real authentication, cryptography, Keychain, LocalAuthentication, UserDefaults, databases, or third-party runtime dependencies.
 - Keep prototype state in memory and deterministic when a screen needs state.
+- Product-surface copy must be production-ready. Never expose prototype, simulation, fixture, dummy-data, or implementation-boundary language outside development-only surfaces.
 - Never edit `../whitenoise-ios` or `../wn-ios-agile`.
 - Use native SwiftUI/UIKit components, SF Symbols, semantic typography, system spacing, system colors, native navigation, and system motion whenever an equivalent exists.
 - Let standard Apple controls own typography, control height, padding, shape, material, spacing, and motion. Use safe areas, system margins, default spacing, and semantic values instead of copying numeric recipes; add explicit sizing only for a user-approved custom brand element recorded in the current screen brief.

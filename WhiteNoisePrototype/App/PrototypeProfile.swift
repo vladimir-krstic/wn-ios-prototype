@@ -66,6 +66,10 @@ extension PrototypeProfile {
         named: "ProfileAvatarMarmota"
     )?.pngData()
 
+    private static func avatarData(named assetName: String) -> Data? {
+        UIImage(named: assetName)?.jpegData(compressionQuality: 0.9)
+    }
+
     static let marmota = PrototypeProfile(
         id: "marmota",
         name: "Marmota",
@@ -77,10 +81,11 @@ extension PrototypeProfile {
         chats: ChatListFixtures.populated
     )
 
-    static let quietOtter = PrototypeProfile(
-        id: "quiet-otter",
-        name: "Quiet Otter",
+    static let quietCurrent = PrototypeProfile(
+        id: "quiet-current",
+        name: "Quiet Current",
         publicKey: "npub1q2v9n6t4r7c3x8m5k2w9p6s4y7h3d8f5j2a9e6u4z7n1m2d9",
+        avatarData: avatarData(named: "ProfileAvatarQuietCurrent"),
         chats: ChatListFixtures.empty
     )
 
@@ -92,38 +97,35 @@ extension PrototypeProfile {
         chats: ChatListFixtures.empty
     )
 
-    static let silverFinch = PrototypeProfile(
-        id: "silver-finch",
-        name: "Silver Finch",
+    static let silverFern = PrototypeProfile(
+        id: "silver-fern",
+        name: "Silver Fern",
         publicKey: "npub1s4h8c2y7v5m9r3t6p1w8d4n7x2j5a9e3u6z8q4k7c2m1f3k8",
+        avatarData: avatarData(named: "ProfileAvatarSilverFern"),
         chats: ChatListFixtures.empty
     )
 
-    static let nightOwl = PrototypeProfile(
-        id: "night-owl",
-        name: "Night Owl",
+    static let nightArchive = PrototypeProfile(
+        id: "night-archive",
+        name: "Night Archive",
         publicKey: "npub1n7d2p5x9v4c8m3t6y1s7h5k2j9a4e8u3z6q1r7w5f2m9w6r4",
+        avatarData: avatarData(named: "ProfileAvatarNightArchive"),
         chats: ChatListFixtures.empty
     )
 
-    static let cloudFox = PrototypeProfile(
-        id: "cloud-fox",
-        name: "Cloud Fox",
+    static let amberSignal = PrototypeProfile(
+        id: "amber-signal",
+        name: "Amber Signal",
         publicKey: "npub1c9m4v7q2r8t5y3p6s1h9d4n7x2j5a8e3u6z1k4w7f9m2x9q2",
+        avatarData: avatarData(named: "ProfileAvatarAmberSignal"),
         chats: ChatListFixtures.empty
     )
 
-    static let tinySparrow = PrototypeProfile(
-        id: "tiny-sparrow",
-        name: "Tiny Sparrow",
+    static let tidalEcho = PrototypeProfile(
+        id: "tidal-echo",
+        name: "Tidal Echo",
         publicKey: "npub1t3r8k6z2v9c5m7y4p1s8h3d6n9x2j5a7e4u8q6w3f9k1s4m7",
-        chats: ChatListFixtures.empty
-    )
-
-    static let softBadger = PrototypeProfile(
-        id: "soft-badger",
-        name: "Soft Badger",
-        publicKey: "npub1b5w2n9h7v4c8m3t6y1p5s2d9x4j8a3e6u1z7q5r2k9m8b8n5",
+        avatarData: avatarData(named: "ProfileAvatarTidalEcho"),
         chats: ChatListFixtures.empty
     )
 
@@ -145,13 +147,20 @@ extension PrototypeProfile {
         .marmota,
     ]
 
+    static let showcasePseudonyms: [PrototypeProfile] = [
+        .quietCurrent,
+        .silverFern,
+        .nightArchive,
+        .amberSignal,
+        .tidalEcho,
+    ]
+
     static let multipleProfileFixtures: [PrototypeProfile] = [
         .marmota,
-        .quietOtter,
-        .silverFinch,
-        .nightOwl,
-        .cloudFox,
-        .tinySparrow,
-        .softBadger,
-    ]
+    ] + showcasePseudonyms
+
+    static let postAddProfileFixtures: [PrototypeProfile] = [
+        .signedUp(name: "Pebble"),
+        .marmota,
+    ] + showcasePseudonyms
 }

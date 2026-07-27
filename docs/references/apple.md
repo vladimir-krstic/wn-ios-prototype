@@ -53,6 +53,10 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [Lists and tables HIG](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) — native list hierarchy, row content, disclosure, and interaction guidance.
 - [List](https://developer.apple.com/documentation/swiftui/list) — native single-column row presentation, scrolling, separators, and selection behavior.
 - [Displaying data in lists](https://developer.apple.com/documentation/swiftui/displaying-data-in-lists) — SwiftUI list composition and hierarchical navigation patterns.
+- [EditButton](https://developer.apple.com/documentation/swiftui/editbutton) — native list editing control that enters and exits the environment edit mode.
+- [EditMode](https://developer.apple.com/documentation/swiftui/editmode) — environment state for native list deletion and editing behavior.
+- [LabeledContent](https://developer.apple.com/documentation/swiftui/labeledcontent) — native alignment for descriptive labels and trailing values or statuses.
+- [ControlSize](https://developer.apple.com/documentation/swiftui/controlsize) — semantic control sizing; regular is the default and small is reserved for space-constrained controls.
 - [Picker](https://developer.apple.com/documentation/swiftui/picker) — native single-choice settings and selection presentation.
 - [Toggle](https://developer.apple.com/documentation/swiftui/toggle) — native binary preference controls and accessibility behavior.
 - [TextField](https://developer.apple.com/documentation/swiftui/textfield) — native editable text entry.

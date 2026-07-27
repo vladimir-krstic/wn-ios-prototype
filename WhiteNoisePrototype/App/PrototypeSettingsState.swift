@@ -25,10 +25,7 @@ struct PrototypeSettingsState {
     var anonymousTelemetry = false
     var auditLogging = false
 
-    var relays = [
-        "wss://relay.whitenoise.example",
-        "wss://inbox.whitenoise.example",
-    ]
+    var relays = PrototypeRelay.fixtures
 
     var developerMode = false
     var streamingDebug = false
@@ -155,6 +152,104 @@ enum PrototypeAutoLock: String, CaseIterable, Identifiable {
     case fifteenMinutes = "After 15 Minutes"
 
     var id: Self { self }
+}
+
+enum PrototypeRelayConnectionState: Hashable {
+    case connected
+    case reconnecting
+    case disconnected
+}
+
+enum PrototypeRelayCapability: Equatable {
+    case readWrite
+    case readOnly
+}
+
+enum PrototypeRelayUsage: String, CaseIterable, Identifiable {
+    case publishing = "Publishing"
+    case mentions = "Mentions"
+    case messages = "Messages"
+
+    var id: Self { self }
+
+    var explanation: String {
+        switch self {
+        case .publishing:
+            "Sends your profile information."
+        case .mentions:
+            "Tells people where to send mentions of your profile."
+        case .messages:
+            "Receives your private messages."
+        }
+    }
+}
+
+struct PrototypeRelay: Identifiable, Equatable {
+    let id: String
+    var displayName: String
+    var url: String
+    var capability: PrototypeRelayCapability
+    var connectionState: PrototypeRelayConnectionState
+    var usages: Set<PrototypeRelayUsage>
+
+    static let fixtures = [
+        PrototypeRelay(
+            id: "primal",
+            displayName: "Primal",
+            url: "wss://relay.primal.net",
+            capability: .readWrite,
+            connectionState: .connected,
+            usages: [.publishing, .mentions, .messages]
+        ),
+        PrototypeRelay(
+            id: "damus",
+            displayName: "Damus",
+            url: "wss://relay.damus.io",
+            capability: .readWrite,
+            connectionState: .connected,
+            usages: [.publishing, .mentions]
+        ),
+        PrototypeRelay(
+            id: "nos-lol",
+            displayName: "nos.lol",
+            url: "wss://nos.lol",
+            capability: .readWrite,
+            connectionState: .connected,
+            usages: [.publishing, .mentions, .messages]
+        ),
+        PrototypeRelay(
+            id: "nostr-band",
+            displayName: "Nostr.Band",
+            url: "wss://relay.nostr.band",
+            capability: .readWrite,
+            connectionState: .connected,
+            usages: [.mentions]
+        ),
+        PrototypeRelay(
+            id: "vertex",
+            displayName: "Vertex",
+            url: "wss://relay.vertexlab.io",
+            capability: .readOnly,
+            connectionState: .connected,
+            usages: []
+        ),
+        PrototypeRelay(
+            id: "white-noise-profile",
+            displayName: "White Noise Profile",
+            url: "wss://relay.whitenoise.chat",
+            capability: .readWrite,
+            connectionState: .reconnecting,
+            usages: [.publishing, .mentions]
+        ),
+        PrototypeRelay(
+            id: "white-noise-inbox",
+            displayName: "White Noise Inbox",
+            url: "wss://inbox.whitenoise.chat",
+            capability: .readWrite,
+            connectionState: .disconnected,
+            usages: [.messages]
+        ),
+    ]
 }
 
 struct PrototypeKeyPackage: Identifiable, Equatable {

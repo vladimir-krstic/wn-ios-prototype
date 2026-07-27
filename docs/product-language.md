@@ -8,6 +8,7 @@ Product UI is written for everyday people. Keep it calm, direct, concise, and sp
 - Name the action instead of the implementation.
 - Explain errors in human terms and offer a clear recovery.
 - Avoid protocol, relay, cryptography, fixture, scenario, and developer terminology in ordinary product UI.
+- Write ordinary product-surface copy as final production copy. Never mention prototypes, simulations, fixtures, dummy data, or implementation boundaries there; record those constraints in documentation or development-only surfaces.
 - Use sentence case. Avoid hype, jokes, blame, and unnecessary reassurance.
 
 ## Approved terms

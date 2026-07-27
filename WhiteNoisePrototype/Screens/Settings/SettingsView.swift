@@ -371,6 +371,11 @@ struct SettingsView: View {
             profiles.append(profile)
         }
 
+        for pseudonym in PrototypeProfile.showcasePseudonyms
+        where !profiles.contains(where: { $0.id == pseudonym.id }) {
+            profiles.append(pseudonym)
+        }
+
         activeProfileID = profile.id
         isShowingAddProfile = false
 
@@ -862,14 +867,15 @@ private struct SettingsPreviewHost: View {
 
 #Preview("Settings — Seven Profiles") {
     SettingsPreviewHost(
-        profiles: PrototypeProfile.multipleProfileFixtures
+        profiles: PrototypeProfile.postAddProfileFixtures,
+        activeProfileID: "added-profile"
     )
 }
 
 #Preview("Profile Switcher") {
     ProfileSwitcherSheet(
-        profiles: PrototypeProfile.multipleProfileFixtures,
-        activeProfileID: PrototypeProfile.marmota.id,
+        profiles: PrototypeProfile.postAddProfileFixtures,
+        activeProfileID: "added-profile",
         switchingProfileID: nil,
         onSelectProfile: { _ in },
         onAddProfile: {}
@@ -879,23 +885,23 @@ private struct SettingsPreviewHost: View {
 
 #Preview("Profile Switcher — Switching") {
     ProfileSwitcherSheet(
-        profiles: PrototypeProfile.multipleProfileFixtures,
-        activeProfileID: PrototypeProfile.marmota.id,
-        switchingProfileID: PrototypeProfile.quietOtter.id,
+        profiles: PrototypeProfile.postAddProfileFixtures,
+        activeProfileID: "added-profile",
+        switchingProfileID: PrototypeProfile.quietCurrent.id,
         onSelectProfile: { _ in },
         onAddProfile: {}
     )
     .tint(Color("AccentColor"))
 }
 
-#Preview("Settings — Quiet Otter") {
+#Preview("Settings — Quiet Current") {
     SettingsAlternateProfilePreview()
 }
 
 private struct SettingsAlternateProfilePreview: View {
     @State private var profiles =
         PrototypeProfile.multipleProfileFixtures
-    @State private var activeProfileID = PrototypeProfile.quietOtter.id
+    @State private var activeProfileID = PrototypeProfile.quietCurrent.id
     @State private var settings = PrototypeSettingsState()
 
     var body: some View {

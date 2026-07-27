@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct PrivacySecurityPrototypeView: View {
@@ -106,8 +107,8 @@ struct PrivacySecurityPrototypeView: View {
 
 struct RelaysPrototypeView: View {
     @Binding var settings: PrototypeSettingsState
-    @State private var pendingRelay = ""
-    @State private var saved = false
+    @Environment(\.editMode) private var editMode
+    @State private var isShowingAddRelay = false
 
     var body: some View {
         Form {
@@ -117,58 +118,35 @@ struct RelaysPrototypeView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                ForEach(settings.relays, id: \.self) { relay in
-                    Text(relay)
-                        .font(.body.monospaced())
+                ForEach(settings.relays) { relay in
+                    relayRow(relay)
+                        .deleteDisabled(!isEditing)
                 }
                 .onDelete(perform: deleteRelays)
 
-                HStack {
-                    TextField(
-                        "wss://relay.example.com",
-                        text: $pendingRelay
-                    )
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .font(.body.monospaced())
-
-                    Button(action: addRelay) {
-                        Label("Add Relay", systemImage: "plus.circle.fill")
-                            .labelStyle(.iconOnly)
+                if isEditing {
+                    Button {
+                        isShowingAddRelay = true
+                    } label: {
+                        Label("Add Relay", systemImage: "plus.circle")
                     }
-                    .disabled(!canAddRelay)
-                }
-
-                if saved {
-                    Label("Saved", systemImage: "checkmark.circle")
-                        .foregroundStyle(.green)
-                        .font(.callout)
                 }
             } header: {
                 Text("Profile Relays")
             } footer: {
                 Text(
-                    "White Noise uses these relays to find your profile and deliver messages."
+                    "Relays help White Noise find profiles and exchange messages."
                 )
             }
 
-            Section("Published Relay Lists") {
-                DisclosureGroup {
-                    relayRows
+            Section {
+                NavigationLink {
+                    AdvancedRelaysView(settings: $settings)
                 } label: {
-                    LabeledContent("Profile") {
-                        Text(settings.relays.count, format: .number)
-                    }
+                    Label("Advanced", systemImage: "slider.horizontal.3")
                 }
-
-                DisclosureGroup {
-                    relayRows
-                } label: {
-                    LabeledContent("Inbox") {
-                        Text(settings.relays.count, format: .number)
-                    }
-                }
+            } footer: {
+                Text("Choose how White Noise uses each relay.")
             }
         }
         .navigationTitle("Relays")
@@ -176,52 +154,287 @@ struct RelaysPrototypeView: View {
         .toolbar {
             EditButton()
         }
+        .sheet(isPresented: $isShowingAddRelay) {
+            AddRelaySheet(existingRelays: settings.relays) { url in
+                addRelay(url)
+            }
+            .presentationDetents([.medium])
+        }
     }
 
-    @ViewBuilder
-    private var relayRows: some View {
-        if settings.relays.isEmpty {
-            Text("Not published")
-                .foregroundStyle(.secondary)
+    private var isEditing: Bool {
+        editMode?.wrappedValue.isEditing == true
+    }
+
+    private func relayRow(_ relay: PrototypeRelay) -> some View {
+        LabeledContent {
+            RelayConnectionStatusView(state: relay.connectionState)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(relay.displayName)
+
+                Text(relayDisplayURL(relay))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(relay.displayName), \(relay.url)")
+        .accessibilityValue(relayAccessibilityValue(relay))
+    }
+
+    private func relayAccessibilityValue(_ relay: PrototypeRelay) -> String {
+        let status: String
+
+        switch relay.connectionState {
+        case .connected:
+            status = "Connected"
+        case .reconnecting:
+            status = "Reconnecting"
+        case .disconnected:
+            status = "Disconnected"
+        }
+
+        if relay.capability == .readOnly {
+            return "\(status), Read Only"
+        }
+
+        return status
+    }
+
+    private func relayDisplayURL(_ relay: PrototypeRelay) -> String {
+        if relay.capability == .readOnly {
+            return "\(relay.url) (Read Only)"
+        }
+
+        return relay.url
+    }
+
+    private func addRelay(_ url: String) {
+        let relayID = "custom-\(url.lowercased())"
+        let displayName = URL(string: url)?.host ?? "Custom Relay"
+
+        settings.relays.append(
+            PrototypeRelay(
+                id: relayID,
+                displayName: displayName,
+                url: url,
+                capability: .readWrite,
+                connectionState: .reconnecting,
+                usages: Set(PrototypeRelayUsage.allCases)
+            )
+        )
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+
+            guard let relayIndex = settings.relays.firstIndex(
+                where: { $0.id == relayID }
+            ) else {
+                return
+            }
+
+            withAnimation {
+                settings.relays[relayIndex].connectionState = .connected
+            }
+        }
+    }
+
+    private func deleteRelays(at offsets: IndexSet) {
+        settings.relays.remove(atOffsets: offsets)
+    }
+}
+
+private struct RelayConnectionStatusView: View {
+    let state: PrototypeRelayConnectionState
+
+    var body: some View {
+        Group {
+            switch state {
+            case .connected:
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+
+            case .reconnecting:
+                ProgressView()
+                    .controlSize(.regular)
+                    .tint(.secondary)
+
+            case .disconnected:
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+            }
+        }
+        .imageScale(.medium)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct AdvancedRelaysView: View {
+    @Binding var settings: PrototypeSettingsState
+
+    var body: some View {
+        Form {
+            ForEach(PrototypeRelayUsage.allCases) { usage in
+                Section {
+                    ForEach($settings.relays) { $relay in
+                        Button {
+                            toggleUsage(for: &relay, usage: usage)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(relay.displayName)
+                                        .foregroundStyle(.primary)
+
+                                    Text(relayDisplayURL(relay))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+
+                                Spacer()
+
+                                if relay.usages.contains(usage) {
+                                    Image(systemName: "checkmark")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        }
+                        .disabled(
+                            relay.capability == .readOnly
+                                || isOnlySelection(relay, for: usage)
+                        )
+                        .accessibilityValue(
+                            relay.usages.contains(usage)
+                                ? "Selected"
+                                : "Not selected"
+                        )
+                    }
+                } header: {
+                    Text(usage.rawValue)
+                } footer: {
+                    Text(
+                        "\(usage.explanation) Read-only relays can’t be selected. At least one relay must remain selected."
+                    )
+                }
+            }
+        }
+        .navigationTitle("Advanced")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func relayDisplayURL(_ relay: PrototypeRelay) -> String {
+        if relay.capability == .readOnly {
+            return "\(relay.url) (Read Only)"
+        }
+
+        return relay.url
+    }
+
+    private func isOnlySelection(
+        _ relay: PrototypeRelay,
+        for usage: PrototypeRelayUsage
+    ) -> Bool {
+        relay.usages.contains(usage)
+            && settings.relays.count { $0.usages.contains(usage) } == 1
+    }
+
+    private func toggleUsage(
+        for relay: inout PrototypeRelay,
+        usage: PrototypeRelayUsage
+    ) {
+        if relay.usages.contains(usage) {
+            relay.usages.remove(usage)
         } else {
-            ForEach(settings.relays, id: \.self) { relay in
-                Text(relay)
-                    .font(.caption.monospaced())
+            relay.usages.insert(usage)
+        }
+    }
+}
+
+private struct AddRelaySheet: View {
+    let existingRelays: [PrototypeRelay]
+    let onAdd: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var relayURL = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(
+                        "wss://relay.example.com",
+                        text: $relayURL
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                } header: {
+                    Text("Relay URL")
+                } footer: {
+                    Text("Enter a relay URL beginning with wss://.")
+                }
+            }
+            .navigationTitle("Add Relay")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        onAdd(normalizedRelayURL)
+                        dismiss()
+                    }
+                    .buttonStyle(.glassProminent)
+                    .disabled(!canAddRelay)
+                }
             }
         }
     }
 
     private var canAddRelay: Bool {
-        let relay = normalizedRelay
-        return relay.hasPrefix("wss://")
-            && !settings.relays.contains(relay)
-    }
-
-    private var normalizedRelay: String {
-        pendingRelay.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func addRelay() {
-        guard canAddRelay else {
-            return
+        guard
+            !normalizedRelayURL.contains(where: { $0.isWhitespace }),
+            let components = URLComponents(string: normalizedRelayURL),
+            components.scheme?.lowercased() == "wss",
+            components.host?.isEmpty == false
+        else {
+            return false
         }
 
-        settings.relays.append(normalizedRelay)
-        pendingRelay = ""
-        showSavedFeedback()
-    }
-
-    private func deleteRelays(at offsets: IndexSet) {
-        settings.relays.remove(atOffsets: offsets)
-        showSavedFeedback()
-    }
-
-    private func showSavedFeedback() {
-        saved = true
-        Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            saved = false
+        return !existingRelays.contains {
+            normalizedKey(for: $0.url) == normalizedKey(for: normalizedRelayURL)
         }
+    }
+
+    private var normalizedRelayURL: String {
+        var relay = relayURL.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        while relay.hasSuffix("/") {
+            relay.removeLast()
+        }
+
+        return relay
+    }
+
+    private func normalizedKey(for relay: String) -> String {
+        var key = relay.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        while key.hasSuffix("/") {
+            key.removeLast()
+        }
+
+        return key
     }
 }
 
@@ -239,4 +452,13 @@ struct RelaysPrototypeView: View {
     NavigationStack {
         RelaysPrototypeView(settings: $settings)
     }
+}
+
+#Preview("Relays — Edit") {
+    @Previewable @State var settings = PrototypeSettingsState()
+
+    NavigationStack {
+        RelaysPrototypeView(settings: $settings)
+    }
+    .environment(\.editMode, .constant(.active))
 }
