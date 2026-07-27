@@ -5,6 +5,7 @@ struct NativeChatList: UIViewRepresentable {
     struct Actions {
         let markRead: (String) -> Void
         let markUnread: (String) -> Void
+        let togglePinned: (String) -> Void
         let mute: (String, ChatListItem.MuteDuration) -> Void
         let unmute: (String) -> Void
         let toggleArchive: (String) -> Void
@@ -77,7 +78,11 @@ struct NativeChatList: UIViewRepresentable {
 
         private var dataSource:
             UICollectionViewDiffableDataSource<Section, String>?
+        private weak var collectionView: UICollectionView?
         private var pendingCompletion: ((Bool) -> Void)?
+        private var pendingSwipeClosedAction: (() -> Void)?
+        private var swipeStateDisplayLink: CADisplayLink?
+        private var displayedChatsByID: [String: ChatListItem] = [:]
 
         init(parent: NativeChatList) {
             self.parent = parent
@@ -96,6 +101,8 @@ struct NativeChatList: UIViewRepresentable {
         func configureDataSource(
             for collectionView: UICollectionView
         ) {
+            self.collectionView = collectionView
+
             let registration = UICollectionView.CellRegistration<
                 ChatListCell,
                 String
@@ -128,13 +135,97 @@ struct NativeChatList: UIViewRepresentable {
         }
 
         func applySnapshot(animated: Bool) {
+            guard let dataSource else {
+                return
+            }
+
+            let nextChatsByID = Dictionary(
+                uniqueKeysWithValues: parent.chats.map { chat in
+                    (chat.id, chat)
+                }
+            )
+            let currentSnapshot = dataSource.snapshot()
+            let currentIDs = currentSnapshot.itemIdentifiers
+            let nextIDs = parent.chats.map(\.id)
+            let changedIDs = nextIDs.filter { id in
+                guard
+                    currentIDs.contains(id),
+                    let displayedChat = displayedChatsByID[id],
+                    let nextChat = nextChatsByID[id]
+                else {
+                    return false
+                }
+
+                return displayedChat != nextChat
+            }
+            let pinChangedIDs = changedIDs.filter { id in
+                guard
+                    let displayedChat = displayedChatsByID[id],
+                    let nextChat = nextChatsByID[id]
+                else {
+                    return false
+                }
+
+                return displayedChat.isPinned != nextChat.isPinned
+            }
+            let isPinReorder =
+                !pinChangedIDs.isEmpty
+                && currentIDs.count == nextIDs.count
+                && Set(currentIDs) == Set(nextIDs)
+
             var snapshot = NSDiffableDataSourceSnapshot<Section, String>()
             snapshot.appendSections([.main])
-            snapshot.appendItems(parent.chats.map(\.id))
-            dataSource?.apply(
+            snapshot.appendItems(nextIDs)
+            displayedChatsByID = nextChatsByID
+
+            guard currentIDs != nextIDs else {
+                guard !changedIDs.isEmpty else {
+                    return
+                }
+
+                snapshot.reconfigureItems(changedIDs)
+                dataSource.apply(
+                    snapshot,
+                    animatingDifferences: false
+                )
+                return
+            }
+
+            if isPinReorder {
+                snapshot.reconfigureItems(changedIDs)
+                UIView.performWithoutAnimation {
+                    dataSource.applySnapshotUsingReloadData(snapshot)
+                    collectionView?.layoutIfNeeded()
+                }
+                return
+            }
+
+            dataSource.apply(
                 snapshot,
                 animatingDifferences: animated
-            )
+            ) { [weak dataSource] in
+                guard
+                    let dataSource,
+                    !changedIDs.isEmpty
+                else {
+                    return
+                }
+
+                var refreshSnapshot = dataSource.snapshot()
+                let visibleChangedIDs = changedIDs.filter {
+                    refreshSnapshot.indexOfItem($0) != nil
+                }
+
+                guard !visibleChangedIDs.isEmpty else {
+                    return
+                }
+
+                refreshSnapshot.reconfigureItems(visibleChangedIDs)
+                dataSource.apply(
+                    refreshSnapshot,
+                    animatingDifferences: false
+                )
+            }
         }
 
         func leadingActions(
@@ -144,9 +235,9 @@ struct NativeChatList: UIViewRepresentable {
                 return nil
             }
 
-            let action: UIContextualAction
+            let readAction: UIContextualAction
             if chat.isUnread {
-                action = contextualAction(
+                readAction = contextualAction(
                     title: "Read",
                     symbol: "message.fill",
                     color: .systemBlue
@@ -155,7 +246,7 @@ struct NativeChatList: UIViewRepresentable {
                     completion(true)
                 }
             } else if !chat.isArchived {
-                action = contextualAction(
+                readAction = contextualAction(
                     title: "Unread",
                     symbol: "message.badge",
                     color: .systemBlue
@@ -167,8 +258,13 @@ struct NativeChatList: UIViewRepresentable {
                 return nil
             }
 
+            var actions = [readAction]
+            if !chat.isArchived {
+                actions.append(pinAction(for: chat))
+            }
+
             let configuration = UISwipeActionsConfiguration(
-                actions: [action]
+                actions: actions
             )
             configuration.performsFirstActionWithFullSwipe = true
             return configuration
@@ -234,6 +330,27 @@ struct NativeChatList: UIViewRepresentable {
             ) { [weak self] completion in
                 self?.parent.actions.toggleArchive(chat.id)
                 completion(true)
+            }
+        }
+
+        private func pinAction(
+            for chat: ChatListItem
+        ) -> UIContextualAction {
+            contextualAction(
+                title: chat.isPinned ? "Unpin" : "Pin",
+                symbol: chat.isPinned ? "pin.slash.fill" : "pin.fill",
+                color: .systemOrange
+            ) { [weak self] completion in
+                guard let self else {
+                    completion(false)
+                    return
+                }
+
+                performAfterContextualActionCloses(
+                    completion: completion
+                ) { [weak self] in
+                    self?.parent.actions.togglePinned(chat.id)
+                }
             }
         }
 
@@ -428,6 +545,40 @@ struct NativeChatList: UIViewRepresentable {
             completion?(performed)
         }
 
+        private func performAfterContextualActionCloses(
+            completion: @escaping (Bool) -> Void,
+            action: @escaping () -> Void
+        ) {
+            pendingSwipeClosedAction = action
+            completion(true)
+
+            swipeStateDisplayLink?.invalidate()
+            let displayLink = CADisplayLink(
+                target: self,
+                selector: #selector(checkForClosedSwipeAction)
+            )
+            swipeStateDisplayLink = displayLink
+            displayLink.add(to: .main, forMode: .common)
+        }
+
+        @objc
+        private func checkForClosedSwipeAction() {
+            let hasOpenSwipe = collectionView?.visibleCells.contains {
+                $0.configurationState.isSwiped
+            } ?? false
+
+            guard !hasOpenSwipe else {
+                return
+            }
+
+            swipeStateDisplayLink?.invalidate()
+            swipeStateDisplayLink = nil
+
+            let action = pendingSwipeClosedAction
+            pendingSwipeClosedAction = nil
+            action?()
+        }
+
         private func updateTopEdgeEffectVisibility(
             in scrollView: UIScrollView
         ) {
@@ -440,7 +591,7 @@ struct NativeChatList: UIViewRepresentable {
             title: String,
             symbol: String,
             color: UIColor,
-            handler: @escaping ((Bool) -> Void) -> Void
+            handler: @escaping (@escaping (Bool) -> Void) -> Void
         ) -> UIContextualAction {
             contextualAction(
                 title: title,
@@ -482,12 +633,17 @@ private final class ChatListCell: UICollectionViewListCell {
     ) {
         super.updateConfiguration(using: state)
 
-        var background = UIBackgroundConfiguration.clear()
+        backgroundConfiguration = UIBackgroundConfiguration.clear()
+
         if state.isSwiped {
-            background.backgroundColor = .secondarySystemFill
-            background.cornerRadius = bounds.height / 2
+            contentView.backgroundColor = .secondarySystemFill
+            contentView.layer.cornerRadius = bounds.height / 2
+            contentView.layer.masksToBounds = true
+        } else {
+            contentView.backgroundColor = .systemBackground
+            contentView.layer.cornerRadius = 0
+            contentView.layer.masksToBounds = false
         }
-        backgroundConfiguration = background
     }
 
     override func layoutSubviews() {
@@ -499,5 +655,10 @@ private final class ChatListCell: UICollectionViewListCell {
 
         configuredHeight = bounds.height
         setNeedsUpdateConfiguration()
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        configuredHeight = 0
     }
 }

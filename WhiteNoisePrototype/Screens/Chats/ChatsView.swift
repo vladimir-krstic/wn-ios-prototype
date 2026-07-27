@@ -123,6 +123,7 @@ struct ChatsView<SettingsDestination: View>: View {
                 actions: NativeChatList.Actions(
                     markRead: markChatRead,
                     markUnread: markChatUnread,
+                    togglePinned: togglePinned,
                     mute: muteChat,
                     unmute: unmuteChat,
                     toggleArchive: toggleArchive,
@@ -179,6 +180,12 @@ struct ChatsView<SettingsDestination: View>: View {
         updateChat(id: id) { chat in
             chat.unreadCount = 0
             chat.isMarkedUnread = true
+        }
+    }
+
+    private func togglePinned(_ id: String) {
+        updateChat(id: id) { chat in
+            chat.isPinned.toggle()
         }
     }
 
@@ -247,20 +254,24 @@ struct ChatsView<SettingsDestination: View>: View {
         }
 
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else {
-            return scopedChats
+        let matchingChats: [ChatListItem]
+        if query.isEmpty {
+            matchingChats = scopedChats
+        } else {
+            matchingChats = scopedChats.filter { chat in
+                chat.title.range(
+                    of: query,
+                    options: [.caseInsensitive, .diacriticInsensitive]
+                ) != nil
+                || chat.searchablePreview.range(
+                    of: query,
+                    options: [.caseInsensitive, .diacriticInsensitive]
+                ) != nil
+            }
         }
 
-        return scopedChats.filter { chat in
-            chat.title.range(
-                of: query,
-                options: [.caseInsensitive, .diacriticInsensitive]
-            ) != nil
-            || chat.searchablePreview.range(
-                of: query,
-                options: [.caseInsensitive, .diacriticInsensitive]
-            ) != nil
-        }
+        return matchingChats.filter(\.isPinned)
+            + matchingChats.filter { !$0.isPinned }
     }
 
     private var hasUnreadChats: Bool {

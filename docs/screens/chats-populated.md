@@ -10,7 +10,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - Filter choices: **Chats**, **Unread**, **Archived**, **Left**
 - Selected Filter labels: **Unread**, **Archived**, **Left**
 - Unread bulk action: **Read All**
-- Leading swipe actions: **Read**, **Unread**
+- Leading swipe actions: **Read**, **Unread**, **Pin**, **Unpin**
 - Trailing swipe actions: **Mute**, **Unmute**, **Archive**, **Unarchive**, **Leave**, **Delete**
 - Mute dialog title: **Mute Notifications**
 - Mute choices: **1 Hour**, **8 Hours**, **1 Day**, **1 Week**, **Always**
@@ -32,6 +32,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - `UIHostingConfiguration` hosts the existing SwiftUI conversation-row composition inside each native list cell.
 - Each conversation row is composed from native `Image`, `Text`, `Circle`, and SF Symbols because SwiftUI does not provide a stock Messages conversation row.
 - The approved row avatar is a 56-point circle containing either a bundled photorealistic fictional portrait or a one-letter native monogram. SwiftUI has no stock avatar control or avatar size variants; 56 points is the user-approved custom list metric.
+- A pinned chat overlays `pin.fill` on the avatar’s bottom-trailing edge. The compact badge uses caption-two typography, four-point padding, an opaque semantic system-background circle, a thin separator outline, and a slight outward offset. It uses no accent color, translucency, shadow, label, pinned section, title indicator, or trailing timestamp indicator.
 - Titles use semantic headline typography. Previews use semantic subheadline typography and may occupy two lines.
 - Every preview uses the same regular secondary style, regardless of unread state.
 - Timestamps use semantic caption typography in the title row. The deterministic fixtures cover today’s time, Yesterday, weekday, and calendar-date variants in chronological order.
@@ -56,22 +57,27 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - **Read All** clears every nonarchived unread count and manual unread marker, including matches outside an active search query. The Unread scope then resolves to its existing **No Unread Chats** state.
 - Fixture order, names, previews, timestamps, and status values never use randomness or the current clock.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
+- Maya Chen starts pinned so the avatar badge and pinned ordering are directly inspectable without changing the first visible row.
 - Mina Park is the visible recent draft example and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
+- Book Club starts in the voluntary-left state and shows **You left this chat.** Quiet Studio Group remains the removed fixture and shows **You were removed from this chat.** Both appear in Chats and Left as retained read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
 
 ## Swipe actions
 
-- Leading swipe toggles Read and Unread. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 22-point monochrome badge with no number.
+- Leading swipe toggles Read and Unread and offers Pin or Unpin. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 22-point monochrome badge with no number.
+- Pin and Unpin apply immediately to nonarchived chats. Pinned chats sort above unpinned chats within Chats, Unread, Left, and active search results while preserving the deterministic relative order inside each group.
+- Pin and Unpin first complete UIKit’s native contextual action, then observe the public `UICellConfigurationState.isSwiped` state on the display refresh cycle. Only after UIKit reports that no visible row remains swiped does the in-memory order change. The final sorted snapshot and pin-badge state are then swapped in atomically with UIKit’s reload-data snapshot API and animations disabled. The swipe closure provides the system-owned action feedback; the list doesn’t animate a row across unrelated conversations. No guessed delay, fade, custom duration, spring, transition, or manual row offset is applied.
 - An active row in Chats or Unread exposes Mute/Unmute, Archive, and Leave. Leave applies to both named one-to-one chats and groups because both use White Noise membership.
 - An inactive retained row in Chats or Left exposes Archive and Delete; it no longer exposes Mute, Unmute, or Leave.
 - An active row in Archived exposes Unarchive and Leave. An inactive row in Archived exposes Unarchive and Delete. Archived rows never expose Mute or Unmute.
 - Muting opens **Mute Notifications** with Signal’s current duration set: 1 hour, 8 hours, 1 day, 1 week, and Always. Unmute applies immediately.
 - Archive and Unarchive apply immediately and move the row between the native filtered projections. Existing mute state is preserved while archived and returns if the chat is restored.
 - Leaving clears unread and mute state, replaces the preview with **You left this chat.**, and shows `rectangle.portrait.and.arrow.right` beside the chat name.
-- One fixed fixture starts in the removed state and shows **You were removed from this chat.** with the same ended-membership symbol.
+- The fixed **Book Club** fixture starts in the voluntary-left state, appears in Left, and shows **You left this chat.**
+- The fixed **Quiet Studio Group** fixture starts in the removed state, appears in Left, and shows **You were removed from this chat.** with the same ended-membership symbol.
 - After membership ends, Delete replaces Leave and remains paired with Archive or Unarchive. Delete opens a destructive confirmation dialog, then removes the chat from every projection.
 - Archived rows with unread content can be marked Read. Read archived rows cannot be manually marked Unread.
-- `allowsFullSwipe` is enabled only for the reversible leading Read/Unread toggle. It is disabled for the multi-action trailing edge.
+- Read/Unread remains the first leading action, so a full leading swipe performs only that reversible toggle. Pin/Unpin requires tapping its revealed action. Full swipe remains disabled for the multi-action trailing edge.
 - Leave and Delete swipe buttons use the system red contextual-action tint without completing the swipe mutation before confirmation. Their confirmation actions use UIKit’s native destructive style.
 - Mute, Leave, and Delete dialogs remain anchored to the action that opened them. The revealed swipe state stays visible under the system dimming treatment while the dialog is present; dismissing or cancelling does not require a custom reset animation.
 - The revealed row retains the approved adaptive gray capsule, and icon-only contextual actions remain vertically centered against that same dynamic row height.
@@ -83,6 +89,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - A manually marked unread chat uses the same 22-point monochrome circle without a number.
 - Muted uses `bell.slash.fill` immediately after the chat name.
 - A left or removed chat uses `rectangle.portrait.and.arrow.right` in the same title-row status position.
+- A pinned chat uses a compact `pin.fill` badge on the avatar edge. The row exposes **Pinned** as an accessibility value while the decorative badge itself is hidden from accessibility.
 - Drafts use a visible **Draft:** preview prefix in the same secondary preview style.
 - Failed sending uses the system-red outline `exclamationmark.circle`.
 - Unread and Failed share a 22-point status region. The unread badge fills that height; the 20-point outline SF Symbol is centered inside it as an optical correction because equal rendered bounds made the hollow symbol appear larger.
@@ -133,6 +140,7 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
 - [UICollectionLayoutListConfiguration](https://developer.apple.com/documentation/uikit/uicollectionlayoutlistconfiguration)
+- [Updating collection views using diffable data sources](https://developer.apple.com/documentation/uikit/updating-collection-views-using-diffable-data-sources)
 - [UIScrollView topEdgeEffect](https://developer.apple.com/documentation/uikit/uiscrollview/topedgeeffect)
 - [UIScrollEdgeEffect.Style.hard](https://developer.apple.com/documentation/uikit/uiscrolledgeeffect/style-swift.class/hard)
 - [UIScrollEdgeEffect isHidden](https://developer.apple.com/documentation/uikit/uiscrolledgeeffect/ishidden)
@@ -159,12 +167,15 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 - Unread, Archived, and Left show correct deterministic subsets and identify their scope inside the Filter Menu label; Chats uses the plain icon-only Filter label.
 - Unread shows a native bottom-leading **Read All** action while unread chats remain; activating it clears every active unread state and reveals **No Unread Chats** without an empty bottom-bar strip.
 - Search filters the selected scope and restores the existing native no-results state when empty.
-- Read/Unread, Mute/Unmute, Archive/Unarchive, Leave, and Delete all mutate the visible deterministic state and remain correct in Chats, Unread, Archived, Left, and Search.
+- Read/Unread, Mute/Unmute, Archive/Unarchive, Leave, and Delete all mutate the visible deterministic state and remain correct in Chats, Unread, Archived, Left, and Search. Pin/Unpin remains available only for nonarchived chats.
+- Pinning moves a nonarchived chat above unpinned chats without changing its selected scope; unpinning restores the fixture’s deterministic relative position.
+- Pinning and unpinning close the system swipe presentation, then update directly to the final sorted state with no travelling row, duplicate row, temporary overlap, stacked text, or secondary transition.
+- Pinned state is shown only by the avatar-edge badge; it adds nothing beside the timestamp, title, preview status, or toolbar.
 - Mute presents all five durations; choosing one displays the mute symbol, and Unmute removes it.
 - Leave and Delete require explicit confirmation and Cancel leaves the chat unchanged.
 - Opening Mute, Leave, or Delete keeps the originating swipe actions revealed and dimmed behind the native dialog.
 - Leading and trailing swipes retain the rounded adaptive gray row container and vertically centered system action symbols.
-- A left or removed chat shows the correct system preview and ended-membership symbol, then exposes Archive/Unarchive and Delete instead of Mute or Leave.
+- Book Club shows the voluntary-left preview and Quiet Studio Group shows the removed preview. Both use the ended-membership symbol and expose Archive/Unarchive and Delete instead of Mute or Leave.
 - Rows use 56-point avatars, one-letter monograms, no separators, no chevrons, and support two-line previews while scrolling.
 - At rest the top toolbar has no hard container boundary. Scrolling rows beneath it reveals Apple’s native hard glass container, and returning fully to the top removes it again.
 - Returning from Settings by either the Back button or the interactive swipe gesture restores the profile avatar at full contrast without retaining a pressed or disabled state.

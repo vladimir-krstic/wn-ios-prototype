@@ -57,6 +57,7 @@ struct ChatListRow: View {
         }
         .listRowSeparator(.hidden)
         .accessibilityElement(children: .combine)
+        .accessibilityValue(chat.isPinned ? "Pinned" : "")
     }
 
     @ViewBuilder
@@ -81,6 +82,27 @@ struct ChatListRow: View {
         }
         .frame(width: 56, height: 56)
         .clipShape(.circle)
+        .overlay(alignment: .bottomTrailing) {
+            if chat.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .padding(4)
+                    .background(
+                        Color(uiColor: .systemBackground),
+                        in: Circle()
+                    )
+                    .overlay {
+                        Circle()
+                            .stroke(
+                                Color(uiColor: .separator),
+                                lineWidth: 0.5
+                            )
+                    }
+                    .offset(x: 2, y: 2)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 
     private var preview: Text {

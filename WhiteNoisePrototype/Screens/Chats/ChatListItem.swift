@@ -1,7 +1,7 @@
 import Foundation
 
-struct ChatListItem: Identifiable {
-    enum Avatar {
+struct ChatListItem: Identifiable, Equatable {
+    enum Avatar: Equatable {
         case asset(String)
         case monogram(String)
     }
@@ -39,12 +39,12 @@ struct ChatListItem: Identifiable {
         }
     }
 
-    enum DeliveryState {
+    enum DeliveryState: Equatable {
         case none
         case failed
     }
 
-    enum AttachmentPreview {
+    enum AttachmentPreview: Equatable {
         case photo
         case photos(Int)
         case video
@@ -116,6 +116,7 @@ struct ChatListItem: Identifiable {
     let timestamp: String
     var membershipState: MembershipState
     var isArchived: Bool
+    var isPinned: Bool
     var unreadCount: Int
     var isMarkedUnread: Bool
     var muteDuration: MuteDuration?
@@ -132,6 +133,7 @@ struct ChatListItem: Identifiable {
         timestamp: String,
         membershipState: MembershipState = .active,
         isArchived: Bool,
+        isPinned: Bool = false,
         unreadCount: Int,
         isMarkedUnread: Bool = false,
         isMuted: Bool,
@@ -147,6 +149,7 @@ struct ChatListItem: Identifiable {
         self.timestamp = timestamp
         self.membershipState = membershipState
         self.isArchived = isArchived
+        self.isPinned = isPinned
         self.unreadCount = unreadCount
         self.isMarkedUnread = isMarkedUnread
         self.muteDuration = isMuted ? .always : nil
@@ -207,6 +210,7 @@ enum ChatListFixtures {
             preview: "Can you send the latest version when you have a moment?",
             timestamp: "Now",
             isArchived: false,
+            isPinned: true,
             unreadCount: 1,
             isMuted: false,
             isDraft: false,
@@ -297,6 +301,7 @@ enum ChatListFixtures {
             preview: "The next chapter is shorter than it looks.",
             previewAuthor: "Owen",
             timestamp: "Monday",
+            membershipState: .left,
             isArchived: false,
             unreadCount: 0,
             isMuted: false,
@@ -343,7 +348,7 @@ enum ChatListFixtures {
         ),
         ChatListItem(
             id: "quiet-studio",
-            title: "Quiet Studio",
+            title: "Quiet Studio Group",
             avatar: .monogram("Q"),
             preview: "I’ll lock up when I leave.",
             previewAuthor: "Remy",
