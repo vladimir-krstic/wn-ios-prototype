@@ -46,6 +46,7 @@ struct ChatsView<SettingsDestination: View>: View {
     @FocusState private var isSearchFocused: Bool
 
     let profileInitial: String
+    let profileAvatarData: Data?
     let settingsDestination: SettingsDestination
     let onNewMessage: () -> Void
 
@@ -54,10 +55,12 @@ struct ChatsView<SettingsDestination: View>: View {
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
         profileInitial: String = "M",
+        profileAvatarData: Data? = nil,
         @ViewBuilder settingsDestination: () -> SettingsDestination,
         onNewMessage: @escaping () -> Void
     ) {
         self.profileInitial = profileInitial
+        self.profileAvatarData = profileAvatarData
         self.settingsDestination = settingsDestination()
         self.onNewMessage = onNewMessage
         _chats = State(initialValue: chats)
@@ -147,15 +150,25 @@ struct ChatsView<SettingsDestination: View>: View {
         NavigationLink {
             settingsDestination
         } label: {
-            ZStack {
-                Circle()
-                    .fill(.primary)
+            Group {
+                if let profileAvatarData,
+                   let image = UIImage(data: profileAvatarData) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(.primary)
 
-                Text(profileInitial)
-                    .font(.headline)
-                    .foregroundStyle(.background)
+                        Text(profileInitial)
+                            .font(.headline)
+                            .foregroundStyle(.background)
+                    }
+                }
             }
             .frame(width: 44, height: 44)
+            .clipShape(Circle())
         }
         .buttonStyle(ProfileAvatarNavigationStyle())
         .accessibilityLabel("Profile")
@@ -378,6 +391,7 @@ extension ChatsView where SettingsDestination == EmptyView {
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
         profileInitial: String = "M",
+        profileAvatarData: Data? = nil,
         onNewMessage: @escaping () -> Void
     ) {
         self.init(
@@ -385,6 +399,7 @@ extension ChatsView where SettingsDestination == EmptyView {
             initialScope: initialScope,
             initialSearchText: initialSearchText,
             profileInitial: profileInitial,
+            profileAvatarData: profileAvatarData,
             settingsDestination: {
                 EmptyView()
             },

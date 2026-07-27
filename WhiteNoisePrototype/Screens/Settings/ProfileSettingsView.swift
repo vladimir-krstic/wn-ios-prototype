@@ -315,7 +315,7 @@ struct ProfileSettingsView: View {
 }
 
 #Preview("Profile Settings") {
-    @Previewable @State var profile = PrototypeProfile.mochi
+    @Previewable @State var profile = PrototypeProfile.marmota
 
     NavigationStack {
         ProfileSettingsView(profile: $profile)

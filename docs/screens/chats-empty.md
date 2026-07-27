@@ -34,7 +34,7 @@ Show the main Chats destination when the current profile has no chats. The profi
 - The Filter menu’s disclosure indicator is hidden so SwiftUI does not reserve unused trailing space beside the icon-only label.
 - A default toolbar New Message button using `plus.bubble`, sharing the group’s system Liquid Glass background without a prominent tint.
 - System-provided toolbar Liquid Glass, spacing, hit regions, menus, search motion, typography, and materials.
-- One approved custom profile element: the 44-point **M** monogram avatar. A native `NavigationLink` owns its interaction and opens Settings. Its avatar-specific button style preserves the approved full-contrast artwork during the interactive navigation transition instead of applying a transient dimmed label treatment. `sharedBackgroundVisibility(.hidden)` keeps the avatar outside Liquid Glass while matching the native controls’ row size.
+- One approved custom profile element: the 44-point circular profile avatar. Marmota uses the bundled user-supplied photo, with a one-letter monogram as the fallback for profiles without an image. A native `NavigationLink` owns its interaction and opens Settings. Its avatar-specific button style preserves the approved full-contrast artwork during the interactive navigation transition instead of applying a transient dimmed label treatment. `sharedBackgroundVisibility(.hidden)` keeps the avatar outside Liquid Glass while matching the native controls’ row size.
 
 ## Important behavior
 

@@ -15,7 +15,7 @@ private struct PrototypeRootView: View {
     @State private var isShowingLogin = false
     @State private var isShowingSignUp = false
     @State private var profiles = PrototypeProfile.initialProfiles
-    @State private var activeProfileID = PrototypeProfile.mochi.id
+    @State private var activeProfileID = PrototypeProfile.marmota.id
     @State private var settings = PrototypeSettingsState()
 
     var body: some View {
@@ -25,6 +25,7 @@ private struct PrototypeRootView: View {
                     ChatsView(
                         chats: activeProfile.chats,
                         profileInitial: activeProfile.initial,
+                        profileAvatarData: activeProfile.avatarData,
                         settingsDestination: {
                             SettingsView(
                                 profiles: $profiles,
@@ -69,7 +70,7 @@ private struct PrototypeRootView: View {
 
     private var activeProfile: PrototypeProfile {
         profiles.first { $0.id == activeProfileID }
-            ?? PrototypeProfile.mochi
+            ?? PrototypeProfile.marmota
     }
 
     private func updateInitialProfileName(_ name: String) {
@@ -78,7 +79,7 @@ private struct PrototypeRootView: View {
         )
         guard !normalizedName.isEmpty,
               let index = profiles.firstIndex(
-                where: { $0.id == PrototypeProfile.mochi.id }
+                where: { $0.id == PrototypeProfile.marmota.id }
               )
         else {
             return

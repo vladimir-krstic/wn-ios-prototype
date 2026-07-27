@@ -259,7 +259,7 @@ private struct KeyExportResult: Identifiable {
 
 #Preview("Profile Keys") {
     NavigationStack {
-        ProfileKeysSettingsView(profile: .mochi)
+        ProfileKeysSettingsView(profile: .marmota)
     }
     .tint(Color("AccentColor"))
 }

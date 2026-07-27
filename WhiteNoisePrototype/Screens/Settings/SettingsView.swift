@@ -824,7 +824,7 @@ private struct SettingsPreviewHost: View {
 
     init(
         profiles: [PrototypeProfile] = PrototypeProfile.initialProfiles,
-        activeProfileID: String = PrototypeProfile.mochi.id
+        activeProfileID: String = PrototypeProfile.marmota.id
     ) {
         _profiles = State(initialValue: profiles)
         _activeProfileID = State(initialValue: activeProfileID)
@@ -847,13 +847,13 @@ private struct SettingsPreviewHost: View {
 }
 
 #Preview("Settings — One Profile") {
-    SettingsPreviewHost(profiles: [.mochi])
+    SettingsPreviewHost(profiles: [.marmota])
 }
 
 #Preview("Settings — Two Profiles") {
     SettingsPreviewHost(
         profiles: [
-            .mochi,
+            .marmota,
             .signedUp(name: "Pebble"),
         ],
         activeProfileID: "added-profile"
@@ -869,7 +869,7 @@ private struct SettingsPreviewHost: View {
 #Preview("Profile Switcher") {
     ProfileSwitcherSheet(
         profiles: PrototypeProfile.multipleProfileFixtures,
-        activeProfileID: PrototypeProfile.mochi.id,
+        activeProfileID: PrototypeProfile.marmota.id,
         switchingProfileID: nil,
         onSelectProfile: { _ in },
         onAddProfile: {}
@@ -880,7 +880,7 @@ private struct SettingsPreviewHost: View {
 #Preview("Profile Switcher — Switching") {
     ProfileSwitcherSheet(
         profiles: PrototypeProfile.multipleProfileFixtures,
-        activeProfileID: PrototypeProfile.mochi.id,
+        activeProfileID: PrototypeProfile.marmota.id,
         switchingProfileID: PrototypeProfile.quietOtter.id,
         onSelectProfile: { _ in },
         onAddProfile: {}
@@ -912,7 +912,7 @@ private struct SettingsAlternateProfilePreview: View {
 
 #Preview("Share Profile") {
     NavigationStack {
-        ShareProfileView(profile: .mochi)
+        ShareProfileView(profile: .marmota)
     }
     .tint(Color("AccentColor"))
 }

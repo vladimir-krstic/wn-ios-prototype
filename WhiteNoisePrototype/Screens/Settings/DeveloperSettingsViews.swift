@@ -282,7 +282,7 @@ private struct DiagnosticsPrototypeView: View {
     NavigationStack {
         DeveloperToolsPrototypeView(
             settings: $settings,
-            profile: .mochi
+            profile: .marmota
         )
     }
 }

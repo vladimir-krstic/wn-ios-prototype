@@ -43,11 +43,11 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - A native bottom-bar `Button` presents **Read All** at the leading edge only while the Unread scope contains unread chats. Outside that state, the bottom toolbar modifier is not installed at all, so Chats, Archived, and the completed Unread empty state cannot reserve an invisible toolbar strip. The system toolbar owns the button’s Liquid Glass capsule, spacing, safe-area placement, hit target, and feedback.
 - The existing native search, menu, and Picker remain unchanged. Filter, Search, and New Message share one system Liquid Glass toolbar group; New Message uses the default toolbar treatment rather than a separate prominent tint.
 - The navigation toolbar remains titleless. The Filter Menu is icon-only in Chats and uses the compact adaptive symbol-plus-text selected label defined in `chats-empty.md` for Unread, Archived, and Left. No separate list header or dismissible chip is introduced.
-- The leading profile avatar is a native `NavigationLink` to Settings, allowing SwiftUI’s navigation stack to own both the Back button and interactive swipe-back lifecycle. Its avatar-specific button style returns the system link label without transient dimming so the approved monogram remains full contrast throughout the transition.
+- The leading profile avatar is a native `NavigationLink` to Settings, allowing SwiftUI’s navigation stack to own both the Back button and interactive swipe-back lifecycle. Marmota uses the bundled user-supplied photo, while profiles without an image fall back to their initial. Its avatar-specific button style returns the system link label without transient dimming so the artwork remains full contrast throughout the transition.
 
 ## Deterministic data and behavior
 
-- The populated profile has exactly 27 conversations: 23 nonarchived and 4 archived.
+- The populated profile has exactly 37 conversations: 33 nonarchived and 4 archived.
 - Chats contains nonarchived conversations, including retained read-only history after a person leaves or is removed. Archived conversations appear only in the separate Archived scope.
 - Unread contains nonarchived conversations with an unread count or a manual unread reminder.
 - Archived contains archived conversations, including one archived conversation that retains unread state without appearing in Unread.
@@ -57,10 +57,29 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - **Read All** clears every nonarchived unread count and manual unread marker, including matches outside an active search query. The Unread scope then resolves to its existing **No Unread Chats** state.
 - Fixture order, names, previews, timestamps, and status values never use randomness or the current clock.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
-- Maya Chen starts pinned so the avatar badge and pinned ordering are directly inspectable without changing the first visible row.
-- Mina Park is the visible recent draft example and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
+- Nostr Devs and Radia Perlman are the only initially pinned chats. Their older timestamps make the pin-driven ordering explicit while leaving recent unpinned activity chronological beneath them.
+- Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
 - Book Club starts in the voluntary-left state and shows **You left this chat.** Quiet Studio Group remains the removed fixture and shows **You were removed from this chat.** Both appear in Chats and Left as retained read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
+
+## App Store Chats hero
+
+The normal populated Marmota profile is also the screenshot-ready Chats hero. It is not a screenshot-only profile or scenario.
+
+The first visible block is fixed:
+
+1. **Nostr Devs** — pinned, Yesterday — **Tim:** Marmot draft merged. Time to test the new flow.
+2. **Radia Perlman** — pinned, Sunday — Let the network heal itself; loops (and censors) break.
+3. **Hal Finney** — Now — Running bitcoin… still amazes me how far we’ve come.
+4. **Judith “St. Jude” Milhon** — 2m, unread 2 — Hacking means finding clever ways around dumb rules.
+5. **Marmots** — 9m, unread 99+ — **Jude:** Big plans—or no plans at all!
+6. **Whitfield Diffie** — 1h — **You:** Key exchange since ’76—still my favorite handshake.
+7. **Richard Stallman** — 8h, muted — Free as in freedom, not as in beer. Keep your keys libre.
+8. **Eric Hughes** — Yesterday, unread 12 — Cypherpunks still write code. Ship the patch?
+9. **David Chaum** — Saturday — Privacy is necessary for an open society in the electronic age.
+10. **Satoshi Nakamoto** — Friday — Chancellor on Brink of Second Bailout for Banks.
+
+The complete ten-person legacy marketing cast now forms the uninterrupted hero block. Mina Park, Theo Grant, and every other fictional test conversation remain in older activity for interaction coverage and search. The Nora Bennett failed-send fixture remains available below the hero viewport. No fictional portrait, failed-send, left-chat, or removed-chat treatment appears in the initial App Store capture.
 
 ## Swipe actions
 
@@ -104,7 +123,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 
 ## Avatar provenance
 
-The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter monograms. The photos represent fictional fixture identities only; they are not White Noise users. The user approved Unsplash photography for this internal prototype. The app performs no runtime fetching.
+The list mixes 24 locally bundled image avatars with 13 native one-letter monograms. The images represent fixture identities only; they are not White Noise users. The app performs no runtime fetching.
 
 | Asset | Fixture identity | Photographer | Unsplash source |
 | --- | --- | --- | --- |
@@ -128,6 +147,29 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 - Intended use: internal fictional prototype conversation avatars only
 - License reference: [Unsplash License](https://unsplash.com/license)
 - The direct-chat fixture mix is seven women and six men.
+
+### Legacy marketing avatars
+
+The ten legacy avatars below come from the approved [White Noise marketing Chat List node](https://www.figma.com/design/jzWaS92LwoBjqTtOLP6ij7/White-Noise---Web---Marketing?node-id=1404-5548). Nine are bundled source images and only clipped into the existing circular avatar at runtime. Marmots is the exact composed Avatar sublayer exported from [the approved gray treatment](https://www.figma.com/design/jzWaS92LwoBjqTtOLP6ij7/White-Noise---Web---Marketing?node-id=1404-5553); its gray image treatment, crop, circular mask, and border are baked into the PNG rather than recreated in SwiftUI.
+
+| Asset | Fixture identity |
+| --- | --- |
+| LegacyAvatarHalFinney | Hal Finney |
+| LegacyAvatarJudithMilhon | Judith “St. Jude” Milhon |
+| LegacyAvatarMarmots | Marmots |
+| LegacyAvatarRichardStallman | Richard Stallman |
+| LegacyAvatarWhitfieldDiffie | Whitfield Diffie |
+| LegacyAvatarEricHughes | Eric Hughes |
+| LegacyAvatarNostrDevs | Nostr Devs |
+| LegacyAvatarRadiaPerlman | Radia Perlman |
+| LegacyAvatarDavidChaum | David Chaum |
+| LegacyAvatarSatoshiNakamoto | Satoshi Nakamoto |
+
+- Source nodes: `1404:5548`; Marmots composed export `1404:5553`
+- Retrieval date: 2026-07-27
+- Transformation: none to the nine bundled source files; Marmots is an unmodified two-times PNG export of the exact Figma Avatar sublayer
+- Intended use: public App Store Chats hero and related White Noise marketing
+- Rights assumption: the user confirmed that the historical cast and supplied Figma artwork are cleared for public marketing use
 
 ## Accessibility
 
@@ -163,7 +205,7 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 
 ## Acceptance
 
-- The populated account displays 23 nonarchived and 4 archived conversations.
+- The populated account displays 33 nonarchived and 4 archived conversations.
 - Unread, Archived, and Left show correct deterministic subsets and identify their scope inside the Filter Menu label; Chats uses the plain icon-only Filter label.
 - Unread shows a native bottom-leading **Read All** action while unread chats remain; activating it clears every active unread state and reveals **No Unread Chats** without an empty bottom-bar strip.
 - Search filters the selected scope and restores the existing native no-results state when empty.
@@ -184,8 +226,12 @@ The list mixes 14 locally bundled Unsplash portraits with 13 native one-letter m
 - Numeric unread, mute, draft, and failed states are visibly distinct.
 - Single-digit Unread and Failed appear optically equal in the shared status region.
 - The visible fixtures include one-digit, two-digit, and capped **99+** unread values.
+- The App Store hero shows exactly three unread treatments: Judith at **2**, Eric Hughes at **12**, and Marmots capped at **99+**.
 - Mute appears beside the chat name; the timestamp shares that top row.
-- Fixtures demonstrate time, Yesterday, weekday, and date timestamp variants in chronological order.
+- Fixtures demonstrate time, Yesterday, weekday, and date timestamp variants. The unpinned sequence is chronological; the two deliberately older pinned chats remain above it.
+- Nostr Devs and Radia Perlman are the only initially pinned chats, and Maya Chen is not pinned.
+- The first App Store viewport contains only the legacy marketing cast, with pinned, unread, group-author, outgoing, and muted treatments and no fictional portrait, failed-send, left-chat, or removed-chat treatment.
+- Every original conversation remains searchable and reachable after adding the ten legacy marketing conversations.
 - The active list contains all ten documented attachment-preview treatments.
 - Both onboarding paths open the populated account.
 - Empty profile previews remain directly inspectable.

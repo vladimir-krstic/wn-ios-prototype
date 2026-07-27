@@ -150,7 +150,7 @@ private enum SignOutProgress {
 #Preview("Sign Out") {
     NavigationStack {
         SignOutPrototypeView(
-            profile: .mochi,
+            profile: .marmota,
             onSignOut: {},
             onRemoveProfile: {}
         )

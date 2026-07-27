@@ -20,7 +20,7 @@ struct SignUpView: View {
     let onSignUp: (String) -> Void
 
     init(
-        initialName: String = "Mochi",
+        initialName: String = "Marmota",
         onSignUp: @escaping (String) -> Void
     ) {
         _name = State(initialValue: initialName)

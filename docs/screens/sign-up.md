@@ -7,7 +7,7 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 ## Copy
 
 - Navigation title: **Sign Up**
-- Initial dummy name: **Mochi**
+- Initial dummy name: **Marmota**
 - Avatar action before selection: **Add Photo**
 - Avatar action after selection: **Change Photo**
 - Image-source menu: **Choose from Photos**, **Choose from Files**
@@ -36,7 +36,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 
 ## Important behavior
 
-- The form starts with the deterministic pet name **Mochi** and an **M** monogram.
+- The form starts with the deterministic pet name **Marmota** and an **M** monogram.
+- Completing either initial Sign In or Sign Up uses the bundled, user-supplied marmot photo as the active profile avatar.
 - The avatar remains a white circle with a black initial in Dark Mode.
 - Editing Name immediately updates the monogram to the first non-whitespace character.
 - A selected photo replaces the monogram and remains in memory only.
@@ -74,7 +75,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 
 - **Sign Up** on Welcome presents a native large sheet; Close or swipe-down returns to Welcome.
 - **Sign Up** from Add Profile remains in the existing large onboarding sheet and native Back returns to its Welcome step.
-- The default avatar shows **M** for **Mochi**.
+- The default Sign Up avatar shows **M** for **Marmota** before completion.
+- After Sign In or Sign Up completes, Chats and Settings show the bundled Marmota photo as the active profile avatar.
 - The avatar action is visually compact and clearly separated from the avatar.
 - The avatar-to-action spacing remains unchanged before and after selecting a photo.
 - Sign Up uses the same white system canvas as Welcome.

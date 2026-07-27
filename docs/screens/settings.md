@@ -10,6 +10,7 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
 
 - No visible category headings or explanatory subtitles.
 - The active profile row shows its 56-point avatar, name, shortened public key, QR symbol, and the native disclosure indicator. It opens **Share Profile**.
+- The initial **Marmota** profile and deterministic profiles created through Sign In or Sign Up use the bundled, user-supplied marmot photo unless replaced in Profile editing.
 - A normal first Sign In or Sign Up session stores exactly one active profile. No inactive profile is preloaded.
 - Profile management adapts to stored profile count:
   - One profile: **Add Profile**, which opens onboarding directly rather than presenting the switcher.
