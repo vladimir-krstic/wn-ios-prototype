@@ -1,0 +1,493 @@
+import PhotosUI
+import SwiftUI
+import UniformTypeIdentifiers
+
+struct FiatjafConversationView: View {
+    private struct SentMessage: Identifiable {
+        enum Content {
+            case text(String)
+            case photo(Data)
+            case file(String)
+        }
+
+        let id = UUID()
+        let content: Content
+    }
+
+    private let bottomID = "fiatjaf-conversation-bottom"
+
+    @State private var draft = ""
+    @State private var sentMessages: [SentMessage] = []
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isFileImporterPresented = false
+    @FocusState private var isComposerFocused: Bool
+
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        dayMarker
+
+                        outgoingTextMessage(
+                            "Switched from Feather to White Noise. "
+                                + "Same key, same contacts.",
+                            time: "18:36",
+                            accessibilityLabel:
+                                "Marmota, 18:36. Switched from Feather to "
+                                + "White Noise. Same key, same contacts. Delivered."
+                        )
+
+                        incomingReplyMessage
+
+                        reactedOutgoingMessage
+
+                        incomingTextMessage(
+                            "Perfect!",
+                            time: "18:45",
+                            accessibilityLabel: "Fiatjaf, 18:45. Perfect!"
+                        )
+
+                        incomingMediaMessage(
+                            maximumContentWidth:
+                                geometry.size.width - 112
+                        )
+
+                        ForEach(sentMessages) { message in
+                            sentMessageView(message)
+                        }
+
+                        Color.clear
+                            .frame(height: 1)
+                            .id(bottomID)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                }
+                .defaultScrollAnchor(.bottom)
+                .scrollDismissesKeyboard(.interactively)
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    composer
+                }
+                .onChange(of: sentMessages.count) {
+                    withAnimation {
+                        proxy.scrollTo(bottomID, anchor: .bottom)
+                    }
+                }
+            }
+        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    Image("AvatarFiatjaf")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 30, height: 30)
+                        .clipShape(Circle())
+                        .accessibilityHidden(true)
+
+                    Text("Fiatjaf")
+                        .font(.headline)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .fileImporter(
+            isPresented: $isFileImporterPresented,
+            allowedContentTypes: [.item]
+        ) { result in
+            guard case let .success(url) = result else {
+                return
+            }
+
+            sentMessages.append(
+                SentMessage(content: .file(url.lastPathComponent))
+            )
+        }
+        .task(id: selectedPhotoItem) {
+            guard
+                let selectedPhotoItem,
+                let data = try? await selectedPhotoItem.loadTransferable(
+                    type: Data.self
+                )
+            else {
+                return
+            }
+
+            sentMessages.append(SentMessage(content: .photo(data)))
+            self.selectedPhotoItem = nil
+        }
+    }
+
+    private var dayMarker: some View {
+        Text("Today")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var incomingReplyMessage: some View {
+        MessageBubble(outgoing: false) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Capsule()
+                        .fill(.secondary)
+                        .frame(width: 3)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Marmota")
+                            .font(.caption.weight(.semibold))
+
+                        Text(
+                            "Switched from Feather to White Noise. "
+                                + "Same key, same contacts."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    }
+                }
+                .padding(8)
+                .background(
+                    Color(uiColor: .tertiarySystemFill),
+                    in: RoundedRectangle(
+                        cornerRadius: 10,
+                        style: .continuous
+                    )
+                )
+
+                Text(
+                    "Yep, I still see you on Primal. "
+                        + "No extra setup on my side."
+                )
+
+                messageMetadata(time: "18:37", delivered: false)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Fiatjaf, 18:37. Replying to Marmota: "
+                + "Switched from Feather to White Noise. "
+                + "Same key, same contacts. Yep, I still see you on "
+                + "Primal. No extra setup on my side."
+        )
+    }
+
+    private var reactedOutgoingMessage: some View {
+        VStack(alignment: .trailing, spacing: -5) {
+            outgoingTextMessage(
+                "Exactly. Moved apps, kept everything. "
+                    + "Didn’t have to re-add anyone.",
+                time: "18:44",
+                accessibilityLabel:
+                    "Marmota, 18:44. Exactly. Moved apps, kept "
+                    + "everything. Didn’t have to re-add anyone. "
+                    + "Delivered. Reacted with fire."
+            )
+
+            Text("🔥")
+                .font(.caption)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(
+                    Color(uiColor: .systemBackground),
+                    in: Capsule()
+                )
+                .overlay {
+                    Capsule()
+                        .stroke(
+                            Color(uiColor: .separator),
+                            lineWidth: 0.5
+                        )
+                }
+                .padding(.trailing, 12)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func incomingMediaMessage(
+        maximumContentWidth: CGFloat
+    ) -> some View {
+        MessageBubble(outgoing: false) {
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(spacing: 2) {
+                    HStack(spacing: 2) {
+                        mediaTile("FiatjafMediaSloth", height: 86)
+                        mediaTile("FiatjafMediaBadger", height: 86)
+                        mediaTile("FiatjafMediaOstrich", height: 86)
+                    }
+
+                    HStack(spacing: 2) {
+                        mediaTile("FiatjafMediaFox", height: 106)
+                        mediaTile("FiatjafMediaMarmot", height: 106)
+                    }
+                }
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 12,
+                        style: .continuous
+                    )
+                )
+                .accessibilityHidden(true)
+
+                Text("Portable identity for the win.")
+
+                messageMetadata(time: "12:29", delivered: false)
+            }
+            .frame(maxWidth: maximumContentWidth)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Fiatjaf, 12:29. Five photos. "
+                + "Portable identity for the win."
+        )
+    }
+
+    private var composer: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            Menu {
+                PhotosPicker(
+                    selection: $selectedPhotoItem,
+                    matching: .images
+                ) {
+                    Label(
+                        "Choose from Photos",
+                        systemImage: "photo.on.rectangle.angled"
+                    )
+                }
+
+                Button {
+                    isFileImporterPresented = true
+                } label: {
+                    Label("Choose from Files", systemImage: "folder")
+                }
+            } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+            .accessibilityLabel("Add Attachment")
+
+            TextField("Message", text: $draft, axis: .vertical)
+                .lineLimit(1...5)
+                .focused($isComposerFocused)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    Color(uiColor: .secondarySystemFill),
+                    in: Capsule()
+                )
+                .submitLabel(.send)
+                .onSubmit(sendDraft)
+
+            if canSend {
+                Button(action: sendDraft) {
+                    Image(systemName: "arrow.up")
+                }
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+                .controlSize(.large)
+                .accessibilityLabel("Send")
+                .transition(.opacity)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+    }
+
+    private var canSend: Bool {
+        !trimmedDraft.isEmpty
+    }
+
+    private var trimmedDraft: String {
+        draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func sendDraft() {
+        guard canSend else {
+            return
+        }
+
+        sentMessages.append(
+            SentMessage(content: .text(trimmedDraft))
+        )
+        draft = ""
+    }
+
+    @ViewBuilder
+    private func sentMessageView(_ message: SentMessage) -> some View {
+        switch message.content {
+        case let .text(text):
+            outgoingTextMessage(
+                text,
+                time: "Now",
+                accessibilityLabel:
+                    "Marmota, now. \(text). Delivered."
+            )
+        case let .photo(data):
+            MessageBubble(outgoing: true) {
+                VStack(alignment: .trailing, spacing: 8) {
+                    if let image = UIImage(data: data) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 190)
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: 12,
+                                    style: .continuous
+                                )
+                            )
+                    }
+
+                    messageMetadata(time: "Now", delivered: true)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "Marmota, now. Photo. Delivered."
+            )
+        case let .file(name):
+            MessageBubble(outgoing: true) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(name, systemImage: "doc.fill")
+                        .lineLimit(2)
+
+                    messageMetadata(time: "Now", delivered: true)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "Marmota, now. File: \(name). Delivered."
+            )
+        }
+    }
+
+    private func outgoingTextMessage(
+        _ text: String,
+        time: String,
+        accessibilityLabel: String
+    ) -> some View {
+        MessageBubble(outgoing: true) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text)
+                messageMetadata(time: time, delivered: true)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func incomingTextMessage(
+        _ text: String,
+        time: String,
+        accessibilityLabel: String
+    ) -> some View {
+        MessageBubble(outgoing: false) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text)
+                messageMetadata(time: time, delivered: false)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func messageMetadata(
+        time: String,
+        delivered: Bool
+    ) -> some View {
+        HStack(spacing: 3) {
+            Spacer(minLength: 8)
+
+            Text(time)
+                .font(.caption2)
+
+            if delivered {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    private func mediaTile(
+        _ name: String,
+        height: CGFloat
+    ) -> some View {
+        Image(name)
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .clipped()
+    }
+}
+
+private struct MessageBubble<Content: View>: View {
+    let outgoing: Bool
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            if outgoing {
+                Spacer(minLength: 56)
+            }
+
+            content
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .foregroundStyle(foregroundStyle)
+                .background(fill, in: shape)
+
+            if !outgoing {
+                Spacer(minLength: 56)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var fill: Color {
+        outgoing
+            ? Color("AccentColor")
+            : Color(uiColor: .secondarySystemFill)
+    }
+
+    private var foregroundStyle: Color {
+        outgoing
+            ? Color(uiColor: .systemBackground)
+            : Color(uiColor: .label)
+    }
+
+    private var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            cornerRadii: .init(
+                topLeading: 18,
+                bottomLeading: outgoing ? 18 : 6,
+                bottomTrailing: outgoing ? 6 : 18,
+                topTrailing: 18
+            ),
+            style: .continuous
+        )
+    }
+}
+
+#Preview("Fiatjaf Conversation") {
+    NavigationStack {
+        FiatjafConversationView()
+    }
+    .tint(Color("AccentColor"))
+}
+
+#Preview("Fiatjaf Conversation — Dark") {
+    NavigationStack {
+        FiatjafConversationView()
+    }
+    .tint(Color("AccentColor"))
+    .preferredColorScheme(.dark)
+}

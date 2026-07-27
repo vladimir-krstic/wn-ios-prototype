@@ -43,6 +43,7 @@ struct ChatsView<SettingsDestination: View>: View {
     @State private var searchText = ""
     @State private var isSearchMounted = false
     @State private var isSearchPresented = false
+    @State private var isShowingFiatjafConversation = false
     @FocusState private var isSearchFocused: Bool
 
     let profileInitial: String
@@ -116,6 +117,11 @@ struct ChatsView<SettingsDestination: View>: View {
                 action: markAllChatsRead
             )
         )
+        .navigationDestination(
+            isPresented: $isShowingFiatjafConversation
+        ) {
+            FiatjafConversationView()
+        }
     }
 
     @ViewBuilder
@@ -124,6 +130,14 @@ struct ChatsView<SettingsDestination: View>: View {
             NativeChatList(
                 chats: visibleChats,
                 actions: NativeChatList.Actions(
+                    canOpen: { id in
+                        id == "fiatjaf"
+                    },
+                    open: { id in
+                        if id == "fiatjaf" {
+                            isShowingFiatjafConversation = true
+                        }
+                    },
                     markRead: markChatRead,
                     markUnread: markChatUnread,
                     togglePinned: togglePinned,

@@ -329,6 +329,19 @@ enum ChatListFixtures {
             deliveryState: .none
         ),
         ChatListItem(
+            id: "fiatjaf",
+            title: "Fiatjaf",
+            avatar: .asset("AvatarFiatjaf"),
+            preview: "Portable identity for the win.",
+            attachmentPreview: .photos(5),
+            timestamp: "Thursday",
+            isArchived: false,
+            unreadCount: 0,
+            isMuted: false,
+            isDraft: false,
+            deliveryState: .none
+        ),
+        ChatListItem(
             id: "mina-park",
             title: "Mina Park",
             avatar: .asset("AvatarMinaPark"),

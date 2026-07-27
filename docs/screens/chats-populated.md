@@ -2,7 +2,7 @@
 
 ## Purpose and navigation
 
-Show a deterministic populated Chats destination after either onboarding path. The profile avatar opens Settings; New Message and conversation destinations remain reserved for later screens. Rows support native swipe actions but do not navigate until the conversation screen is built.
+Show a deterministic populated Chats destination after either onboarding path. The profile avatar opens Settings. Fiatjaf opens the first implemented direct conversation; New Message and all other conversation destinations remain reserved for later screens. Rows support native swipe actions.
 
 ## Copy
 
@@ -47,7 +47,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 
 ## Deterministic data and behavior
 
-- The populated profile has exactly 37 conversations: 33 nonarchived and 4 archived.
+- The populated profile has exactly 38 conversations: 34 nonarchived and 4 archived.
 - Chats contains nonarchived conversations, including retained read-only history after a person leaves or is removed. Archived conversations appear only in the separate Archived scope.
 - Unread contains nonarchived conversations with an unread count or a manual unread reminder.
 - Archived contains archived conversations, including one archived conversation that retains unread state without appearing in Unread.
@@ -61,6 +61,7 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
 - Book Club starts in the voluntary-left state and shows **You left this chat.** Quiet Studio Group remains the removed fixture and shows **You were removed from this chat.** Both appear in Chats and Left as retained read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
+- Fiatjaf uses the approved Figma avatar, appears in older active activity after the uninterrupted marketing hero block, and opens the deterministic conversation defined in `conversation-fiatjaf.md`.
 
 ## App Store Chats hero
 
@@ -123,7 +124,7 @@ The complete ten-person legacy marketing cast now forms the uninterrupted hero b
 
 ## Avatar provenance
 
-The list mixes 24 locally bundled image avatars with 13 native one-letter monograms. The images represent fixture identities only; they are not White Noise users. The app performs no runtime fetching.
+The list mixes 25 locally bundled image avatars with 13 native one-letter monograms. The images represent fixture identities only; they are not White Noise users. The app performs no runtime fetching.
 
 | Asset | Fixture identity | Photographer | Unsplash source |
 | --- | --- | --- | --- |
@@ -141,6 +142,8 @@ The list mixes 24 locally bundled image avatars with 13 native one-letter monogr
 | AvatarSofiaAlvarez | Sofia Alvarez | Štefan Štefančík | [QXevDflbl8A](https://unsplash.com/photos/QXevDflbl8A) |
 | AvatarDanielKim | Daniel Kim | Ludovic Migneault | [EZ4TYgXPNWk](https://unsplash.com/photos/EZ4TYgXPNWk) |
 | AvatarGardenClub | Garden Club member | alex starnes | [WYE2UhXsU1Y](https://unsplash.com/photos/WYE2UhXsU1Y) |
+
+Fiatjaf uses the approved bundled Figma artwork documented in `conversation-fiatjaf.md`, rather than an Unsplash portrait.
 
 - Retrieval date: 2026-07-24
 - Transformation: Unsplash CDN face crop to a 512-by-512 JPEG, then clipped into a circle at runtime
@@ -205,7 +208,7 @@ The ten legacy avatars below come from the approved [White Noise marketing Chat 
 
 ## Acceptance
 
-- The populated account displays 33 nonarchived and 4 archived conversations.
+- The populated account displays 34 nonarchived and 4 archived conversations.
 - Unread, Archived, and Left show correct deterministic subsets and identify their scope inside the Filter Menu label; Chats uses the plain icon-only Filter label.
 - Unread shows a native bottom-leading **Read All** action while unread chats remain; activating it clears every active unread state and reveals **No Unread Chats** without an empty bottom-bar strip.
 - Search filters the selected scope and restores the existing native no-results state when empty.
@@ -235,4 +238,4 @@ The ten legacy avatars below come from the approved [White Noise marketing Chat 
 - The active list contains all ten documented attachment-preview treatments.
 - Both onboarding paths open the populated account.
 - Empty profile previews remain directly inspectable.
-- No bulk editing, account switching, refresh control, or conversation destination is introduced.
+- No bulk editing, account switching, or refresh control is introduced. Fiatjaf is the only implemented conversation destination in this batch.

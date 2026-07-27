@@ -3,6 +3,8 @@ import UIKit
 
 struct NativeChatList: UIViewRepresentable {
     struct Actions {
+        let canOpen: (String) -> Bool
+        let open: (String) -> Void
         let markRead: (String) -> Void
         let markUnread: (String) -> Void
         let togglePinned: (String) -> Void
@@ -96,6 +98,32 @@ struct NativeChatList: UIViewRepresentable {
             _ scrollView: UIScrollView
         ) {
             updateTopEdgeEffectVisibility(in: scrollView)
+        }
+
+        func collectionView(
+            _ collectionView: UICollectionView,
+            shouldSelectItemAt indexPath: IndexPath
+        ) -> Bool {
+            guard let chat = chat(at: indexPath) else {
+                return false
+            }
+
+            return parent.actions.canOpen(chat.id)
+        }
+
+        func collectionView(
+            _ collectionView: UICollectionView,
+            didSelectItemAt indexPath: IndexPath
+        ) {
+            guard let chat = chat(at: indexPath) else {
+                return
+            }
+
+            collectionView.deselectItem(
+                at: indexPath,
+                animated: true
+            )
+            parent.actions.open(chat.id)
         }
 
         func configureDataSource(
