@@ -7,10 +7,11 @@ struct OnboardingPrimaryActionLabel: View {
 
     let title: LocalizedStringKey
     let isLoading: Bool
+    var isActionEnabled = true
 
     private var contentColor: Color {
-        guard isEnabled else {
-            return .primary
+        guard isEnabled && isActionEnabled else {
+            return Color(uiColor: .tertiaryLabel)
         }
 
         return colorScheme == .dark ? .black : .white

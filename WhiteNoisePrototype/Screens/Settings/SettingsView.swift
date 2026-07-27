@@ -784,6 +784,9 @@ private struct AddProfileFlow: View {
                     onScannerPresentationChange: { isPresented in
                         selectedDetent = isPresented ? .large : .medium
                     },
+                    onInputFocusChange: { isFocused in
+                        selectedDetent = isFocused ? .large : .medium
+                    },
                     onSignIn: {
                         onCompletion(.fuzzyMarmot)
                     }

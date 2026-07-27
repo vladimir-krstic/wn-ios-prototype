@@ -17,13 +17,16 @@ struct LoginView: View {
     @FocusState private var isKeyFocused: Bool
 
     let onScannerPresentationChange: (Bool) -> Void
+    let onInputFocusChange: (Bool) -> Void
     let onSignIn: () -> Void
 
     init(
         onScannerPresentationChange: @escaping (Bool) -> Void = { _ in },
+        onInputFocusChange: @escaping (Bool) -> Void = { _ in },
         onSignIn: @escaping () -> Void
     ) {
         self.onScannerPresentationChange = onScannerPresentationChange
+        self.onInputFocusChange = onInputFocusChange
         self.onSignIn = onSignIn
     }
 
@@ -58,6 +61,9 @@ struct LoginView: View {
                         isEmpty: normalizedKey.isEmpty,
                         isBusy: isSigningIn,
                         isFocused: $isKeyFocused,
+                        onFocusRequest: {
+                            onInputFocusChange(true)
+                        },
                         onSubmit: signIn,
                         onAccessory: pasteOrClear
                     )
@@ -116,15 +122,21 @@ struct LoginView: View {
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             Button(action: signIn) {
-                OnboardingPrimaryActionLabel(
-                    title: "Sign In",
-                    isLoading: isSigningIn
-                )
+                Text("Sign In")
+                    .hidden()
             }
             .buttonStyle(.glassProminent)
             .controlSize(.extraLarge)
             .buttonSizing(.flexible)
             .disabled(keyState != .valid)
+            .overlay {
+                OnboardingPrimaryActionLabel(
+                    title: "Sign In",
+                    isLoading: isSigningIn,
+                    isActionEnabled: keyState == .valid
+                )
+                .allowsHitTesting(false)
+            }
             .allowsHitTesting(!isSigningIn)
             .accessibilityLabel(isSigningIn ? "Signing In" : "Sign In")
             .accessibilityValue(isSigningIn ? "In progress" : "")
@@ -147,6 +159,11 @@ struct LoginView: View {
         }
         .onChange(of: isShowingScanner) {
             onScannerPresentationChange(isShowingScanner)
+        }
+        .onChange(of: isKeyFocused) {
+            if !isKeyFocused {
+                onInputFocusChange(false)
+            }
         }
         .background(.background)
     }
@@ -200,6 +217,7 @@ private struct ProfileKeyInput: View {
     let isEmpty: Bool
     let isBusy: Bool
     @FocusState.Binding var isFocused: Bool
+    let onFocusRequest: () -> Void
     let onSubmit: () -> Void
     let onAccessory: () -> Void
 
@@ -212,6 +230,12 @@ private struct ProfileKeyInput: View {
                 .submitLabel(.go)
                 .privacySensitive()
                 .focused($isFocused)
+                .simultaneousGesture(
+                    TapGesture()
+                        .onEnded {
+                            onFocusRequest()
+                        }
+                )
                 .onSubmit(onSubmit)
 
             if !isBusy {
@@ -245,6 +269,7 @@ private struct ProfileKeyInput: View {
                 return
             }
 
+            onFocusRequest()
             isFocused = true
         }
     }

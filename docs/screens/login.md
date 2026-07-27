@@ -31,7 +31,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - Native `glassProminent` primary action.
 - Native small `ProgressView` centered inside the primary action while signing in.
 - Enabled primary-action content follows the adaptive monochrome tint: white title or spinner on the black Light Mode button, and black title or spinner on the white Dark Mode button.
-- Disabled content returns to semantic `primary` instead of retaining the enabled white override. Native `glassProminent` then owns the disabled material and reduced prominence, producing dark gray content against the Light Mode gray surface and light gray content against the Dark Mode surface.
+- Disabled content uses Apple’s adaptive `tertiaryLabel` color in a noninteractive overlay while native `glassProminent` owns the disabled material and reduced prominence underneath. Separating label contrast from the button style prevents the system material from dimming the text twice when unfocused and keeps focused and unfocused disabled states visually identical.
 - VisionKit `DataScannerViewController` for QR scanning on supported iPhones.
 - Native `ContentUnavailableView` with a deterministic sample-code action when scanning is unavailable.
 
@@ -44,6 +44,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - Any entered value replaces Paste with Clear. After the keyboard is dismissed, the outside action disappears and the capsule expands.
 - Clear empties the field without dismissing the keyboard.
 - The keyboard also uses its native Go key and dismisses when the scanner or Sign In flow is opened.
+- Tapping the field selects the sheet's large native detent in the tap transaction, before focus changes and the keyboard begins presenting. The bottom Sign In action then follows the keyboard safe area with the same system motion as Sign Up. Dismissing the keyboard returns the direct Sign In sheet to its medium detent.
 - Paste inserts one fixed fictional `nsec` value with the normal 63-character length, so the pasted state is always usable.
 - Manual and scanned values are trimmed, then accepted when they begin with lowercase `nsec`. Other values are invalid.
 - The prototype performs no length check, decoding, authentication, or cryptography.
@@ -58,6 +59,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - The deterministic prototype processing state lasts two seconds so its stable spinner and disabled-field treatment remain easy to inspect without slowing the flow.
 - A scanned QR payload returns to Sign In and is checked by the same prototype validator.
 - Opening QR Scanner expands a medium Sign In sheet to large. Returning to Sign In restores the medium detent, unless the person has manually expanded the direct sheet.
+- The live or simulated camera surface fills the scanner sheet behind the transparent navigation bar. The system Liquid Glass Back control floats over the camera instead of occupying a separate header surface.
 
 ## Accessibility
 
@@ -90,9 +92,11 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - **Sign In** from Add Profile appears at the medium detent inside the existing onboarding sheet and native Back returns to its Welcome step.
 - The field label and helper or error copy align with the editable text inset.
 - Tapping the field focuses the native SecureField and opens the keyboard.
+- The sheet expands through its native large detent as focus begins, and the Sign In action moves with the keyboard safe area without an intermediate jump.
 - Empty and unfocused shows Paste and Scan QR Code; focused shows the outside Close action; populated and unfocused shows Clear without an outside action.
 - Close dismisses the keyboard without clearing the field.
 - The primary action is disabled for empty values and values that do not begin with `nsec`.
+- Focusing the private-key field does not alter the primary action’s disabled appearance.
 - Invalid input displays the approved recovery copy.
 - A prototype-valid value enables Sign In.
 - The field is a 50-point filled capsule that visually belongs with the accepted Name/About fields and aligns with the circular QR action.
@@ -101,5 +105,6 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - In Light Mode the enabled action has white content on black; in Dark Mode it has black content on white. The disabled Sign In action uses semantic label color with the native disabled glass treatment instead of white text on light gray.
 - During the two-second processing state, the field uses SwiftUI's system disabled treatment, accepts no input, and shows no internal or external accessory actions.
 - Scan QR Code pushes the scanner screen and a scanned or sample payload returns to Sign In.
+- The scanner viewport fills the sheet and the native Back control overlays it.
 - The screen uses the same white onboarding canvas as Sign Up.
 - The medium detent removes the unused full-screen whitespace while preserving room for keyboard presentation; no custom fitted height or handmade modal surface is used.

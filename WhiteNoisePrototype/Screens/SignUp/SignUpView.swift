@@ -109,7 +109,7 @@ struct SignUpView: View {
     }
 
     private var avatarSection: some View {
-        VStack {
+        VStack(spacing: 0) {
             avatar
                 .containerRelativeFrame(
                     .horizontal,
@@ -140,7 +140,11 @@ struct SignUpView: View {
                     Button(role: .destructive) {
                         removePhoto()
                     } label: {
-                        Label("Remove Photo", systemImage: "trash")
+                        Label {
+                            Text("Remove Photo")
+                        } icon: {
+                            Image(uiImage: destructiveTrashSymbol)
+                        }
                     }
                 }
             } label: {
@@ -154,35 +158,55 @@ struct SignUpView: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
+                    .padding(.top)
             }
         }
     }
 
     private var avatar: some View {
-        Group {
-            if let avatarImage {
-                Image(uiImage: avatarImage)
-                    .resizable()
-                    .scaledToFill()
-                    .accessibilityLabel("Profile photo")
-            } else {
+        GeometryReader { geometry in
+            ZStack {
                 Circle()
                     .fill(Color("AccentColor"))
-                    .overlay {
-                        Text(initial)
-                            .font(.largeTitle)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(
-                                colorScheme == .dark
-                                    ? Color.black
-                                    : Color.white
-                            )
-                    }
-                    .accessibilityLabel("Profile photo, \(initial)")
+
+                if let avatarImage {
+                    Image(uiImage: avatarImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(
+                            width: geometry.size.width,
+                            height: geometry.size.height
+                        )
+                } else {
+                    Text(initial)
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(
+                            colorScheme == .dark
+                                ? Color.black
+                                : Color.white
+                        )
+                }
             }
+            .frame(
+                width: geometry.size.width,
+                height: geometry.size.height
+            )
+            .clipShape(.circle)
         }
         .aspectRatio(1, contentMode: .fit)
-        .clipShape(.circle)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            avatarImage == nil
+                ? "Profile photo, \(initial)"
+                : "Profile photo"
+        )
+    }
+
+    private var destructiveTrashSymbol: UIImage {
+        UIImage(systemName: "trash")?
+            .withTintColor(.systemRed, renderingMode: .alwaysOriginal)
+            ?? UIImage()
     }
 
     private func loadSelectedPhoto() {

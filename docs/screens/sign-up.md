@@ -41,7 +41,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Editing Name immediately updates the monogram to the first non-whitespace character.
 - A selected photo replaces the monogram and remains in memory only.
 - **Change Photo** reopens the same source menu; **Remove Photo** restores the monogram.
-- The avatar action uses the regular native control size with one semantic system spacing step below the avatar.
+- **Remove Photo** uses SwiftUI's destructive button role. Its complete native `Label` also receives the semantic red style so the title and standard trash symbol match Apple's destructive-menu example despite the current iOS 27 beta rendering the role on the title only.
+- The avatar action uses the regular native control size with one stable semantic system spacing step below the avatar. Changing between the monogram and selected image does not alter this spacing.
 - The white system canvas maintains visual continuity with Welcome and distinguishes onboarding from Settings.
 - Native Form sections own the field-card shape, padding, spacing, and focus behavior; no rounded rectangle is drawn by the app.
 - The avatar remains visually floating in a transparent Form row above the fields.
@@ -63,6 +64,7 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - [Text fields](https://developer.apple.com/design/human-interface-guidelines/text-fields)
 - [Form](https://developer.apple.com/documentation/swiftui/form)
 - [Menus](https://developer.apple.com/design/human-interface-guidelines/menus)
+- [Populating SwiftUI menus with adaptive controls](https://developer.apple.com/documentation/SwiftUI/Populating-SwiftUI-menus-with-adaptive-controls)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app)
 - [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter%28ispresented%3Aallowedcontenttypes%3Aoncompletion%3A%29)
@@ -74,11 +76,13 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - **Sign Up** from Add Profile remains in the existing large onboarding sheet and native Back returns to its Welcome step.
 - The default avatar shows **M** for **Mochi**.
 - The avatar action is visually compact and clearly separated from the avatar.
+- The avatar-to-action spacing remains unchanged before and after selecting a photo.
 - Sign Up uses the same white system canvas as Welcome.
 - Name and About use separate native grouped Form cards with a subtle semantic system fill.
 - Form owns field-card corner geometry, insets, and spacing; the app does not supply numeric border or corner-radius recipes.
 - **Add Photo** opens a menu with working Photos and Files choices.
 - Choosing a supported image previews it; removing it restores the current name initial.
+- The destructive Remove Photo menu item displays both its title and trash symbol with the system destructive treatment.
 - The bottom **Sign Up** action remains visible above the safe area and keyboard.
 - Sign Up shows a centered native spinner for two seconds without changing button dimensions or losing contrast.
 - In Light Mode the prominent action has white content on black; in Dark Mode it has black content on white, including normal and loading states.

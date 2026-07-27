@@ -60,7 +60,7 @@ struct QRScannerView: View {
             PhysicalQRScannerView(onScan: completeScan)
 #endif
         }
-        .navigationTitle("Scan QR Code")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -104,10 +104,9 @@ private struct SimulatedQRScannerView: View {
             switch permissionState {
             case .requesting:
                 Color.black
-                    .ignoresSafeArea(edges: .bottom)
+                    .ignoresSafeArea()
                     .toolbarColorScheme(.dark, for: .navigationBar)
-                    .toolbarBackground(.black, for: .navigationBar)
-                    .toolbarBackground(.visible, for: .navigationBar)
+                    .toolbarBackground(.hidden, for: .navigationBar)
             case .allowed:
                 scannerCanvas
             case .denied:
@@ -185,10 +184,9 @@ private struct SimulatedQRScannerView: View {
         .buttonStyle(.plain)
         .allowsHitTesting(permissionState == .allowed)
         .accessibilityLabel("Scan QR Code")
-        .ignoresSafeArea(edges: .bottom)
+        .ignoresSafeArea()
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbarBackground(.black, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .background(.black)
     }
 
@@ -257,8 +255,9 @@ private struct PhysicalQRScannerView: View {
                         state = .unavailable
                     }
                 )
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea()
                 .toolbarColorScheme(.dark, for: .navigationBar)
+                .toolbarBackground(.hidden, for: .navigationBar)
             case .denied:
                 ContentUnavailableView {
                     Label(

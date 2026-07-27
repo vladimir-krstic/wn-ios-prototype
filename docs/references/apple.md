@@ -49,6 +49,7 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [sharedBackgroundVisibility](https://developer.apple.com/documentation/swiftui/toolbarcontent/sharedbackgroundvisibility(_:)) — suppressing an individual toolbar item’s automatic shared Liquid Glass background.
 - [Search modifiers](https://developer.apple.com/documentation/swiftui/view-search) — native search presentation and programmatic activation.
 - [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands) — native compact command and selection menus.
+- [Populating SwiftUI menus with adaptive controls](https://developer.apple.com/documentation/SwiftUI/Populating-SwiftUI-menus-with-adaptive-controls) — native menu labels, symbols, selection state, and destructive roles.
 - [Lists and tables HIG](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) — native list hierarchy, row content, disclosure, and interaction guidance.
 - [List](https://developer.apple.com/documentation/swiftui/list) — native single-column row presentation, scrolling, separators, and selection behavior.
 - [Displaying data in lists](https://developer.apple.com/documentation/swiftui/displaying-data-in-lists) — SwiftUI list composition and hierarchical navigation patterns.

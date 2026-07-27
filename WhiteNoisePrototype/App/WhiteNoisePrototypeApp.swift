@@ -118,6 +118,9 @@ private struct InitialSignInSheet: View {
                 onScannerPresentationChange: { isPresented in
                     selectedDetent = isPresented ? .large : .medium
                 },
+                onInputFocusChange: { isFocused in
+                    selectedDetent = isFocused ? .large : .medium
+                },
                 onSignIn: onSignIn
             )
             .toolbar {
