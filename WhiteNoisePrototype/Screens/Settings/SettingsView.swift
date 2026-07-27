@@ -637,7 +637,17 @@ struct ProfileSummary: View {
 }
 
 struct ShareProfileView: View {
+    private enum Mode: String, CaseIterable, Identifiable {
+        case share = "Share"
+        case scan = "Scan"
+
+        var id: Self { self }
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
     @State private var copied = false
+    @State private var mode = Mode.share
+
     let profile: PrototypeProfile
 
     private let qrImage: UIImage?
@@ -650,12 +660,60 @@ struct ShareProfileView: View {
     }
 
     var body: some View {
+        Group {
+            switch mode {
+            case .share:
+                shareContent
+            case .scan:
+                ProfileCodeScannerView {
+                    mode = .share
+                }
+            }
+        }
+        .navigationTitle("Profile Code")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarColorScheme(
+            mode == .scan ? .dark : colorScheme,
+            for: .navigationBar
+        )
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Profile Code", selection: $mode) {
+                    ForEach(Mode.allCases) { mode in
+                        Text(mode.rawValue)
+                            .tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+            }
+
+            if mode == .share {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: shareText) {
+                        Label(
+                            "Share Profile",
+                            systemImage: "square.and.arrow.up"
+                        )
+                        .labelStyle(.iconOnly)
+                    }
+                }
+            }
+        }
+        .sensoryFeedback(.success, trigger: copied)
+    }
+
+    private var shareContent: some View {
         ScrollView {
             VStack {
-                ProfileSummary(
+                ProfileMonogram(
                     profile: profile,
-                    avatarSize: 64
+                    size: 128
                 )
+
+                Text(profile.name)
+                    .font(.title2.weight(.semibold))
 
                 if let qrImage {
                     Image(uiImage: qrImage)
@@ -687,20 +745,13 @@ struct ShareProfileView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-                Button {
-                    UIPasteboard.general.string = profile.publicKey
-                    copied = true
-                } label: {
-                    LabeledContent("Public Key") {
-                        Label(
-                            copied ? "Copied" : "Copy",
-                            systemImage: copied
-                                ? "checkmark"
-                                : "doc.on.doc"
-                        )
-                    }
+                VStack(alignment: .leading) {
+                    Text("Public Key")
+                        .font(.headline)
+
+                    publicKeyField
                 }
-                .buttonStyle(.bordered)
+                .padding(.top)
 
                 Label(
                     "Your public key is safe to share. Never share your private key.",
@@ -713,19 +764,41 @@ struct ShareProfileView: View {
             .frame(maxWidth: .infinity)
             .padding()
         }
-        .navigationTitle("Share Profile")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                ShareLink(item: shareText) {
-                    Label(
-                        "Share Profile",
-                        systemImage: "square.and.arrow.up"
-                    )
-                    .labelStyle(.iconOnly)
-                }
+    }
+
+    private var publicKeyField: some View {
+        HStack {
+            Text(profile.publicKey)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            Button {
+                UIPasteboard.general.string = profile.publicKey
+                copied = true
+            } label: {
+                Image(
+                    systemName: copied
+                        ? "checkmark"
+                        : "doc.on.doc"
+                )
+                .contentTransition(.symbolEffect(.replace))
             }
+            .buttonStyle(.plain)
+            .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel(
+                copied ? "Public key copied" : "Copy public key"
+            )
         }
+        .padding(.leading)
+        .padding(.trailing, 4)
+        .padding(.vertical, 4)
+        .background(
+            Color(uiColor: .secondarySystemFill),
+            in: Capsule()
+        )
     }
 
     private var shareText: String {

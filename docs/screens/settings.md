@@ -38,10 +38,26 @@ Profile avatar provenance:
 
 ### Share Profile
 
-- Locally generated fictional QR code.
-- Copy and system Share actions for the full fictional public key.
+- A native segmented `Picker` in the navigation bar switches between **Share**
+  and **Scan** without leaving the destination.
+- Share uses the accepted onboarding-scale 128-point profile avatar, the
+  profile name, a locally generated fictional QR code, and the system
+  `ShareLink`.
 - Copy: **Let people scan this code to find your profile on White Noise.**
+- The full fictional public key appears in an adaptive
+  `secondarySystemFill` capsule with an icon-only `doc.on.doc` action. This is
+  an intentional read-only composition because SwiftUI has no stock
+  read-only filled field with a trailing copy action.
+- The copy action changes to `checkmark` after activation and remains a
+  44-point native button target.
 - Safety: **Your public key is safe to share. Never share your private key.**
+- Scan uses VisionKit `DataScannerViewController` with native guidance and
+  highlighting on supported iPhones. The simulator uses a deterministic
+  camera substitute and returns the fictional **Quiet Current** profile.
+- A recognized profile is presented with native
+  `ContentUnavailableView` structure and **Done** / **Scan Another** actions.
+- Camera permission denial, restricted access, unavailable hardware, and
+  unrecognized QR content have explicit native recovery states.
 
 ### Profile
 
