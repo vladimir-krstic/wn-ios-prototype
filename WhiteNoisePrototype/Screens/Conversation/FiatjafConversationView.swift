@@ -35,7 +35,7 @@ struct FiatjafConversationView: View {
                             time: "18:36",
                             accessibilityLabel:
                                 "Marmota, 18:36. Switched from Feather to "
-                                + "White Noise. Same key, same contacts. Delivered."
+                                + "White Noise. Same key, same contacts."
                         )
 
                         incomingReplyMessage
@@ -50,7 +50,7 @@ struct FiatjafConversationView: View {
 
                         incomingMediaMessage(
                             maximumContentWidth:
-                                geometry.size.width - 112
+                                max(8, geometry.size.width - 112)
                         )
 
                         ForEach(sentMessages) { message in
@@ -66,9 +66,10 @@ struct FiatjafConversationView: View {
                 }
                 .defaultScrollAnchor(.bottom)
                 .scrollDismissesKeyboard(.interactively)
-                .safeAreaBar(edge: .bottom, spacing: 0) {
+                .safeAreaInset(edge: .bottom, spacing: 0) {
                     composer
                 }
+                .scrollEdgeEffectStyle(.soft, for: .bottom)
                 .onChange(of: sentMessages.count) {
                     withAnimation {
                         proxy.scrollTo(bottomID, anchor: .bottom)
@@ -164,7 +165,7 @@ struct FiatjafConversationView: View {
                         + "No extra setup on my side."
                 )
 
-                messageMetadata(time: "18:37", delivered: false)
+                messageMetadata(time: "18:37")
             }
         }
         .accessibilityElement(children: .ignore)
@@ -185,7 +186,7 @@ struct FiatjafConversationView: View {
                 accessibilityLabel:
                     "Marmota, 18:44. Exactly. Moved apps, kept "
                     + "everything. Didn’t have to re-add anyone. "
-                    + "Delivered. Reacted with fire."
+                    + "Reacted with fire."
             )
 
             Text("🔥")
@@ -211,20 +212,47 @@ struct FiatjafConversationView: View {
     private func incomingMediaMessage(
         maximumContentWidth: CGFloat
     ) -> some View {
-        MessageBubble(outgoing: false) {
+        let interitemSpacing: CGFloat = 2
+        let topTileWidth =
+            (maximumContentWidth - (interitemSpacing * 2)) / 3
+        let bottomTileWidth =
+            (maximumContentWidth - interitemSpacing) / 2
+
+        return MessageBubble(outgoing: false) {
             VStack(alignment: .leading, spacing: 8) {
-                VStack(spacing: 2) {
-                    HStack(spacing: 2) {
-                        mediaTile("FiatjafMediaSloth", height: 86)
-                        mediaTile("FiatjafMediaBadger", height: 86)
-                        mediaTile("FiatjafMediaOstrich", height: 86)
+                VStack(spacing: interitemSpacing) {
+                    HStack(spacing: interitemSpacing) {
+                        mediaTile(
+                            "FiatjafMediaSloth",
+                            width: topTileWidth,
+                            height: 86
+                        )
+                        mediaTile(
+                            "FiatjafMediaBadger",
+                            width: topTileWidth,
+                            height: 86
+                        )
+                        mediaTile(
+                            "FiatjafMediaOstrich",
+                            width: topTileWidth,
+                            height: 86
+                        )
                     }
 
-                    HStack(spacing: 2) {
-                        mediaTile("FiatjafMediaFox", height: 106)
-                        mediaTile("FiatjafMediaMarmot", height: 106)
+                    HStack(spacing: interitemSpacing) {
+                        mediaTile(
+                            "FiatjafMediaFox",
+                            width: bottomTileWidth,
+                            height: 106
+                        )
+                        mediaTile(
+                            "FiatjafMediaMarmot",
+                            width: bottomTileWidth,
+                            height: 106
+                        )
                     }
                 }
+                .frame(width: maximumContentWidth)
                 .clipShape(
                     RoundedRectangle(
                         cornerRadius: 12,
@@ -235,9 +263,9 @@ struct FiatjafConversationView: View {
 
                 Text("Portable identity for the win.")
 
-                messageMetadata(time: "12:29", delivered: false)
+                messageMetadata(time: "12:29")
             }
-            .frame(maxWidth: maximumContentWidth)
+            .frame(width: maximumContentWidth)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
@@ -275,6 +303,7 @@ struct FiatjafConversationView: View {
             TextField("Message", text: $draft, axis: .vertical)
                 .lineLimit(1...5)
                 .focused($isComposerFocused)
+                .textFieldStyle(.plain)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
@@ -326,7 +355,7 @@ struct FiatjafConversationView: View {
                 text,
                 time: "Now",
                 accessibilityLabel:
-                    "Marmota, now. \(text). Delivered."
+                    "Marmota, now. \(text)."
             )
         case let .photo(data):
             MessageBubble(outgoing: true) {
@@ -344,12 +373,12 @@ struct FiatjafConversationView: View {
                             )
                     }
 
-                    messageMetadata(time: "Now", delivered: true)
+                    messageMetadata(time: "Now")
                 }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(
-                "Marmota, now. Photo. Delivered."
+                "Marmota, now. Photo."
             )
         case let .file(name):
             MessageBubble(outgoing: true) {
@@ -357,12 +386,12 @@ struct FiatjafConversationView: View {
                     Label(name, systemImage: "doc.fill")
                         .lineLimit(2)
 
-                    messageMetadata(time: "Now", delivered: true)
+                    messageMetadata(time: "Now")
                 }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(
-                "Marmota, now. File: \(name). Delivered."
+                "Marmota, now. File: \(name)."
             )
         }
     }
@@ -375,7 +404,7 @@ struct FiatjafConversationView: View {
         MessageBubble(outgoing: true) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(text)
-                messageMetadata(time: time, delivered: true)
+                messageMetadata(time: time)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -390,41 +419,32 @@ struct FiatjafConversationView: View {
         MessageBubble(outgoing: false) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(text)
-                messageMetadata(time: time, delivered: false)
+                messageMetadata(time: time)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private func messageMetadata(
-        time: String,
-        delivered: Bool
-    ) -> some View {
+    private func messageMetadata(time: String) -> some View {
         HStack(spacing: 3) {
             Spacer(minLength: 8)
 
             Text(time)
                 .font(.caption2)
-
-            if delivered {
-                Image(systemName: "checkmark")
-                    .font(.caption2.weight(.semibold))
-                    .accessibilityHidden(true)
-            }
         }
         .foregroundStyle(.secondary)
     }
 
     private func mediaTile(
         _ name: String,
+        width: CGFloat,
         height: CGFloat
     ) -> some View {
         Image(name)
             .resizable()
             .scaledToFill()
-            .frame(maxWidth: .infinity)
-            .frame(height: height)
+            .frame(width: width, height: height)
             .clipped()
     }
 }

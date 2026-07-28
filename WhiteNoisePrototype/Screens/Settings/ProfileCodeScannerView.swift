@@ -46,11 +46,11 @@ struct ProfileCodeScannerView: View {
     private var scanner: some View {
 #if targetEnvironment(simulator)
         SimulatedProfileCodeScanner {
-            foundProfile = .quietCurrent
+            foundProfile = .openQuill
         }
 #else
         PhysicalProfileCodeScanner {
-            foundProfile = .quietCurrent
+            foundProfile = .openQuill
         }
 #endif
     }

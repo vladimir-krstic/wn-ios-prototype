@@ -10,7 +10,7 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
 
 - No visible category headings or explanatory subtitles.
 - The active profile row shows its 56-point avatar, name, shortened public key, QR symbol, and the native disclosure indicator. It opens **Share Profile**.
-- The initial **Marmota** profile and deterministic profiles created through Sign In or Sign Up use the bundled, user-supplied marmot photo unless replaced in Profile editing.
+- The initial **Marmota** profile alone uses the bundled, user-supplied marmot photo. **Pebble** uses a distinct stone photograph, and Sign In creates **Open Circuit** with its own communications-history artwork.
 - A normal first Sign In or Sign Up session stores exactly one active profile. No inactive profile is preloaded.
 - Completing the first **Add Profile** flow also reveals the deterministic pseudonym set used to exercise multi-profile management. The newly added profile becomes active, and Settings immediately presents the compact three-avatar-plus-overflow switcher row.
 - Profile management adapts to stored profile count:
@@ -24,36 +24,47 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
 
 The switcher is a native medium/large sheet with an inset-grouped `List`, active checkmark, unread badges, row-scoped switching progress, system drag indicator, and a prominent **Add Profile** action. Medium content gestures expand the sheet; the large sheet scrolls when required.
 
-The screenshot-ready pseudonym set is **Quiet Current**, **Silver Fern**, **Night Archive**, **Amber Signal**, and **Tidal Echo**. Each uses a distinct locally bundled abstract nature photograph so the identities feel personal without implying five different people.
+The screenshot-ready pseudonym set is **Open Quill**, **Cipher Wheel**, **Free Signal**, **Public Voice**, and **Liberty Relay**. Their names and avatars connect each identity to publishing, privacy, free expression, or open communications without presenting unrelated real people as the profile owner.
 
 Profile avatar provenance:
 
-- Generated with OpenAI's built-in image generation tool on July 27, 2026.
-- Subjects: river stones and ripples, a fern canopy, a clouded mountain valley, amber ice, and tidal sand channels.
-- Constraints: face-free, text-free, logo-free natural photography composed for circular avatar crops.
-- Transformation: downscaled to 512-by-512 JPEG assets and clipped into circles at runtime.
+- **Pebble:** locally bundled stone image generated for the prototype on July 27, 2026.
+- **Open Circuit:** 1888 drawing of Heinrich Hertz's spark transmitter and parabolic antenna, public domain.
+- **Open Quill:** modern printing press photograph published under CC0.
+- **Cipher Wheel:** Jefferson disk cipher photograph created by the U.S. National Security Agency, public domain as a U.S. Government work.
+- **Free Signal:** 1926 photograph of Marconi's first radio transmitter, public domain.
+- **Public Voice:** First Amendment creamware plate photograph published under CC0.
+- **Liberty Relay:** Library of Congress photograph of a White House telegraph key, with no known copyright restrictions and marked public domain in the United States.
+- Retrieved July 28, 2026 from the linked Wikimedia Commons file pages and center-cropped/downscaled to 512-by-512 JPEG assets. The original visual treatment is otherwise unchanged.
 - Intended use: deterministic pseudonym avatars in Settings, the profile switcher, and App Store screenshot source captures.
+
+Source pages:
+
+- [Hertz spark transmitter drawing](https://commons.wikimedia.org/wiki/File:Drawing_of_Heinrich_Hertz_spark_radio_transmitter_and_parabolic_antenna_1888.jpg)
+- [Modern printing press](https://commons.wikimedia.org/wiki/File:Modern_printing_press_(Unsplash).jpg)
+- [Jefferson disk cipher](https://commons.wikimedia.org/wiki/File:Jefferson%27s_disk_cipher.jpg)
+- [Marconi's first radio transmitter](https://commons.wikimedia.org/wiki/File:Marconi%27s_first_radio_transmitter.jpg)
+- [First Amendment creamware plate](https://commons.wikimedia.org/wiki/File:Creamware_plate_with_First_Amendment_to_the_US_Constitution,_c._1838_(NMAH_227739.1838.I01).jpg)
+- [White House telegraph key](https://commons.wikimedia.org/wiki/File:White_House_(Telegraph_key)_LCCN2016870915.jpg)
 
 ## Destinations
 
 ### Share Profile
 
-- A native segmented `Picker` in the navigation bar switches between **Share**
-  and **Scan** without leaving the destination.
-- Share uses the accepted onboarding-scale 128-point profile avatar, the
+- A large native segmented `Picker` in the bottom safe-area bar switches
+  between **Share** and **Scan** without leaving the destination.
+- Share uses a user-approved 160-point profile avatar, the
   profile name, a locally generated fictional QR code, and the system
   `ShareLink`.
-- Copy: **Let people scan this code to find your profile on White Noise.**
-- The full fictional public key appears in an adaptive
-  `secondarySystemFill` capsule with an icon-only `doc.on.doc` action. This is
-  an intentional read-only composition because SwiftUI has no stock
-  read-only filled field with a trailing copy action.
+- Copy: **Scan to find this profile.**
+- The shortened fictional public key appears directly below the profile name
+  with an icon-only `doc.on.doc` action.
 - The copy action changes to `checkmark` after activation and remains a
   44-point native button target.
-- Safety: **Your public key is safe to share. Never share your private key.**
+- Safety: **Safe to share.** No decorative safety icon is shown.
 - Scan uses VisionKit `DataScannerViewController` with native guidance and
   highlighting on supported iPhones. The simulator uses a deterministic
-  camera substitute and returns the fictional **Quiet Current** profile.
+  camera substitute and returns the fictional **Open Quill** profile.
 - A recognized profile is presented with native
   `ContentUnavailableView` structure and **Done** / **Scan Another** actions.
 - Camera permission denial, restricted access, unavailable hardware, and

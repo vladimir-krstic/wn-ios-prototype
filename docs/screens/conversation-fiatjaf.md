@@ -28,8 +28,9 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - SwiftUI has no stock message-bubble component. The screen uses `UnevenRoundedRectangle` with one tighter lower corner to distinguish direction without drawing a custom tail.
 - The reply preview is part of the incoming bubble and uses a semantic overlay, a short vertical capsule, caption typography for the author, and secondary text for the quoted body.
 - The reaction is a compact system-background capsule attached below the outgoing bubble.
-- The five approved Figma images use native SwiftUI layout, clipped rounded rectangles, and no runtime loading.
-- The composer is pinned with `safeAreaBar`. A native multiline `TextField` owns keyboard, focus, selection, and text entry. Native glass buttons own attachment and send feedback.
+- The five approved Figma images use native SwiftUI stacks with row widths derived from the approved bubble width, clipped rounded rectangles, and no runtime loading. Media never escapes its message bubble.
+- The composer is pinned with `safeAreaInset`; the timeline uses the native soft bottom scroll-edge effect instead of a hard bar boundary. A native multiline `TextField` owns keyboard, focus, selection, and text entry inside the accepted semantic-fill capsule composition. Native glass buttons own attachment and send feedback.
+- Message metadata shows time only. Delivery checkmarks aren’t part of the White Noise conversation design.
 - Sending nonempty text appends a deterministic outgoing bubble labeled **Now**, clears the composer, and keeps the new message visible.
 - The attachment button presents native `PhotosPicker` and file-importer choices. A selected photo or file is appended as a deterministic in-memory outgoing message and is discarded when the process ends.
 
@@ -60,7 +61,7 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview)
 - [LazyVStack](https://developer.apple.com/documentation/swiftui/lazyvstack)
 - [TextField](https://developer.apple.com/documentation/swiftui/textfield)
-- [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:))
+- [safeAreaInset](https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:))
 - [GlassButtonStyle](https://developer.apple.com/documentation/swiftui/glassbuttonstyle)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
 

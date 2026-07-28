@@ -677,18 +677,18 @@ struct ShareProfileView: View {
             mode == .scan ? .dark : colorScheme,
             for: .navigationBar
         )
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Profile Code", selection: $mode) {
-                    ForEach(Mode.allCases) { mode in
-                        Text(mode.rawValue)
-                            .tag(mode)
-                    }
+        .safeAreaBar(edge: .bottom) {
+            Picker("Profile Code", selection: $mode) {
+                ForEach(Mode.allCases) { mode in
+                    Text(mode.rawValue)
+                        .tag(mode)
                 }
-                .pickerStyle(.segmented)
-                .fixedSize()
             }
-
+            .pickerStyle(.segmented)
+            .controlSize(.large)
+            .fixedSize()
+        }
+        .toolbar {
             if mode == .share {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: shareText) {
@@ -709,11 +709,13 @@ struct ShareProfileView: View {
             VStack {
                 ProfileMonogram(
                     profile: profile,
-                    size: 128
+                    size: 160
                 )
 
                 Text(profile.name)
                     .font(.title2.weight(.semibold))
+
+                publicKeySummary
 
                 if let qrImage {
                     Image(uiImage: qrImage)
@@ -738,67 +740,49 @@ struct ShareProfileView: View {
                     )
                 }
 
-                Text(
-                    "Let people scan this code to find your profile on White Noise."
-                )
+                Text("Scan to find this profile.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-
-                VStack(alignment: .leading) {
-                    Text("Public Key")
-                        .font(.headline)
-
-                    publicKeyField
-                }
-                .padding(.top)
-
-                Label(
-                    "Your public key is safe to share. Never share your private key.",
-                    systemImage: "checkmark.shield"
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.leading)
             }
             .frame(maxWidth: .infinity)
             .padding()
         }
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
     }
 
-    private var publicKeyField: some View {
-        HStack {
-            Text(profile.publicKey)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .foregroundStyle(.primary)
+    private var publicKeySummary: some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 4) {
+                Text(profile.shortPublicKey)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel(
+                        "Public key \(profile.shortPublicKey)"
+                    )
 
-            Spacer()
-
-            Button {
-                UIPasteboard.general.string = profile.publicKey
-                copied = true
-            } label: {
-                Image(
-                    systemName: copied
-                        ? "checkmark"
-                        : "doc.on.doc"
+                Button {
+                    UIPasteboard.general.string = profile.publicKey
+                    copied = true
+                } label: {
+                    Image(
+                        systemName: copied
+                            ? "checkmark"
+                            : "doc.on.doc"
+                    )
+                    .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel(
+                    copied ? "Public key copied" : "Copy public key"
                 )
-                .contentTransition(.symbolEffect(.replace))
             }
-            .buttonStyle(.plain)
-            .frame(minWidth: 44, minHeight: 44)
-            .accessibilityLabel(
-                copied ? "Public key copied" : "Copy public key"
-            )
+            .font(.subheadline)
+
+            Text("Safe to share.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
-        .padding(.leading)
-        .padding(.trailing, 4)
-        .padding(.vertical, 4)
-        .background(
-            Color(uiColor: .secondarySystemFill),
-            in: Capsule()
-        )
     }
 
     private var shareText: String {
@@ -866,7 +850,7 @@ private struct AddProfileFlow: View {
                         selectedDetent = isFocused ? .large : .medium
                     },
                     onSignIn: {
-                        onCompletion(.fuzzyMarmot)
+                        onCompletion(.openCircuit)
                     }
                 )
             }
@@ -960,21 +944,21 @@ private struct SettingsPreviewHost: View {
     ProfileSwitcherSheet(
         profiles: PrototypeProfile.postAddProfileFixtures,
         activeProfileID: "added-profile",
-        switchingProfileID: PrototypeProfile.quietCurrent.id,
+        switchingProfileID: PrototypeProfile.openQuill.id,
         onSelectProfile: { _ in },
         onAddProfile: {}
     )
     .tint(Color("AccentColor"))
 }
 
-#Preview("Settings — Quiet Current") {
+#Preview("Settings — Open Quill") {
     SettingsAlternateProfilePreview()
 }
 
 private struct SettingsAlternateProfilePreview: View {
     @State private var profiles =
         PrototypeProfile.multipleProfileFixtures
-    @State private var activeProfileID = PrototypeProfile.quietCurrent.id
+    @State private var activeProfileID = PrototypeProfile.openQuill.id
     @State private var settings = PrototypeSettingsState()
 
     var body: some View {

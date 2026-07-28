@@ -81,51 +81,51 @@ extension PrototypeProfile {
         chats: ChatListFixtures.populated
     )
 
-    static let quietCurrent = PrototypeProfile(
-        id: "quiet-current",
-        name: "Quiet Current",
+    static let openQuill = PrototypeProfile(
+        id: "open-quill",
+        name: "Open Quill",
         publicKey: "npub1q2v9n6t4r7c3x8m5k2w9p6s4y7h3d8f5j2a9e6u4z7n1m2d9",
-        avatarData: avatarData(named: "ProfileAvatarQuietCurrent"),
+        avatarData: avatarData(named: "ProfileAvatarOpenQuill"),
         chats: ChatListFixtures.empty
     )
 
-    static let fuzzyMarmot = PrototypeProfile(
-        id: "fuzzy-marmot",
-        name: "Fuzzy Marmot",
+    static let openCircuit = PrototypeProfile(
+        id: "open-circuit",
+        name: "Open Circuit",
         publicKey: "npub1f6k3r8w2v9c5m7t4y1p8s6h3d9n2x5j7a4e8u6z3q9k1p7v2",
-        avatarData: marmotaAvatarData,
+        avatarData: avatarData(named: "ProfileAvatarOpenCircuit"),
         chats: ChatListFixtures.empty
     )
 
-    static let silverFern = PrototypeProfile(
-        id: "silver-fern",
-        name: "Silver Fern",
+    static let cipherWheel = PrototypeProfile(
+        id: "cipher-wheel",
+        name: "Cipher Wheel",
         publicKey: "npub1s4h8c2y7v5m9r3t6p1w8d4n7x2j5a9e3u6z8q4k7c2m1f3k8",
-        avatarData: avatarData(named: "ProfileAvatarSilverFern"),
+        avatarData: avatarData(named: "ProfileAvatarCipherWheel"),
         chats: ChatListFixtures.empty
     )
 
-    static let nightArchive = PrototypeProfile(
-        id: "night-archive",
-        name: "Night Archive",
+    static let freeSignal = PrototypeProfile(
+        id: "free-signal",
+        name: "Free Signal",
         publicKey: "npub1n7d2p5x9v4c8m3t6y1s7h5k2j9a4e8u3z6q1r7w5f2m9w6r4",
-        avatarData: avatarData(named: "ProfileAvatarNightArchive"),
+        avatarData: avatarData(named: "ProfileAvatarFreeSignal"),
         chats: ChatListFixtures.empty
     )
 
-    static let amberSignal = PrototypeProfile(
-        id: "amber-signal",
-        name: "Amber Signal",
+    static let publicVoice = PrototypeProfile(
+        id: "public-voice",
+        name: "Public Voice",
         publicKey: "npub1c9m4v7q2r8t5y3p6s1h9d4n7x2j5a8e3u6z1k4w7f9m2x9q2",
-        avatarData: avatarData(named: "ProfileAvatarAmberSignal"),
+        avatarData: avatarData(named: "ProfileAvatarPublicVoice"),
         chats: ChatListFixtures.empty
     )
 
-    static let tidalEcho = PrototypeProfile(
-        id: "tidal-echo",
-        name: "Tidal Echo",
+    static let libertyRelay = PrototypeProfile(
+        id: "liberty-relay",
+        name: "Liberty Relay",
         publicKey: "npub1t3r8k6z2v9c5m7y4p1s8h3d6n9x2j5a7e4u8q6w3f9k1s4m7",
-        avatarData: avatarData(named: "ProfileAvatarTidalEcho"),
+        avatarData: avatarData(named: "ProfileAvatarLibertyRelay"),
         chats: ChatListFixtures.empty
     )
 
@@ -138,7 +138,7 @@ extension PrototypeProfile {
             id: "added-profile",
             name: normalizedName.isEmpty ? "Pebble" : normalizedName,
             publicKey: "npub1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7",
-            avatarData: marmotaAvatarData,
+            avatarData: avatarData(named: "ProfileAvatarPebble"),
             chats: ChatListFixtures.empty
         )
     }
@@ -148,11 +148,11 @@ extension PrototypeProfile {
     ]
 
     static let showcasePseudonyms: [PrototypeProfile] = [
-        .quietCurrent,
-        .silverFern,
-        .nightArchive,
-        .amberSignal,
-        .tidalEcho,
+        .openQuill,
+        .cipherWheel,
+        .freeSignal,
+        .publicVoice,
+        .libertyRelay,
     ]
 
     static let multipleProfileFixtures: [PrototypeProfile] = [
