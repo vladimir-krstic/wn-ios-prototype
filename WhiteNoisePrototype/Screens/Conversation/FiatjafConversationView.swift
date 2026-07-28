@@ -20,6 +20,7 @@ struct FiatjafConversationView: View {
     @State private var sentMessages: [SentMessage] = []
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isFileImporterPresented = false
+    @State private var isVoiceRecording = false
     @FocusState private var isComposerFocused: Bool
 
     var body: some View {
@@ -28,6 +29,30 @@ struct FiatjafConversationView: View {
                 ScrollView {
                     LazyVStack(spacing: 10) {
                         dayMarker
+
+                        outgoingTextMessage(
+                            "I’m moving from Feather to White Noise.",
+                            time: "18:31",
+                            accessibilityLabel:
+                                "Marmota, 18:31. I’m moving from "
+                                + "Feather to White Noise."
+                        )
+
+                        incomingTextMessage(
+                            "Let me know how it goes.",
+                            time: "18:32",
+                            accessibilityLabel:
+                                "Fiatjaf, 18:32. Let me know how it goes."
+                        )
+
+                        outgoingTextMessage(
+                            "Signing in now.\n"
+                                + "I’ll send a test next.",
+                            time: "18:33",
+                            accessibilityLabel:
+                                "Marmota, 18:33. Signing in now. "
+                                + "I’ll send a test next."
+                        )
 
                         outgoingTextMessage(
                             "Switched from Feather to White Noise. "
@@ -58,15 +83,16 @@ struct FiatjafConversationView: View {
                         }
 
                         Color.clear
-                            .frame(height: 1)
+                            .frame(height: 16)
                             .id(bottomID)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 12)
                 }
+                .scrollIndicators(.hidden)
                 .defaultScrollAnchor(.bottom)
                 .scrollDismissesKeyboard(.interactively)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
+                .safeAreaInset(edge: .bottom) {
                     composer
                 }
                 .scrollEdgeEffectStyle(.soft, for: .bottom)
@@ -131,7 +157,7 @@ struct FiatjafConversationView: View {
     }
 
     private var incomingReplyMessage: some View {
-        MessageBubble(outgoing: false) {
+        MessageRow(outgoing: false, time: "18:37") {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top, spacing: 8) {
                     Capsule()
@@ -164,8 +190,6 @@ struct FiatjafConversationView: View {
                     "Yep, I still see you on Primal. "
                         + "No extra setup on my side."
                 )
-
-                messageMetadata(time: "18:37")
             }
         }
         .accessibilityElement(children: .ignore)
@@ -178,35 +202,22 @@ struct FiatjafConversationView: View {
     }
 
     private var reactedOutgoingMessage: some View {
-        VStack(alignment: .trailing, spacing: -5) {
-            outgoingTextMessage(
+        MessageRow(
+            outgoing: true,
+            time: "18:44",
+            reaction: "🔥"
+        ) {
+            Text(
                 "Exactly. Moved apps, kept everything. "
-                    + "Didn’t have to re-add anyone.",
-                time: "18:44",
-                accessibilityLabel:
-                    "Marmota, 18:44. Exactly. Moved apps, kept "
-                    + "everything. Didn’t have to re-add anyone. "
-                    + "Reacted with fire."
+                    + "Didn’t have to re-add anyone."
             )
-
-            Text("🔥")
-                .font(.caption)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .background(
-                    Color(uiColor: .systemBackground),
-                    in: Capsule()
-                )
-                .overlay {
-                    Capsule()
-                        .stroke(
-                            Color(uiColor: .separator),
-                            lineWidth: 0.5
-                        )
-                }
-                .padding(.trailing, 12)
-                .accessibilityHidden(true)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Marmota, 18:44. Exactly. Moved apps, kept "
+                + "everything. Didn’t have to re-add anyone. "
+                + "Reacted with fire."
+        )
     }
 
     private func incomingMediaMessage(
@@ -218,7 +229,7 @@ struct FiatjafConversationView: View {
         let bottomTileWidth =
             (maximumContentWidth - interitemSpacing) / 2
 
-        return MessageBubble(outgoing: false) {
+        return MessageRow(outgoing: false, time: "12:29") {
             VStack(alignment: .leading, spacing: 8) {
                 VStack(spacing: interitemSpacing) {
                     HStack(spacing: interitemSpacing) {
@@ -262,8 +273,6 @@ struct FiatjafConversationView: View {
                 .accessibilityHidden(true)
 
                 Text("Portable identity for the win.")
-
-                messageMetadata(time: "12:29")
             }
             .frame(width: maximumContentWidth)
         }
@@ -275,53 +284,82 @@ struct FiatjafConversationView: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            Menu {
-                PhotosPicker(
-                    selection: $selectedPhotoItem,
-                    matching: .images
-                ) {
-                    Label(
-                        "Choose from Photos",
-                        systemImage: "photo.on.rectangle.angled"
-                    )
-                }
+        GlassEffectContainer {
+            HStack(alignment: .bottom, spacing: 8) {
+                Menu {
+                    PhotosPicker(
+                        selection: $selectedPhotoItem,
+                        matching: .images
+                    ) {
+                        Label(
+                            "Choose from Photos",
+                            systemImage: "photo.on.rectangle.angled"
+                        )
+                    }
 
-                Button {
-                    isFileImporterPresented = true
+                    Button {
+                        isFileImporterPresented = true
+                    } label: {
+                        Label("Choose from Files", systemImage: "folder")
+                    }
                 } label: {
-                    Label("Choose from Files", systemImage: "folder")
+                    Image(systemName: "plus")
                 }
-            } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
-            .controlSize(.large)
-            .accessibilityLabel("Add Attachment")
-
-            TextField("Message", text: $draft, axis: .vertical)
-                .lineLimit(1...5)
-                .focused($isComposerFocused)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    Color(uiColor: .secondarySystemFill),
-                    in: Capsule()
-                )
-                .submitLabel(.send)
-                .onSubmit(sendDraft)
-
-            if canSend {
-                Button(action: sendDraft) {
-                    Image(systemName: "arrow.up")
-                }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
                 .controlSize(.large)
-                .accessibilityLabel("Send")
-                .transition(.opacity)
+                .accessibilityLabel("Add Attachment")
+
+                HStack(alignment: .bottom, spacing: 4) {
+                    TextField("Message", text: $draft, axis: .vertical)
+                        .lineLimit(1...5)
+                        .frame(minHeight: 44, alignment: .center)
+                        .focused($isComposerFocused)
+                        .textFieldStyle(.plain)
+                        .submitLabel(.send)
+                        .onSubmit(sendDraft)
+
+                    if !canSend {
+                        Button {
+                            isVoiceRecording.toggle()
+                        } label: {
+                            Image(
+                                systemName: isVoiceRecording
+                                    ? "stop.fill"
+                                    : "waveform"
+                            )
+                            .contentTransition(
+                                .symbolEffect(.replace)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .foregroundStyle(
+                            isVoiceRecording
+                                ? Color.red
+                                : Color.secondary
+                        )
+                        .accessibilityLabel(
+                            isVoiceRecording
+                                ? "Stop Recording"
+                                : "Record Voice Message"
+                        )
+                    }
+                }
+                .padding(.leading, 14)
+                .padding(.trailing, 4)
+                .glassEffect(.regular.interactive(), in: .capsule)
+
+                if canSend {
+                    Button(action: sendDraft) {
+                        Image(systemName: "arrow.up")
+                    }
+                    .buttonStyle(.glassProminent)
+                    .buttonBorderShape(.circle)
+                    .controlSize(.large)
+                    .accessibilityLabel("Send")
+                    .transition(.opacity)
+                }
             }
         }
         .padding(.horizontal)
@@ -358,22 +396,18 @@ struct FiatjafConversationView: View {
                     "Marmota, now. \(text)."
             )
         case let .photo(data):
-            MessageBubble(outgoing: true) {
-                VStack(alignment: .trailing, spacing: 8) {
-                    if let image = UIImage(data: data) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 190)
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: 12,
-                                    style: .continuous
-                                )
+            MessageRow(outgoing: true, time: "Now") {
+                if let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 190)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: 12,
+                                style: .continuous
                             )
-                    }
-
-                    messageMetadata(time: "Now")
+                        )
                 }
             }
             .accessibilityElement(children: .ignore)
@@ -381,13 +415,9 @@ struct FiatjafConversationView: View {
                 "Marmota, now. Photo."
             )
         case let .file(name):
-            MessageBubble(outgoing: true) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(name, systemImage: "doc.fill")
-                        .lineLimit(2)
-
-                    messageMetadata(time: "Now")
-                }
+            MessageRow(outgoing: true, time: "Now") {
+                Label(name, systemImage: "doc.fill")
+                    .lineLimit(2)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(
@@ -401,11 +431,8 @@ struct FiatjafConversationView: View {
         time: String,
         accessibilityLabel: String
     ) -> some View {
-        MessageBubble(outgoing: true) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(text)
-                messageMetadata(time: time)
-            }
+        MessageRow(outgoing: true, time: time) {
+            Text(text)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
@@ -416,24 +443,11 @@ struct FiatjafConversationView: View {
         time: String,
         accessibilityLabel: String
     ) -> some View {
-        MessageBubble(outgoing: false) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(text)
-                messageMetadata(time: time)
-            }
+        MessageRow(outgoing: false, time: time) {
+            Text(text)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-    }
-
-    private func messageMetadata(time: String) -> some View {
-        HStack(spacing: 3) {
-            Spacer(minLength: 8)
-
-            Text(time)
-                .font(.caption2)
-        }
-        .foregroundStyle(.secondary)
     }
 
     private func mediaTile(
@@ -449,9 +463,23 @@ struct FiatjafConversationView: View {
     }
 }
 
-private struct MessageBubble<Content: View>: View {
+private struct MessageRow<Content: View>: View {
     let outgoing: Bool
+    let time: String
+    let reaction: String?
     @ViewBuilder let content: Content
+
+    init(
+        outgoing: Bool,
+        time: String,
+        reaction: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.outgoing = outgoing
+        self.time = time
+        self.reaction = reaction
+        self.content = content()
+    }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
@@ -459,17 +487,71 @@ private struct MessageBubble<Content: View>: View {
                 Spacer(minLength: 56)
             }
 
-            content
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .foregroundStyle(foregroundStyle)
-                .background(fill, in: shape)
+            VStack(alignment: timestampAlignment, spacing: 4) {
+                MessageBubble(outgoing: outgoing) {
+                    content
+                }
+                .overlay(alignment: reactionAlignment) {
+                    if let reaction {
+                        Text(reaction)
+                            .font(.caption)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .background(
+                                Color(uiColor: .systemBackground),
+                                in: Capsule()
+                            )
+                            .overlay {
+                                Capsule()
+                                    .stroke(
+                                        Color(uiColor: .separator),
+                                        lineWidth: 0.5
+                                    )
+                            }
+                            .offset(
+                                x: outgoing ? 10 : -10,
+                                y: 11
+                            )
+                            .accessibilityHidden(true)
+                    }
+                }
+                .padding(.bottom, reaction == nil ? 0 : 7)
+
+                Text(time)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(
+                        outgoing ? .leading : .trailing,
+                        10
+                    )
+            }
 
             if !outgoing {
                 Spacer(minLength: 56)
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var timestampAlignment: HorizontalAlignment {
+        outgoing ? .leading : .trailing
+    }
+
+    private var reactionAlignment: Alignment {
+        outgoing ? .bottomLeading : .bottomTrailing
+    }
+}
+
+private struct MessageBubble<Content: View>: View {
+    let outgoing: Bool
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .foregroundStyle(foregroundStyle)
+            .background(fill, in: shape)
     }
 
     private var fill: Color {
