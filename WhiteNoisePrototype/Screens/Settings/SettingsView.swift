@@ -165,7 +165,7 @@ struct SettingsView: View {
     private var activeProfileNavigationRow: some View {
         if let activeProfile {
             NavigationLink {
-                ShareProfileView(profile: activeProfile)
+                ShareAndConnectView(profile: activeProfile)
             } label: {
                 HStack {
                     ProfileSummary(
@@ -176,11 +176,12 @@ struct SettingsView: View {
                     Spacer()
 
                     Image(systemName: "qrcode")
+                        .foregroundStyle(.primary)
                         .accessibilityHidden(true)
                 }
             }
             .accessibilityLabel(
-                "Share \(activeProfile.name)’s profile"
+                "Open Share and Connect for \(activeProfile.name)"
             )
         }
     }
@@ -636,23 +637,24 @@ struct ProfileSummary: View {
     }
 }
 
-struct ShareProfileView: View {
+struct ShareAndConnectView: View {
     private enum Mode: String, CaseIterable, Identifiable {
         case share = "Share"
-        case scan = "Scan"
+        case scan = "Connect"
 
         var id: Self { self }
     }
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var copied = false
+    @State private var copyFeedbackTrigger = 0
+    @State private var copyResetTask: Task<Void, Never>?
     @State private var mode = Mode.share
 
     let profile: PrototypeProfile
 
     private let qrImage: UIImage?
 
-    init(profile: PrototypeProfile) {
+    fileprivate init(profile: PrototypeProfile) {
         self.profile = profile
         qrImage = Self.makeQRCode(
             from: "white-noise-prototype:profile:\(profile.id)"
@@ -660,35 +662,44 @@ struct ShareProfileView: View {
     }
 
     var body: some View {
-        Group {
-            switch mode {
-            case .share:
+        ZStack {
+            if mode == .share {
                 shareContent
-            case .scan:
+                    .transition(.opacity)
+            } else {
                 ProfileCodeScannerView {
                     mode = .share
                 }
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+                .transition(.opacity)
+                .ignoresSafeArea()
             }
         }
-        .navigationTitle("Profile Code")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.default, value: mode)
+        .navigationTitle("Share & Connect")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbarColorScheme(
-            mode == .scan ? .dark : colorScheme,
+        .toolbarBackground(
+            mode == .scan ? .hidden : .automatic,
             for: .navigationBar
         )
-        .safeAreaBar(edge: .bottom) {
-            Picker("Profile Code", selection: $mode) {
-                ForEach(Mode.allCases) { mode in
-                    Text(mode.rawValue)
-                        .tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .controlSize(.large)
-            .fixedSize()
-        }
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Mode", selection: $mode) {
+                    ForEach(Mode.allCases) { mode in
+                        Text(mode.rawValue)
+                            .tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.palette)
+                .controlSize(.extraLarge)
+                .frame(width: 180)
+            }
+
             if mode == .share {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: shareText) {
@@ -701,92 +712,169 @@ struct ShareProfileView: View {
                 }
             }
         }
-        .sensoryFeedback(.success, trigger: copied)
+        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
+        .onChange(of: mode) { _, newMode in
+            if newMode == .scan {
+                resetCopyFeedback()
+            }
+        }
+        .onDisappear {
+            resetCopyFeedback()
+        }
     }
 
     private var shareContent: some View {
-        ScrollView {
-            VStack {
-                ProfileMonogram(
-                    profile: profile,
-                    size: 160
-                )
+        Form {
+            Section {
+                profileHeader
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
 
-                Text(profile.name)
-                    .font(.title2.weight(.semibold))
+            Section {
+                qrCodeContent
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+        }
+    }
 
-                publicKeySummary
+    private var profileHeader: some View {
+        VStack {
+            profileAvatar
 
-                if let qrImage {
+            Text(profile.name)
+                .font(.title2.weight(.semibold))
+
+            glassCopyButton
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top)
+    }
+
+    private var glassCopyButton: some View {
+        Button(action: copyPublicKey) {
+            HStack {
+                Text(compactPublicKey)
+                    .lineLimit(1)
+                    .font(.body.monospaced())
+
+                copyStateSymbol
+            }
+        }
+        .buttonStyle(.glass)
+        .controlSize(.regular)
+        .accessibilityLabel(
+            copied ? "Public key copied" : "Copy public key"
+        )
+        .accessibilityValue(profile.shortPublicKey)
+    }
+
+    private var compactPublicKey: String {
+        guard profile.publicKey.count > 25 else {
+            return profile.publicKey
+        }
+
+        return "\(profile.publicKey.prefix(20))…\(profile.publicKey.suffix(4))"
+    }
+
+    private var copyStateSymbol: some View {
+        Image(systemName: copied ? "checkmark" : "doc.on.doc")
+            .contentTransition(.symbolEffect(.replace))
+            .animation(.default, value: copied)
+    }
+
+    private var profileAvatar: some View {
+        GeometryReader { geometry in
+            ProfileMonogram(
+                profile: profile,
+                size: geometry.size.width
+            )
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .containerRelativeFrame(
+            .horizontal,
+            count: 3,
+            span: 1,
+            spacing: 0
+        )
+    }
+
+    @ViewBuilder
+    private var qrCodeContent: some View {
+        VStack(spacing: 4) {
+            if let qrImage {
+                VStack(spacing: 0) {
                     Image(uiImage: qrImage)
                         .resizable()
                         .interpolation(.none)
                         .scaledToFit()
-                        .padding()
-                        .background(.white)
                         .containerRelativeFrame(
                             .horizontal,
                             count: 5,
                             span: 4,
                             spacing: 0
                         )
+                        .padding([.top, .horizontal], 8)
                         .accessibilityLabel(
                             "\(profile.name)’s profile QR code"
                         )
-                } else {
-                    ContentUnavailableView(
-                        "QR Code Unavailable",
-                        systemImage: "qrcode"
-                    )
+
+                    Text("Scan to connect.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 6)
                 }
-
-                Text("Scan to find this profile.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-        }
-        .scrollEdgeEffectStyle(.soft, for: .bottom)
-    }
-
-    private var publicKeySummary: some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 4) {
-                Text(profile.shortPublicKey)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel(
-                        "Public key \(profile.shortPublicKey)"
+                .padding(.bottom, 8)
+                .background(
+                    .white,
+                    in: RoundedRectangle(
+                        cornerRadius: 16,
+                        style: .continuous
                     )
-
-                Button {
-                    UIPasteboard.general.string = profile.publicKey
-                    copied = true
-                } label: {
-                    Image(
-                        systemName: copied
-                            ? "checkmark"
-                            : "doc.on.doc"
-                    )
-                    .contentTransition(.symbolEffect(.replace))
-                }
-                .buttonStyle(.plain)
-                .frame(minWidth: 44, minHeight: 44)
-                .accessibilityLabel(
-                    copied ? "Public key copied" : "Copy public key"
+                )
+            } else {
+                ContentUnavailableView(
+                    "QR Code Unavailable",
+                    systemImage: "qrcode"
                 )
             }
-            .font(.subheadline)
-
-            Text("Safe to share.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 32)
     }
 
     private var shareText: String {
         "\(profile.name) on White Noise\n\(profile.publicKey)"
+    }
+
+    private func copyPublicKey() {
+        UIPasteboard.general.string = profile.publicKey
+        copied = true
+        copyFeedbackTrigger += 1
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: "Public key copied"
+        )
+
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            copied = false
+            copyResetTask = nil
+        }
+    }
+
+    private func resetCopyFeedback() {
+        copyResetTask?.cancel()
+        copyResetTask = nil
+        copied = false
     }
 
     private static func makeQRCode(from payload: String) -> UIImage? {
@@ -798,7 +886,20 @@ struct ShareProfileView: View {
             return nil
         }
 
-        let scaledImage = outputImage.transformed(
+        let quietZoneExtent = CGRect(
+            x: outputImage.extent.minX - 4,
+            y: outputImage.extent.minY,
+            width: outputImage.extent.width + 8,
+            height: outputImage.extent.height + 4
+        )
+        let whiteBackground = CIImage(
+            color: CIColor(red: 1, green: 1, blue: 1)
+        )
+        .cropped(to: quietZoneExtent)
+        let imageWithQuietZone = outputImage.composited(
+            over: whiteBackground
+        )
+        let scaledImage = imageWithQuietZone.transformed(
             by: CGAffineTransform(scaleX: 12, y: 12)
         )
         let context = CIContext()
@@ -973,9 +1074,9 @@ private struct SettingsAlternateProfilePreview: View {
     }
 }
 
-#Preview("Share Profile") {
+#Preview("Share & Connect") {
     NavigationStack {
-        ShareProfileView(profile: .marmota)
+        ShareAndConnectView(profile: .marmota)
     }
     .tint(Color("AccentColor"))
 }

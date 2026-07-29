@@ -24,8 +24,14 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink) — native value-driven destination navigation.
 - [Form](https://developer.apple.com/documentation/swiftui/form) — native grouped settings and data-entry container.
 - [Settings HIG](https://developer.apple.com/design/human-interface-guidelines/settings) — settings hierarchy, system preference respect, and app-specific configuration guidance.
-- [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink) — native system sharing from Share Profile.
+- [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink) — native system sharing from Share & Connect.
 - [Sheets HIG](https://developer.apple.com/design/human-interface-guidelines/sheets) — scoped modal tasks and resizable iPhone sheet behavior.
+- [Segmented controls HIG](https://developer.apple.com/design/human-interface-guidelines/segmented-controls) — compact switching between closely related, mutually exclusive views.
+- [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette) — native mutually exclusive palette selection used by the Share/Scan toolbar control.
+- [Refining the system-provided glass effect in toolbars](https://developer.apple.com/documentation/swiftui/landmarks-refining-the-system-provided-glass-effect-in-toolbars) — toolbar placement and grouping let the system provide Liquid Glass structure and interaction.
+- [Activity views HIG](https://developer.apple.com/design/human-interface-guidelines/activity-views) — system presentation of sharing and related activities.
+- [Feedback HIG](https://developer.apple.com/design/human-interface-guidelines/feedback) — accessible, proportional confirmation close to the action it describes.
+- [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback) — system success feedback for the public-key Copy action.
 - [presentationDetents](https://developer.apple.com/documentation/swiftui/view/presentationdetents(_:)) — native medium and large sheet heights.
 - [PresentationContentInteraction](https://developer.apple.com/documentation/swiftui/presentationcontentinteraction) — native control over whether sheet gestures prioritize scrolling or resizing.
 - [Presentation modifiers](https://developer.apple.com/documentation/swiftui/view-presentation) — sheet backgrounds, sizing, detents, and interaction configuration.

@@ -9,7 +9,7 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
 ## Hub
 
 - No visible category headings or explanatory subtitles.
-- The active profile row shows its 56-point avatar, name, shortened public key, QR symbol, and the native disclosure indicator. It opens **Share Profile**.
+- The active profile row shows its 56-point avatar, name, shortened public key, QR symbol, and the native disclosure indicator. It pushes **Share & Connect** inside the existing Settings navigation stack.
 - The initial **Marmota** profile alone uses the bundled, user-supplied marmot photo. **Pebble** uses a distinct stone photograph, and Sign In creates **Open Circuit** with its own communications-history artwork.
 - A normal first Sign In or Sign Up session stores exactly one active profile. No inactive profile is preloaded.
 - Completing the first **Add Profile** flow also reveals the deterministic pseudonym set used to exercise multi-profile management. The newly added profile becomes active, and Settings immediately presents the compact three-avatar-plus-overflow switcher row.
@@ -49,19 +49,54 @@ Source pages:
 
 ## Destinations
 
-### Share Profile
+### Share & Connect
 
-- A large native segmented `Picker` in the bottom safe-area bar switches
-  between **Share** and **Scan** without leaving the destination.
-- Share uses a user-approved 160-point profile avatar, the
-  profile name, a locally generated fictional QR code, and the system
-  `ShareLink`.
-- Copy: **Scan to find this profile.**
-- The shortened fictional public key appears directly below the profile name
-  with an icon-only `doc.on.doc` action.
-- The copy action changes to `checkmark` after activation and remains a
-  44-point native button target.
-- Safety: **Safe to share.** No decorative safety icon is shown.
+- The Settings profile row uses a native `NavigationLink`. Share & Connect
+  slides in from the trailing edge, uses the system Back chevron and
+  interactive swipe-back gesture, and returns to Settings without modal
+  dismissal.
+- Share uses a native grouped `Form`, allowing the system to provide the
+  adaptive Settings background, inset sections, margins, Light/Dark
+  appearance, and scrolling behavior.
+- The native top toolbar keeps a centered SwiftUI `Picker` using the palette
+  style for **Share / Connect** and the system Share action on the right while
+  Share is selected. The picker remains one stable toolbar control at the
+  native extra-large control size while its selection changes. The toolbar
+  allocates the control the wider footprint shown in the supplied Apple
+  Messages reference while the native picker continues to own its internal
+  segment widths and label insets. It applies no custom font, background,
+  tint, corner radius, glass, or custom selection animation. SwiftUI and the
+  toolbar own intrinsic size, label insets, the Liquid Glass selection island,
+  interaction motion, and accessibility.
+- **Share** is selected initially; the trailing toolbar uses the system
+  `ShareLink` to share the profile name and full fictional public key.
+- Share uses the same one-third-of-available-width avatar sizing rule as Sign
+  Up, followed by the profile name and locally generated fictional QR code.
+- A native secondary Liquid Glass npub button appears directly beneath the
+  profile name. It uses the system regular control size and a shorter
+  middle-truncated key presentation so its intrinsic width is approximately
+  30 percent narrower than the previous compact treatment.
+- The button copies the full key while preserving a trailing Copy symbol and
+  the final four visible key characters.
+- Copy replaces `doc.on.doc` with `checkmark` without changing control geometry,
+  provides visible, haptic, and VoiceOver confirmation, and returns to Copy
+  after two seconds. Another activation restarts the cancelable reset interval.
+- Its continuous 16-point white container gives the QR eight points of outer
+  top and side inset. Centered **Scan to connect.** occupies a separate footer
+  band with six-point vertical text padding. The measured eight-point footer
+  extension equalizes the visible top/left/right/bottom whitespace and places
+  the caption midway between the QR matrix and the container’s bottom edge
+  without adding another quiet zone to the generated image.
+- Share presents the profile identity and npub action first, followed by the QR
+  card and its attached caption.
+- The Form uses its default native section spacing between the profile and QR
+  sections, without asymmetric padding, custom spacer rows, or a bottom
+  scroll-edge mask.
+- **Connect** keeps the palette control visible while scanner content extends
+  edge to edge behind the system toolbar. The navigation-bar background is
+  hidden so the toolbar’s native controls remain over the camera rather than
+  on a separate surface. The system Back action stays available and the Share
+  toolbar action is hidden in this mode.
 - Scan uses VisionKit `DataScannerViewController` with native guidance and
   highlighting on supported iPhones. The simulator uses a deterministic
   camera substitute and returns the fictional **Open Quill** profile.
@@ -217,6 +252,10 @@ Relay operator references verified July 27, 2026:
 - [Toggle](https://developer.apple.com/documentation/swiftui/toggle)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
+- [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback)
+- [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback)
+- [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette)
+- [System-provided glass in toolbars](https://developer.apple.com/documentation/swiftui/landmarks-refining-the-system-provided-glass-effect-in-toolbars)
 - [ProgressView](https://developer.apple.com/documentation/swiftui/progressview)
 - [EditButton](https://developer.apple.com/documentation/swiftui/editbutton)
 - [EditMode](https://developer.apple.com/documentation/swiftui/editmode)
@@ -228,6 +267,25 @@ Relay operator references verified July 27, 2026:
 ## Acceptance
 
 - Every hub row opens its working destination; no development placeholder remains.
+- Share & Connect pushes from Settings with the native side transition, Back
+  chevron, interactive swipe-back gesture, and adaptive grouped background.
+- Its npub button shows a checkmark for two seconds, resets without a second
+  success haptic, and remains usable when tapped repeatedly.
+- Share mode reads in this order: profile identity and npub action, then the QR
+  card and caption.
+- Its QR remains scannable while the supporting sentence reads as part of the
+  same grouped content.
+- The QR explanation sits visibly close to the last row of QR modules, and the
+  QR card remains the dominant first action below the profile identity.
+- The white QR container uses eight-point top and side insets around the QR.
+  Its centered caption uses six-point vertical padding in a separately
+  measured footer whose eight-point extension makes the visible bottom inset
+  match the other three sides; the generated image does not add a second blank
+  bottom region ahead of it.
+- The toolbar reads **Share / Connect**, and native Form section spacing
+  separates the profile identity from the QR.
+- The public key remains compact, copies in full, and keeps its final four
+  characters visible.
 - After the first Sign In or Sign Up, Settings contains one profile and displays **Add Profile** instead of **Switch Profile**.
 - Completing Sign In or Sign Up from **Add Profile** appends or reactivates that profile, reveals the deterministic pseudonym set, makes the added profile active, and changes profile management to the multi-profile presentation.
 - Profile editing, sharing, switching, adding, signing out, and removing update only deterministic in-memory state.

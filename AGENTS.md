@@ -28,7 +28,8 @@ Build a polished native iPhone prototype quickly, one user-agreed screen or tigh
 - Work only on the screen or small flow the user has selected.
 - Before implementation, create a short brief in `docs/screens/` for that work: purpose, navigation, exact copy, native components, important states, accessibility, relevant Apple links, and observable acceptance criteria.
 - Do not create speculative architecture, models, services, scenarios, assets, or future screens.
-- Build, compile previews, launch on the requested simulator, and make the result directly inspectable by the user.
+- Implement the requested change and use lightweight static validation by default. Do not compile previews, open Device Hub, launch a simulator, install the app, or capture simulator evidence unless the user explicitly asks.
+- If repeated visual iterations or unresolved uncertainty make simulator inspection materially useful, ask the user for permission before opening or running it.
 - Add tests only for meaningful nonvisual logic or a real regression.
 - The user is the visual and product acceptance authority.
 - Never invoke Claude automatically. When the user requests a major review, provide a neutral prompt for the user to run.
@@ -37,6 +38,10 @@ Build a polished native iPhone prototype quickly, one user-agreed screen or tigh
 ## Build
 
 Use `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` for every Xcode build or test command.
+
+- When the user explicitly requests simulator inspection, use Device Hub as the default surface for selecting the device, installing and launching the build, interacting with the app, capturing evidence, and leaving the result ready for inspection.
+- Use an iPhone Air running iOS 27 in portrait as the default inspection target. Do not use an iPhone Pro or Pro Max unless the user explicitly requests one.
+- Fall back to the classic Simulator, `simctl`, or generic Computer Use only when Device Hub is unavailable. Tell the user before using that fallback.
 
 ## Completion
 

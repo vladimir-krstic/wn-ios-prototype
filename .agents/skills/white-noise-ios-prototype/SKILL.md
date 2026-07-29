@@ -11,7 +11,7 @@ description: Build, iterate, or review one agreed White Noise native iPhone prot
 4. Prefer native SwiftUI/UIKit components, SF Symbols, semantic type, system colors, standard navigation, and system motion. Let standard controls own their metrics; use safe areas, system margins, and default spacing instead of numeric recipes. Apply explicit sizing only to a user-approved custom brand element documented in the current brief.
 5. Create or update one concise brief in `docs/screens/` only after the user selects the screen.
 6. Add fixed in-memory dummy data and capability wrappers only when the selected screen requires them.
-7. Build with Xcode 27 beta, compile relevant previews, launch the app, and present the result for direct user inspection.
+7. Implement the requested change and use lightweight static validation by default. Do not compile previews, open Device Hub, launch a simulator, install the app, or capture simulator evidence unless the user explicitly asks. If visual uncertainty or repeated iteration makes simulator inspection materially useful, ask the user for permission first.
 8. Add tests only for meaningful nonvisual logic or a confirmed regression.
 9. Never invoke Claude. If the user requests a major review, provide a neutral copyable prompt.
 
