@@ -42,6 +42,8 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [GlassProminentButtonStyle](https://developer.apple.com/documentation/swiftui/glassprominentbuttonstyle) — native prominent Liquid Glass action presentation and interaction.
 - [Button](https://developer.apple.com/documentation/swiftui/button) — native activation, feedback, accessibility, and keyboard behavior.
 - [ButtonBorderShape](https://developer.apple.com/documentation/swiftui/buttonbordershape) — system-owned capsule and rounded button geometry.
+- [PlainButtonStyle](https://developer.apple.com/documentation/swiftui/plainbuttonstyle) — borderless native button interaction used by the subdued public-key Copy action.
+- [secondarySystemFill](https://developer.apple.com/documentation/uikit/uicolor/secondarysystemfill) — adaptive semantic fill for the subdued public-key Copy capsule.
 - [Core Image QR code generator](https://developer.apple.com/documentation/coreimage/cifilter/qrcodegenerator()) — deterministic local QR image generation.
 - [DataScannerViewController](https://developer.apple.com/documentation/visionkit/datascannerviewcontroller) — native live camera scanning for QR codes.
 - [Scanning data with the camera](https://developer.apple.com/documentation/visionkit/scanning-data-with-the-camera) — VisionKit guidance, highlighting, availability, and recognized-item handling.

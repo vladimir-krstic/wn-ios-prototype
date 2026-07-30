@@ -72,21 +72,26 @@ Source pages:
   `ShareLink` to share the profile name and full fictional public key.
 - Share uses the same one-third-of-available-width avatar sizing rule as Sign
   Up, followed by the profile name and locally generated fictional QR code.
-- A native secondary Liquid Glass npub button appears directly beneath the
-  profile name. It uses the system regular control size and a shorter
-  middle-truncated key presentation so its intrinsic width is approximately
-  30 percent narrower than the previous compact treatment.
+- A quiet semantic-gray npub button appears directly beneath the profile name.
+  Its adaptive `secondarySystemFill` capsule uses secondary-colored monospaced
+  subheadline text, a compact visual height, and a shorter middle-truncated key
+  presentation without glass, a border, shadow, or custom motion. The avatar,
+  name, and visible capsule use matching eight-point intervals.
 - The button copies the full key while preserving a trailing Copy symbol and
-  the final four visible key characters.
+  the final four visible key characters. The displayed key keeps its first 14
+  characters, six fewer than the previous treatment.
 - Copy replaces `doc.on.doc` with `checkmark` without changing control geometry,
-  provides visible, haptic, and VoiceOver confirmation, and returns to Copy
-  after two seconds. Another activation restarts the cancelable reset interval.
-- Its continuous 16-point white container gives the QR eight points of outer
-  top and side inset. Centered **Scan to connect.** occupies a separate footer
-  band with six-point vertical text padding. The measured eight-point footer
-  extension equalizes the visible top/left/right/bottom whitespace and places
-  the caption midway between the QR matrix and the container’s bottom edge
-  without adding another quiet zone to the generated image.
+  because both medium-weight, secondary-colored caption symbols occupy the
+  same 14-point frame. It provides visible, haptic, and VoiceOver confirmation
+  and returns to Copy after two seconds. Another activation restarts the
+  cancelable reset interval.
+- The black QR matrix occupies 81 percent of the available width, making the
+  matrix 15 percent larger than the supplied comparison screenshot.
+- Its continuous 16-point white container hugs the matrix with four points of
+  equal padding on every side; the generated bitmap adds no second white
+  wrapper.
+- Centered **Scan to connect.** sits outside the white container, six points
+  below it.
 - Share presents the profile identity and npub action first, followed by the QR
   card and its attached caption.
 - The Form uses its default native section spacing between the profile and QR
@@ -270,18 +275,16 @@ Relay operator references verified July 27, 2026:
 - Share & Connect pushes from Settings with the native side transition, Back
   chevron, interactive swipe-back gesture, and adaptive grouped background.
 - Its npub button shows a checkmark for two seconds, resets without a second
-  success haptic, and remains usable when tapped repeatedly.
+  success haptic, and remains usable when tapped repeatedly. Its semantic-gray
+  capsule stays visually subordinate to the QR in Light and Dark appearances.
 - Share mode reads in this order: profile identity and npub action, then the QR
   card and caption.
 - Its QR remains scannable while the supporting sentence reads as part of the
   same grouped content.
 - The QR explanation sits visibly close to the last row of QR modules, and the
   QR card remains the dominant first action below the profile identity.
-- The white QR container uses eight-point top and side insets around the QR.
-  Its centered caption uses six-point vertical padding in a separately
-  measured footer whose eight-point extension makes the visible bottom inset
-  match the other three sides; the generated image does not add a second blank
-  bottom region ahead of it.
+- The white QR container uses matching four-point padding on every side around
+  the matrix. Its centered caption remains outside with a six-point gap.
 - The toolbar reads **Share / Connect**, and native Form section spacing
   separates the profile identity from the QR.
 - The public key remains compact, copies in full, and keeps its final four

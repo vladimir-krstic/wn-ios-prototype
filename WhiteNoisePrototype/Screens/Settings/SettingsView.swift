@@ -740,30 +740,38 @@ struct ShareAndConnectView: View {
     }
 
     private var profileHeader: some View {
-        VStack {
+        VStack(spacing: 8) {
             profileAvatar
 
             Text(profile.name)
                 .font(.title2.weight(.semibold))
 
-            glassCopyButton
+            copyPublicKeyButton
         }
         .frame(maxWidth: .infinity)
         .padding(.top)
     }
 
-    private var glassCopyButton: some View {
+    private var copyPublicKeyButton: some View {
         Button(action: copyPublicKey) {
             HStack {
                 Text(compactPublicKey)
                     .lineLimit(1)
-                    .font(.body.monospaced())
+                    .font(.subheadline.monospaced())
+                    .foregroundStyle(.secondary)
 
                 copyStateSymbol
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            .background(
+                Color(uiColor: .secondarySystemFill),
+                in: .capsule
+            )
+            .padding(.bottom, 14)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.glass)
-        .controlSize(.regular)
+        .buttonStyle(.plain)
         .accessibilityLabel(
             copied ? "Public key copied" : "Copy public key"
         )
@@ -771,15 +779,18 @@ struct ShareAndConnectView: View {
     }
 
     private var compactPublicKey: String {
-        guard profile.publicKey.count > 25 else {
+        guard profile.publicKey.count > 19 else {
             return profile.publicKey
         }
 
-        return "\(profile.publicKey.prefix(20))…\(profile.publicKey.suffix(4))"
+        return "\(profile.publicKey.prefix(14))…\(profile.publicKey.suffix(4))"
     }
 
     private var copyStateSymbol: some View {
         Image(systemName: copied ? "checkmark" : "doc.on.doc")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(width: 14, height: 14)
             .contentTransition(.symbolEffect(.replace))
             .animation(.default, value: copied)
     }
@@ -802,38 +813,31 @@ struct ShareAndConnectView: View {
 
     @ViewBuilder
     private var qrCodeContent: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             if let qrImage {
-                VStack(spacing: 0) {
-                    Image(uiImage: qrImage)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .containerRelativeFrame(
-                            .horizontal,
-                            count: 5,
-                            span: 4,
-                            spacing: 0
+                Image(uiImage: qrImage)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .containerRelativeFrame(.horizontal) { length, _ in
+                        length * 0.81
+                    }
+                    .padding(4)
+                    .background(
+                        .white,
+                        in: RoundedRectangle(
+                            cornerRadius: 16,
+                            style: .continuous
                         )
-                        .padding([.top, .horizontal], 8)
-                        .accessibilityLabel(
-                            "\(profile.name)’s profile QR code"
-                        )
-
-                    Text("Scan to connect.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.vertical, 6)
-                }
-                .padding(.bottom, 8)
-                .background(
-                    .white,
-                    in: RoundedRectangle(
-                        cornerRadius: 16,
-                        style: .continuous
                     )
-                )
+                    .accessibilityLabel(
+                        "\(profile.name)’s profile QR code"
+                    )
+
+                Text("Scan to connect.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             } else {
                 ContentUnavailableView(
                     "QR Code Unavailable",
@@ -886,20 +890,7 @@ struct ShareAndConnectView: View {
             return nil
         }
 
-        let quietZoneExtent = CGRect(
-            x: outputImage.extent.minX - 4,
-            y: outputImage.extent.minY,
-            width: outputImage.extent.width + 8,
-            height: outputImage.extent.height + 4
-        )
-        let whiteBackground = CIImage(
-            color: CIColor(red: 1, green: 1, blue: 1)
-        )
-        .cropped(to: quietZoneExtent)
-        let imageWithQuietZone = outputImage.composited(
-            over: whiteBackground
-        )
-        let scaledImage = imageWithQuietZone.transformed(
+        let scaledImage = outputImage.transformed(
             by: CGAffineTransform(scaleX: 12, y: 12)
         )
         let context = CIContext()
