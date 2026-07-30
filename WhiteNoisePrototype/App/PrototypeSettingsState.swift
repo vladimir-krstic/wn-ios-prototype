@@ -5,7 +5,7 @@ struct PrototypeSettingsState {
     var language = PrototypeLanguage.system
     var returnKeyBehavior = PrototypeReturnKeyBehavior.newLine
     var incomingMessageColor = PrototypeMessageColor.gray
-    var outgoingMessageColor = PrototypeMessageColor.blue
+    var outgoingMessageColor = PrototypeMessageColor.black
 
     var localNotificationsEnabled = true
     var nativePushEnabled = true
@@ -63,6 +63,7 @@ enum PrototypeReturnKeyBehavior: String, CaseIterable, Identifiable {
 }
 
 enum PrototypeMessageColor: String, CaseIterable, Identifiable {
+    case black = "Black"
     case gray = "Gray"
     case blue = "Blue"
     case green = "Green"
@@ -73,11 +74,23 @@ enum PrototypeMessageColor: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
+        case .black: Color("AccentColor")
         case .gray: Color(uiColor: .systemGray4)
         case .blue: .blue
         case .green: .green
         case .purple: .purple
         case .orange: .orange
+        }
+    }
+
+    var foregroundColor: Color {
+        switch self {
+        case .black:
+            Color(uiColor: .systemBackground)
+        case .gray:
+            Color(uiColor: .label)
+        case .blue, .green, .purple, .orange:
+            .white
         }
     }
 }
@@ -96,7 +109,7 @@ enum PrototypeNotificationPreview: String, CaseIterable, Identifiable {
         case .senderOnly:
             "Maya Chen · New message"
         case .generic:
-            "White Noise · New encrypted message"
+            "White Noise · New message"
         }
     }
 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ChatsView<SettingsDestination: View>: View {
+struct ChatsView<SettingsContent: View>: View {
     enum ChatScope: String, CaseIterable, Identifiable {
         case all
         case unread
@@ -38,7 +38,8 @@ struct ChatsView<SettingsDestination: View>: View {
         }
     }
 
-    @State private var chats: [ChatListItem]
+    @Binding private var chats: [ChatListItem]
+    @Binding private var settings: PrototypeSettingsState
     @State private var scope = ChatScope.all
     @State private var searchText = ""
     @State private var isSearchMounted = false
@@ -46,25 +47,24 @@ struct ChatsView<SettingsDestination: View>: View {
     @State private var isShowingFiatjafConversation = false
     @FocusState private var isSearchFocused: Bool
 
-    let profileInitial: String
-    let profileAvatarData: Data?
-    let settingsDestination: SettingsDestination
+    let profile: PrototypeProfile
+    let settingsDestination: SettingsContent
     let onNewMessage: () -> Void
 
     init(
-        chats: [ChatListItem],
+        chats: Binding<[ChatListItem]>,
+        settings: Binding<PrototypeSettingsState>,
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
-        profileInitial: String = "M",
-        profileAvatarData: Data? = nil,
-        @ViewBuilder settingsDestination: () -> SettingsDestination,
+        profile: PrototypeProfile = .marmota,
+        @ViewBuilder settingsDestination: () -> SettingsContent,
         onNewMessage: @escaping () -> Void
     ) {
-        self.profileInitial = profileInitial
-        self.profileAvatarData = profileAvatarData
+        self.profile = profile
         self.settingsDestination = settingsDestination()
         self.onNewMessage = onNewMessage
-        _chats = State(initialValue: chats)
+        _chats = chats
+        _settings = settings
         _scope = State(initialValue: initialScope)
         _searchText = State(initialValue: initialSearchText)
     }
@@ -120,7 +120,7 @@ struct ChatsView<SettingsDestination: View>: View {
         .navigationDestination(
             isPresented: $isShowingFiatjafConversation
         ) {
-            FiatjafConversationView()
+            FiatjafConversationView(settings: $settings)
         }
     }
 
@@ -164,25 +164,10 @@ struct ChatsView<SettingsDestination: View>: View {
         NavigationLink {
             settingsDestination
         } label: {
-            Group {
-                if let profileAvatarData,
-                   let image = UIImage(data: profileAvatarData) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(.primary)
-
-                        Text(profileInitial)
-                            .font(.headline)
-                            .foregroundStyle(.background)
-                    }
-                }
-            }
-            .frame(width: 44, height: 44)
-            .clipShape(Circle())
+            ProfileAvatarView(
+                profile: profile,
+                size: 44
+            )
         }
         .buttonStyle(ProfileAvatarNavigationStyle())
         .accessibilityLabel("Profile")
@@ -399,21 +384,20 @@ private struct ProfileAvatarNavigationStyle: ButtonStyle {
     }
 }
 
-extension ChatsView where SettingsDestination == EmptyView {
+extension ChatsView where SettingsContent == EmptyView {
     init(
         chats: [ChatListItem],
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
-        profileInitial: String = "M",
-        profileAvatarData: Data? = nil,
+        profile: PrototypeProfile = .marmota,
         onNewMessage: @escaping () -> Void
     ) {
         self.init(
-            chats: chats,
+            chats: .constant(chats),
+            settings: .constant(PrototypeSettingsState()),
             initialScope: initialScope,
             initialSearchText: initialSearchText,
-            profileInitial: profileInitial,
-            profileAvatarData: profileAvatarData,
+            profile: profile,
             settingsDestination: {
                 EmptyView()
             },

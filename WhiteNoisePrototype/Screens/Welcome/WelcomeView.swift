@@ -36,6 +36,7 @@ struct WelcomeView: View {
                         )
                 }
                     .buttonStyle(.glassProminent)
+                    .accessibilityIdentifier("welcome.sign-up")
             }
             .controlSize(.extraLarge)
             .buttonSizing(.flexible)

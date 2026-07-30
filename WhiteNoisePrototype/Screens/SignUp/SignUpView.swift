@@ -87,6 +87,7 @@ struct SignUpView: View {
             .buttonSizing(.flexible)
             .allowsHitTesting(!isSigningUp)
             .accessibilityLabel(isSigningUp ? "Signing Up" : "Sign Up")
+            .accessibilityIdentifier("sign-up.create")
             .accessibilityValue(isSigningUp ? "In progress" : "")
             .safeAreaPadding(.horizontal)
             .safeAreaPadding(.bottom)

@@ -35,7 +35,7 @@ Profile avatar provenance:
 - **Free Signal:** 1926 photograph of Marconi's first radio transmitter, public domain.
 - **Public Voice:** First Amendment creamware plate photograph published under CC0.
 - **Liberty Relay:** Library of Congress photograph of a White House telegraph key, with no known copyright restrictions and marked public domain in the United States.
-- Retrieved July 28, 2026 from the linked Wikimedia Commons file pages and center-cropped/downscaled to 512-by-512 JPEG assets. The original visual treatment is otherwise unchanged.
+- Retrieved July 28, 2026 from the linked Wikimedia Commons file pages. Profile imagery is bundled at a maximum 512-pixel dimension and clipped into a circle at runtime; original aspect ratios and visual content are preserved.
 - Intended use: deterministic pseudonym avatars in Settings, the profile switcher, and App Store screenshot source captures.
 
 Source pages:
@@ -112,10 +112,10 @@ Source pages:
 
 ### Profile
 
-- Native `PhotosPicker`, file importer, image-URL sheet, and Remove action for the in-memory avatar.
+- Native `PhotosPicker` and Remove action for the process-local avatar. Selected photos are normalized to a maximum 512-pixel dimension before being held in memory.
 - Name, About, Nostr Address, and Lightning Address fields in a native `Form`.
 - **Generate Name** supplies a deterministic pet name.
-- Public notice: **Your name, profile photo, about text, Nostr address, and Lightning address are public.**
+- Public notice: **Profile is public** / **Your profile information will be visible to everyone on the network.**
 - Native toolbar **Save** action with deterministic progress.
 
 ### Profile Keys
@@ -123,7 +123,7 @@ Source pages:
 - Public key Copy action.
 - Safety: **Anyone with your private key can use your profile. Keep it private. White Noise can't recover it if you lose it.**
 - **Create Encrypted Backup** presents password, confirmation, minimum-length validation, strength progress, deterministic creation progress, and a fictional shareable result.
-- **Export Raw Private Key** requires a separate destructive confirmation and exposes only a fictional result through the system share sheet.
+- **Export Private Key** requires a separate destructive confirmation and exposes only a deterministic key-shaped result through the system share sheet.
 - Private-key material is never displayed inline.
 
 ### Notifications
@@ -137,8 +137,8 @@ Source pages:
 
 - Appearance: **System**, **Light**, **Dark**. No True Black mode.
 - Language: **System** or **English**.
-- Return key: **New Line** or **Send Message**.
-- Message Colors destination with incoming/outgoing semantic presets, preview bubbles, and Reset.
+- Return key: **New Line** or **Send Message**. The selected behavior applies to the implemented Fiatjaf composer.
+- Message Colors destination with incoming/outgoing semantic presets, preview bubbles, and Reset. The default is Gray incoming and adaptive Black outgoing; selections apply to the implemented conversation.
 
 ### Privacy & Security
 
@@ -153,7 +153,7 @@ Source pages:
 - Media Quality: **Low**, **Standard**, **High**, **Original**.
 - Auto-download destinations for Photos, Audio, Videos, and Files.
 - Each media type supports **Never**, **Wi-Fi**, and **Wi-Fi and Cellular**.
-- Reset Download Settings.
+- **Reset Auto-Download Settings**.
 
 ### Relays
 
@@ -196,7 +196,7 @@ Relay operator references verified July 27, 2026:
 ### Chat with support
 
 - Explains that support opens a private White Noise conversation.
-- **Start Support Chat** uses deterministic progress and a ready state; no conversation or backend is fabricated.
+- **Start Chat** uses deterministic progress and a ready state; no conversation or backend is fabricated.
 
 ### Donate
 
@@ -213,8 +213,8 @@ Relay operator references verified July 27, 2026:
 
 ### Sign Out
 
-- **Sign Out and Keep Profile** is reversible and preserves the in-memory profile for switching.
-- **Remove Profile from This Device** is destructive and requires a separate named confirmation.
+- **Sign Out** is reversible and preserves the in-memory profile for switching.
+- **Sign Out and Remove Data** is destructive and requires a separate named confirmation.
 - Both operations use stable progress before returning to another profile or Welcome.
 
 ## Native implementation rules
@@ -293,6 +293,6 @@ Relay operator references verified July 27, 2026:
 - Completing Sign In or Sign Up from **Add Profile** appends or reactivates that profile, reveals the deterministic pseudonym set, makes the added profile active, and changes profile management to the multi-profile presentation.
 - Profile editing, sharing, switching, adding, signing out, and removing update only deterministic in-memory state.
 - Every visible settings control works or presents a deterministic outcome without exposing prototype implementation language.
-- Appearance updates the prototype immediately; notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
+- Appearance, message colors, and Return-key behavior update the implemented product surfaces immediately; notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
 - Destructive and secret-related actions use distinct native confirmations and exact safety language.
 - The complete app builds with Xcode 27 beta and contains no third-party runtime dependency or network/persistence implementation.

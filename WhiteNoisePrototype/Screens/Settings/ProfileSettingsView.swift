@@ -10,11 +10,8 @@ struct ProfileSettingsView: View {
     @State private var about: String
     @State private var nostrAddress: String
     @State private var lightningAddress: String
-    @State private var imageURL: String
-    @State private var avatarData: Data?
+    @State private var avatar: PrototypeAvatar
     @State private var selectedPhoto: PhotosPickerItem?
-    @State private var isShowingImageURL = false
-    @State private var pendingImageURL = ""
     @State private var isSaving = false
 
     init(profile: Binding<PrototypeProfile>) {
@@ -27,8 +24,7 @@ struct ProfileSettingsView: View {
         _lightningAddress = State(
             initialValue: profile.wrappedValue.lightningAddress
         )
-        _imageURL = State(initialValue: profile.wrappedValue.imageURL)
-        _avatarData = State(initialValue: profile.wrappedValue.avatarData)
+        _avatar = State(initialValue: profile.wrappedValue.avatar)
     }
 
     var body: some View {
@@ -126,82 +122,38 @@ struct ProfileSettingsView: View {
                 }
             }
         }
-        .sheet(isPresented: $isShowingImageURL) {
-            NavigationStack {
-                Form {
-                    TextField(
-                        "Image URL",
-                        text: $pendingImageURL,
-                        prompt: Text("https://example.com/avatar.jpg")
-                    )
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                }
-                .navigationTitle("Enter Image URL")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            isShowingImageURL = false
-                        }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            imageURL = pendingImageURL
-                                .trimmingCharacters(in: .whitespacesAndNewlines)
-                            avatarData = nil
-                            isShowingImageURL = false
-                        }
-                        .disabled(!pendingImageURLIsValid)
-                    }
-                }
-            }
-            .presentationDetents([.medium])
-        }
         .onChange(of: selectedPhoto) { _, newValue in
             guard let newValue else {
                 return
             }
 
             Task {
-                avatarData = try? await newValue.loadTransferable(
-                    type: Data.self
-                )
-                if avatarData != nil {
-                    imageURL = ""
+                defer {
+                    selectedPhoto = nil
                 }
+
+                guard let data = try? await newValue.loadTransferable(
+                    type: Data.self
+                ) else {
+                    return
+                }
+
+                guard let preparedData = ProfileAvatarImageProcessor
+                    .preparedData(from: data) else {
+                    return
+                }
+
+                avatar = .imageData(preparedData)
             }
         }
     }
 
     private var editableAvatar: some View {
-        Group {
-            if let avatarData,
-               let image = UIImage(data: avatarData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                ZStack {
-                    Circle()
-                        .fill(.primary)
-
-                    Text(
-                        name.trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        )
-                        .first
-                        .map { String($0).uppercased() }
-                        ?? "?"
-                    )
-                    .font(.title)
-                    .foregroundStyle(.background)
-                }
-            }
-        }
-        .frame(width: 72, height: 72)
-        .clipShape(Circle())
+        ProfileAvatarView(
+            profile: editableProfile,
+            size: 72,
+            isDecorative: false
+        )
         .accessibilityLabel("Profile avatar")
     }
 
@@ -214,24 +166,16 @@ struct ProfileSettingsView: View {
                 Label("Choose from Photos", systemImage: "photo")
             }
 
-            Button {
-                pendingImageURL = imageURL
-                isShowingImageURL = true
-            } label: {
-                Label("Enter Image URL", systemImage: "link")
-            }
-
-            if avatarData != nil || !imageURL.isEmpty {
+            if avatar != .monogram {
                 Button(role: .destructive) {
-                    avatarData = nil
-                    imageURL = ""
+                    avatar = .monogram
                 } label: {
                     Label("Remove Avatar", systemImage: "trash")
                 }
             }
         } label: {
             Text(
-                avatarData == nil && imageURL.isEmpty
+                avatar == .monogram
                     ? "Choose Avatar"
                     : "Edit Avatar"
             )
@@ -264,15 +208,7 @@ struct ProfileSettingsView: View {
             || about != profile.about
             || nostrAddress != profile.nostrAddress
             || lightningAddress != profile.lightningAddress
-            || imageURL != profile.imageURL
-            || avatarData != profile.avatarData
-    }
-
-    private var pendingImageURLIsValid: Bool {
-        let value = pendingImageURL.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        return value.isEmpty || value.hasPrefix("https://")
+            || avatar != profile.avatar
     }
 
     private var generatedName: String {
@@ -306,11 +242,17 @@ struct ProfileSettingsView: View {
             profile.about = about
             profile.nostrAddress = nostrAddress
             profile.lightningAddress = lightningAddress
-            profile.imageURL = imageURL
-            profile.avatarData = avatarData
+            profile.avatar = avatar
             isSaving = false
             dismiss()
         }
+    }
+
+    private var editableProfile: PrototypeProfile {
+        var editableProfile = profile
+        editableProfile.name = name
+        editableProfile.avatar = avatar
+        return editableProfile
     }
 }
 

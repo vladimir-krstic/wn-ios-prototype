@@ -11,21 +11,32 @@ struct WhiteNoisePrototypeApp: App {
 }
 
 private struct PrototypeRootView: View {
-    @State private var isShowingChats = false
-    @State private var isShowingLogin = false
-    @State private var isShowingSignUp = false
+    private enum RootDestination {
+        case welcome
+        case chats
+    }
+
+    private enum OnboardingPresentation: String, Identifiable {
+        case signIn
+        case signUp
+
+        var id: Self { self }
+    }
+
+    @State private var rootDestination = RootDestination.welcome
+    @State private var onboardingPresentation: OnboardingPresentation?
     @State private var profiles = PrototypeProfile.initialProfiles
     @State private var activeProfileID = PrototypeProfile.marmota.id
     @State private var settings = PrototypeSettingsState()
 
     var body: some View {
         Group {
-            if isShowingChats {
+            if rootDestination == .chats {
                 NavigationStack {
                     ChatsView(
-                        chats: activeProfile.chats,
-                        profileInitial: activeProfile.initial,
-                        profileAvatarData: activeProfile.avatarData,
+                        chats: activeChats,
+                        settings: $settings,
+                        profile: activeProfile,
                         settingsDestination: {
                             SettingsView(
                                 profiles: $profiles,
@@ -43,27 +54,26 @@ private struct PrototypeRootView: View {
                 NavigationStack {
                     WelcomeView(
                         onLogin: {
-                            isShowingLogin = true
+                            onboardingPresentation = .signIn
                         },
                         onSignUp: {
-                            isShowingSignUp = true
+                            onboardingPresentation = .signUp
                         }
                     )
                 }
             }
         }
         .preferredColorScheme(settings.appearance.colorScheme)
-        .sheet(isPresented: $isShowingLogin) {
-            InitialSignInSheet {
-                isShowingLogin = false
-                isShowingChats = true
-            }
-        }
-        .sheet(isPresented: $isShowingSignUp) {
-            InitialSignUpSheet { name in
-                updateInitialProfileName(name)
-                isShowingSignUp = false
-                isShowingChats = true
+        .sheet(item: $onboardingPresentation) { presentation in
+            switch presentation {
+            case .signIn:
+                InitialSignInSheet {
+                    completeInitialSignIn()
+                }
+            case .signUp:
+                InitialSignUpSheet { name in
+                    completeInitialSignUp(name: name)
+                }
             }
         }
     }
@@ -71,6 +81,52 @@ private struct PrototypeRootView: View {
     private var activeProfile: PrototypeProfile {
         profiles.first { $0.id == activeProfileID }
             ?? PrototypeProfile.marmota
+    }
+
+    private var activeChats: Binding<[ChatListItem]> {
+        Binding {
+            guard let index = profiles.firstIndex(
+                where: { $0.id == activeProfileID }
+            ) else {
+                return []
+            }
+
+            return profiles[index].chats
+        } set: { chats in
+            guard let index = profiles.firstIndex(
+                where: { $0.id == activeProfileID }
+            ) else {
+                return
+            }
+
+            profiles[index].chats = chats
+        }
+    }
+
+    private func completeInitialSignIn() {
+        if profiles.isEmpty {
+            profiles = [.marmota]
+            activeProfileID = PrototypeProfile.marmota.id
+        } else if !profiles.contains(where: { $0.id == activeProfileID }),
+                  let firstProfile = profiles.first {
+            activeProfileID = firstProfile.id
+        }
+
+        onboardingPresentation = nil
+        rootDestination = .chats
+    }
+
+    private func completeInitialSignUp(name: String) {
+        if profiles.isEmpty {
+            let profile = PrototypeProfile.signedUp(name: name)
+            profiles = [profile]
+            activeProfileID = profile.id
+        } else {
+            updateInitialProfileName(name)
+        }
+
+        onboardingPresentation = nil
+        rootDestination = .chats
     }
 
     private func updateInitialProfileName(_ name: String) {
@@ -92,7 +148,7 @@ private struct PrototypeRootView: View {
         if let nextProfile = profiles.first(where: { $0.id != profileID }) {
             activeProfileID = nextProfile.id
         } else {
-            isShowingChats = false
+            rootDestination = .welcome
         }
     }
 
@@ -102,7 +158,7 @@ private struct PrototypeRootView: View {
         if let nextProfile = profiles.first {
             activeProfileID = nextProfile.id
         } else {
-            isShowingChats = false
+            rootDestination = .welcome
         }
     }
 }

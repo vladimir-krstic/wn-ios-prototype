@@ -145,6 +145,7 @@ struct NativeChatList: UIViewRepresentable {
                 cell.backgroundConfiguration =
                     UIBackgroundConfiguration.clear()
                 cell.accessories = []
+                cell.accessibilityIdentifier = "chat.\(chatID)"
             }
 
             dataSource = UICollectionViewDiffableDataSource<

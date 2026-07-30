@@ -3,6 +3,7 @@ import UIKit
 
 struct ProfileKeysSettingsView: View {
     @State private var copied = false
+    @State private var copyResetTask: Task<Void, Never>?
     @State private var isShowingEncryptedBackup = false
     @State private var isShowingRawConfirmation = false
     @State private var exportResult: KeyExportResult?
@@ -15,6 +16,7 @@ struct ProfileKeysSettingsView: View {
                 Button {
                     UIPasteboard.general.string = profile.publicKey
                     copied = true
+                    scheduleCopyReset()
                 } label: {
                     LabeledContent {
                         Label(
@@ -116,7 +118,7 @@ struct ProfileKeysSettingsView: View {
                 exportResult = KeyExportResult(
                     title: "Private Key Export Ready",
                     message: "Keep this unencrypted copy private.",
-                    shareValue: "nsec1-fictional-\(profile.id)-private-key"
+                    shareValue: rawPrivateKey
                 )
             }
             Button("Cancel", role: .cancel) {}
@@ -124,6 +126,26 @@ struct ProfileKeysSettingsView: View {
             Text(
                 "This creates an unencrypted copy. Anyone who gets it can use your profile. White Noise permanently records that this key was handled without encryption."
             )
+        }
+        .onDisappear {
+            copyResetTask?.cancel()
+        }
+    }
+
+    private var rawPrivateKey: String {
+        "nsec1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7"
+    }
+
+    private func scheduleCopyReset() {
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else {
+                return
+            }
+
+            copied = false
+            copyResetTask = nil
         }
     }
 }

@@ -170,7 +170,7 @@ The ten legacy avatars below come from the approved [White Noise marketing Chat 
 
 - Source nodes: `1404:5548`; Marmots composed export `1404:5553`
 - Retrieval date: 2026-07-27
-- Transformation: none to the nine bundled source files; Marmots is an unmodified two-times PNG export of the exact Figma Avatar sublayer
+- Transformation: source imagery is downscaled to a maximum 512-pixel dimension for the prototype bundle without content edits; Marmots remains the exact Figma Avatar sublayer, downscaled only
 - Intended use: public App Store Chats hero and related White Noise marketing
 - Rights assumption: the user confirmed that the historical cast and supplied Figma artwork are cleared for public marketing use
 

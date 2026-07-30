@@ -177,7 +177,7 @@ private struct MessageColorSettingsView: View {
             Section {
                 Button("Reset to Defaults") {
                     settings.incomingMessageColor = .gray
-                    settings.outgoingMessageColor = .blue
+                    settings.outgoingMessageColor = .black
                 }
             }
         }
@@ -188,6 +188,9 @@ private struct MessageColorSettingsView: View {
     private var messagePreview: some View {
         VStack(alignment: .leading) {
             Text("That works for me.")
+                .foregroundStyle(
+                    settings.incomingMessageColor.foregroundColor
+                )
                 .padding()
                 .background(
                     settings.incomingMessageColor.color,
@@ -196,9 +199,7 @@ private struct MessageColorSettingsView: View {
 
             Text("Great — see you then.")
                 .foregroundStyle(
-                    settings.outgoingMessageColor == .gray
-                        ? Color.primary
-                        : Color.white
+                    settings.outgoingMessageColor.foregroundColor
                 )
                 .padding()
                 .background(

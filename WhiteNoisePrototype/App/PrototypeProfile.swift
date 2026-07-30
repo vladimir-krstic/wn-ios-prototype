@@ -1,15 +1,19 @@
 import Foundation
-import UIKit
 
-struct PrototypeProfile: Identifiable {
+enum PrototypeAvatar: Equatable {
+    case asset(String)
+    case imageData(Data)
+    case monogram
+}
+
+struct PrototypeProfile: Identifiable, Equatable {
     let id: String
     var name: String
     let publicKey: String
     var about: String
     var nostrAddress: String
     var lightningAddress: String
-    var imageURL: String
-    var avatarData: Data?
+    var avatar: PrototypeAvatar
     var chats: [ChatListItem]
 
     init(
@@ -19,8 +23,7 @@ struct PrototypeProfile: Identifiable {
         about: String = "",
         nostrAddress: String = "",
         lightningAddress: String = "",
-        imageURL: String = "",
-        avatarData: Data? = nil,
+        avatar: PrototypeAvatar = .monogram,
         chats: [ChatListItem]
     ) {
         self.id = id
@@ -29,8 +32,7 @@ struct PrototypeProfile: Identifiable {
         self.about = about
         self.nostrAddress = nostrAddress
         self.lightningAddress = lightningAddress
-        self.imageURL = imageURL
-        self.avatarData = avatarData
+        self.avatar = avatar
         self.chats = chats
     }
 
@@ -62,14 +64,6 @@ struct PrototypeProfile: Identifiable {
 }
 
 extension PrototypeProfile {
-    private static let marmotaAvatarData = UIImage(
-        named: "ProfileAvatarMarmota"
-    )?.pngData()
-
-    private static func avatarData(named assetName: String) -> Data? {
-        UIImage(named: assetName)?.jpegData(compressionQuality: 0.9)
-    }
-
     static let marmota = PrototypeProfile(
         id: "marmota",
         name: "Marmota",
@@ -77,7 +71,7 @@ extension PrototypeProfile {
         about: "Quietly making plans and sending good links.",
         nostrAddress: "marmota@whitenoise.example",
         lightningAddress: "marmota@pay.example",
-        avatarData: marmotaAvatarData,
+        avatar: .asset("ProfileAvatarMarmota"),
         chats: ChatListFixtures.populated
     )
 
@@ -85,7 +79,7 @@ extension PrototypeProfile {
         id: "open-quill",
         name: "Open Quill",
         publicKey: "npub1q2v9n6t4r7c3x8m5k2w9p6s4y7h3d8f5j2a9e6u4z7n1m2d9",
-        avatarData: avatarData(named: "ProfileAvatarOpenQuill"),
+        avatar: .asset("ProfileAvatarOpenQuill"),
         chats: ChatListFixtures.empty
     )
 
@@ -93,7 +87,7 @@ extension PrototypeProfile {
         id: "open-circuit",
         name: "Open Circuit",
         publicKey: "npub1f6k3r8w2v9c5m7t4y1p8s6h3d9n2x5j7a4e8u6z3q9k1p7v2",
-        avatarData: avatarData(named: "ProfileAvatarOpenCircuit"),
+        avatar: .asset("ProfileAvatarOpenCircuit"),
         chats: ChatListFixtures.empty
     )
 
@@ -101,7 +95,7 @@ extension PrototypeProfile {
         id: "cipher-wheel",
         name: "Cipher Wheel",
         publicKey: "npub1s4h8c2y7v5m9r3t6p1w8d4n7x2j5a9e3u6z8q4k7c2m1f3k8",
-        avatarData: avatarData(named: "ProfileAvatarCipherWheel"),
+        avatar: .asset("ProfileAvatarCipherWheel"),
         chats: ChatListFixtures.empty
     )
 
@@ -109,7 +103,7 @@ extension PrototypeProfile {
         id: "free-signal",
         name: "Free Signal",
         publicKey: "npub1n7d2p5x9v4c8m3t6y1s7h5k2j9a4e8u3z6q1r7w5f2m9w6r4",
-        avatarData: avatarData(named: "ProfileAvatarFreeSignal"),
+        avatar: .asset("ProfileAvatarFreeSignal"),
         chats: ChatListFixtures.empty
     )
 
@@ -117,7 +111,7 @@ extension PrototypeProfile {
         id: "public-voice",
         name: "Public Voice",
         publicKey: "npub1c9m4v7q2r8t5y3p6s1h9d4n7x2j5a8e3u6z1k4w7f9m2x9q2",
-        avatarData: avatarData(named: "ProfileAvatarPublicVoice"),
+        avatar: .asset("ProfileAvatarPublicVoice"),
         chats: ChatListFixtures.empty
     )
 
@@ -125,7 +119,7 @@ extension PrototypeProfile {
         id: "liberty-relay",
         name: "Liberty Relay",
         publicKey: "npub1t3r8k6z2v9c5m7y4p1s8h3d6n9x2j5a7e4u8q6w3f9k1s4m7",
-        avatarData: avatarData(named: "ProfileAvatarLibertyRelay"),
+        avatar: .asset("ProfileAvatarLibertyRelay"),
         chats: ChatListFixtures.empty
     )
 
@@ -138,7 +132,7 @@ extension PrototypeProfile {
             id: "added-profile",
             name: normalizedName.isEmpty ? "Pebble" : normalizedName,
             publicKey: "npub1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7",
-            avatarData: avatarData(named: "ProfileAvatarPebble"),
+            avatar: .asset("ProfileAvatarPebble"),
             chats: ChatListFixtures.empty
         )
     }

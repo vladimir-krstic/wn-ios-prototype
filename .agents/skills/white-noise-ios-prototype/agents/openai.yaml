@@ -1,4 +1,4 @@
 interface:
   display_name: "White Noise iOS Prototype"
   short_description: "Build one native White Noise iPhone screen"
-  default_prompt: "Use $white-noise-ios-prototype to build and present one agreed native iPhone prototype screen."
+  default_prompt: "Use $white-noise-ios-prototype to work on one agreed native iPhone screen or bounded flow."

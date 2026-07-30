@@ -4,8 +4,10 @@ import UIKit
 struct DeveloperToolsPrototypeView: View {
     @Binding var settings: PrototypeSettingsState
     @State private var copied = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     let profile: PrototypeProfile
+    let profileCount: Int
 
     var body: some View {
         Form {
@@ -21,6 +23,7 @@ struct DeveloperToolsPrototypeView: View {
                 Button {
                     UIPasteboard.general.string = fictionalHexKey
                     copied = true
+                    scheduleCopyReset()
                 } label: {
                     LabeledContent {
                         Label(
@@ -57,7 +60,10 @@ struct DeveloperToolsPrototypeView: View {
                 }
 
                 NavigationLink {
-                    DiagnosticsPrototypeView()
+                    DiagnosticsPrototypeView(
+                        settings: settings,
+                        profileCount: profileCount
+                    )
                 } label: {
                     Label("Diagnostics", systemImage: "stethoscope")
                 }
@@ -68,13 +74,16 @@ struct DeveloperToolsPrototypeView: View {
             }
 
             Section("Build") {
-                LabeledContent("Version", value: "1.0")
-                LabeledContent("Build", value: "1")
+                LabeledContent("Version", value: version)
+                LabeledContent("Build", value: build)
                 LabeledContent("SDK", value: "iOS 27")
             }
         }
         .navigationTitle("Developer Tools")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            copyResetTask?.cancel()
+        }
     }
 
     private var fictionalHexKey: String {
@@ -83,6 +92,31 @@ struct DeveloperToolsPrototypeView: View {
 
     private var shortHexKey: String {
         "\(fictionalHexKey.prefix(10))…\(fictionalHexKey.suffix(6))"
+    }
+
+    private var version: String {
+        Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "—"
+    }
+
+    private var build: String {
+        Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleVersion"
+        ) as? String ?? "—"
+    }
+
+    private func scheduleCopyReset() {
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else {
+                return
+            }
+
+            copied = false
+            copyResetTask = nil
+        }
     }
 }
 
@@ -186,13 +220,28 @@ private struct DiagnosticsPrototypeView: View {
     @State private var isRunningSelfCheck = false
     @State private var selfCheckPassed = false
 
+    let settings: PrototypeSettingsState
+    let profileCount: Int
+
     var body: some View {
         Form {
             Section("Relay Health") {
-                LabeledContent("Total", value: "4")
-                LabeledContent("Connected", value: "3")
-                LabeledContent("Connecting", value: "1")
-                LabeledContent("Disconnected", value: "0")
+                LabeledContent(
+                    "Total",
+                    value: settings.relays.count.formatted()
+                )
+                LabeledContent(
+                    "Connected",
+                    value: relayCount(for: .connected).formatted()
+                )
+                LabeledContent(
+                    "Connecting",
+                    value: relayCount(for: .reconnecting).formatted()
+                )
+                LabeledContent(
+                    "Disconnected",
+                    value: relayCount(for: .disconnected).formatted()
+                )
                 LabeledContent("Connection Attempts", value: "6")
                 LabeledContent("Successful Connections", value: "5")
 
@@ -212,7 +261,10 @@ private struct DiagnosticsPrototypeView: View {
 
             Section("Runtime") {
                 LabeledContent("Active Profiles", value: "1")
-                LabeledContent("Stored Profiles", value: "7")
+                LabeledContent(
+                    "Stored Profiles",
+                    value: profileCount.formatted()
+                )
                 LabeledContent("Bootstrap Relays", value: "2")
             }
 
@@ -274,6 +326,12 @@ private struct DiagnosticsPrototypeView: View {
             selfCheckPassed = true
         }
     }
+
+    private func relayCount(
+        for state: PrototypeRelayConnectionState
+    ) -> Int {
+        settings.relays.count { $0.connectionState == state }
+    }
 }
 
 #Preview("Developer Tools") {
@@ -282,7 +340,8 @@ private struct DiagnosticsPrototypeView: View {
     NavigationStack {
         DeveloperToolsPrototypeView(
             settings: $settings,
-            profile: .marmota
+            profile: .marmota,
+            profileCount: 7
         )
     }
 }

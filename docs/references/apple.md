@@ -1,6 +1,6 @@
 # Official Apple references
 
-Last verified: 2026-07-23.
+Last verified: 2026-07-30.
 
 Agents must use official Apple sources for platform claims. Add feature-specific references only when the selected screen needs them.
 
@@ -70,7 +70,8 @@ Agents must use official Apple sources for platform claims. Add feature-specific
 - [TextField](https://developer.apple.com/documentation/swiftui/textfield) — native editable text entry.
 - [SecureField](https://developer.apple.com/documentation/swiftui/securefield) — native obscured text entry for backup-password prototypes.
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker) — privacy-preserving system photo selection.
-- [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:)) — system file selection.
+- [UIGraphicsImageRenderer](https://developer.apple.com/documentation/uikit/uigraphicsimagerenderer) — bounded local preparation of a selected profile image before it is held in memory.
+- [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:)) — system file selection in the conversation composer.
 - [ProgressView](https://developer.apple.com/documentation/swiftui/progressview) — determinate and indeterminate progress feedback.
 - [Alerts HIG](https://developer.apple.com/design/human-interface-guidelines/alerts) — concise warnings, confirmations, and destructive consequences.
 - [confirmationDialog](https://developer.apple.com/documentation/swiftui/view/confirmationdialog(_:ispresented:titlevisibility:presenting:actions:message:)) — native action-sheet confirmation behavior.

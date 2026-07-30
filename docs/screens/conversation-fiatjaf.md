@@ -77,7 +77,7 @@ The Fiatjaf avatar and five animal photographs are bundled exports from the appr
 
 - Source node: `1273:8364`
 - Retrieval date: 2026-07-28
-- Transformations: no content edits; images are decoded and clipped into native runtime shapes
+- Transformations: no content edits; the Fiatjaf avatar is downscaled to a maximum 512-pixel dimension, and images are clipped into native runtime shapes
 - Intended use: Fiatjaf conversation row and conversation screen
 - Rights assumption: artwork already used by White Noise marketing is approved for this prototype and future marketing translation
 

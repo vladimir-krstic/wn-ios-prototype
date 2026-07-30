@@ -6,7 +6,7 @@ Scan a private-key QR code from Sign In. Native Back returns without changing th
 
 ## Copy
 
-- Navigation title: **Scan QR Code**
+- Navigation title: none; the native Back control remains visible over the scanner.
 - Simulator permission title: **Allow Camera Access?**
 - Simulator permission explanation: **Use the camera to scan a private key QR code.**
 - Simulator permission actions: **Don’t Allow**, **Allow Camera**
@@ -14,7 +14,8 @@ Scan a private-key QR code from Sign In. Native Back returns without changing th
 - Wrong-content explanation: **This QR code doesn’t contain a private key.**
 - Wrong-content recovery: **Try Again**
 - Denied title: **Camera Access Is Off**
-- Simulator denied explanation: **Camera access was denied. Relaunch the prototype to reset this simulated permission.**
+- Simulator denied explanation: **Allow camera access to scan a private key QR code.**
+- Simulator denied recovery: **Try Again**, which presents the permission choice again.
 - Physical denied explanation: **Allow camera access in Settings to scan a private key QR code.**
 - Physical recovery: **Open Settings**
 - Unavailable title: **QR Scanning Unavailable**
@@ -27,7 +28,7 @@ Scan a private-key QR code from Sign In. Native Back returns without changing th
 - `DataScannerViewController` with QR-only recognition, native guidance, native highlighting, pinch to zoom, and high-frame-rate tracking on supported physical iPhones.
 - `AVCaptureDevice` authorization status and request APIs on physical iPhones.
 - `UIApplication.openSettingsURLString` for physical-device denial recovery.
-- Core Image QR generation using one fixed fictional private key.
+- Shared Core Image QR generation using one fixed development-only private key.
 - Apple-owned VisionKit guidance and highlighting on supported physical iPhones.
 
 ## Important behavior
@@ -40,7 +41,7 @@ Scan a private-key QR code from Sign In. Native Back returns without changing th
 - Wrong content presents a native alert. **Try Again** keeps the scanner open for the next deterministic attempt.
 - Valid returns immediately and fills the field.
 - “Unreadable” is not modeled as an outcome. VisionKit keeps scanning when it recognizes nothing and may display its own contextual guidance.
-- The bundled backdrop is an original generated image. The visible QR is rendered separately with Core Image so its data is deterministic.
+- The bundled backdrop is an original generated image whose 941-by-1672 dimensions are preserved with photographic JPEG compression. The visible QR is rendered separately with Core Image so its data is deterministic.
 - The simulator doesn’t imitate VisionKit’s private recognized-item highlight or invent success, warning, or error colors.
 - Physical iPhones let VisionKit own guidance, recognized-item highlighting, geometry, and color.
 - Physical iPhones use the real one-time system permission behavior. After denial, the app cannot show the system request again and instead offers Settings recovery.
@@ -63,7 +64,7 @@ Scan a private-key QR code from Sign In. Native Back returns without changing th
 
 ## Acceptance
 
-- Simulator denial shows camera-disabled instructions and remains denied for the current process.
+- Simulator denial shows camera-disabled instructions; **Try Again** returns to the deterministic permission choice.
 - Simulator approval shows the static scanner without a custom tracker or guidance bar.
 - Denial never advances the outcome; completed attempts advance exactly once.
 - The first attempt shows the native wrong-content alert and **Try Again** keeps scanning.

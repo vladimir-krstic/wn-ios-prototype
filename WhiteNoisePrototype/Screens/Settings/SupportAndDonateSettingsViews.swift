@@ -1,4 +1,3 @@
-import CoreImage.CIFilterBuiltins
 import SwiftUI
 import UIKit
 
@@ -83,6 +82,7 @@ private enum SupportState {
 
 struct DonatePrototypeView: View {
     @State private var copiedMethod: DonationMethod?
+    @State private var copyResetTask: Task<Void, Never>?
 
     var body: some View {
         Form {
@@ -109,6 +109,9 @@ struct DonatePrototypeView: View {
         }
         .navigationTitle("Donate")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            copyResetTask?.cancel()
+        }
     }
 
     private func donationSection(
@@ -116,7 +119,10 @@ struct DonatePrototypeView: View {
     ) -> some View {
         Section(method.title) {
             VStack {
-                if let image = makeQRCode(method.address) {
+                if let image = QRCodeImageGenerator.image(
+                    for: method.address,
+                    scale: 8
+                ) {
                     Image(uiImage: image)
                         .resizable()
                         .interpolation(.none)
@@ -130,6 +136,7 @@ struct DonatePrototypeView: View {
                 Button {
                     UIPasteboard.general.string = method.address
                     copiedMethod = method
+                    scheduleCopyReset()
                 } label: {
                     Label(
                         copiedMethod == method
@@ -148,26 +155,18 @@ struct DonatePrototypeView: View {
         }
     }
 
-    private func makeQRCode(_ value: String) -> UIImage? {
-        let filter = CIFilter.qrCodeGenerator()
-        filter.message = Data(value.utf8)
-        filter.correctionLevel = "M"
+    private func scheduleCopyReset() {
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
 
-        guard let output = filter.outputImage else {
-            return nil
-        }
+            guard !Task.isCancelled else {
+                return
+            }
 
-        let scaled = output.transformed(
-            by: CGAffineTransform(scaleX: 8, y: 8)
-        )
-        let context = CIContext()
-        guard let image = context.createCGImage(
-            scaled,
-            from: scaled.extent
-        ) else {
-            return nil
+            copiedMethod = nil
+            copyResetTask = nil
         }
-        return UIImage(cgImage: image)
     }
 }
 

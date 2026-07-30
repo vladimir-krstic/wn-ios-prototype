@@ -13,11 +13,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - Invalid key: **That private key isn't valid. Check it and try again.**
 - Primary action: **Sign In**
 - Progress: **Signing In…**
-- Scanner title: **Scan QR Code**
-- Scanner guidance: **Position the private key QR code in view.**
 - Unavailable scanner title: **QR Scanning Unavailable**
-- Unavailable scanner explanation: **Use a physical iPhone to scan a code, or use the sample code in this prototype.**
-- Simulator action: **Use Sample Code**
 
 ## Native components
 
@@ -33,7 +29,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - Enabled primary-action content follows the adaptive monochrome tint: white title or spinner on the black Light Mode button, and black title or spinner on the white Dark Mode button.
 - Disabled content uses Apple’s adaptive `tertiaryLabel` color in a noninteractive overlay while native `glassProminent` owns the disabled material and reduced prominence underneath. Separating label contrast from the button style prevents the system material from dimming the text twice when unfocused and keeps focused and unfocused disabled states visually identical.
 - VisionKit `DataScannerViewController` for QR scanning on supported iPhones.
-- Native `ContentUnavailableView` with a deterministic sample-code action when scanning is unavailable.
+- Native `ContentUnavailableView` for denied, restricted, unsupported, and temporarily unavailable camera states.
 
 ## Important behavior
 
@@ -104,7 +100,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - Sign In replaces its visible label with a centered native spinner without changing button dimensions or losing contrast.
 - In Light Mode the enabled action has white content on black; in Dark Mode it has black content on white. The disabled Sign In action uses semantic label color with the native disabled glass treatment instead of white text on light gray.
 - During the two-second processing state, the field uses SwiftUI's system disabled treatment, accepts no input, and shows no internal or external accessory actions.
-- Scan QR Code pushes the scanner screen and a scanned or sample payload returns to Sign In.
+- Scan QR Code pushes the scanner screen and a scanned payload returns to Sign In.
 - The scanner viewport fills the sheet and the native Back control overlays it.
 - The screen uses the same white onboarding canvas as Sign Up.
 - The medium detent removes the unused full-screen whitespace while preserving room for keyboard presentation; no custom fitted height or handmade modal surface is used.
