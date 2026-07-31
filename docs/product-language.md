@@ -1,29 +1,118 @@
 # White Noise product language
 
-Product UI is written for everyday people. Keep it calm, direct, concise, and specific about the result of an action.
+Use this reference for English product-surface copy. The user’s latest
+direction, the canonical terms in `docs/terminology.md`, and the current screen
+brief outrank examples here.
 
 ## Voice
 
-- Use familiar words and short sentences.
-- Name the action instead of the implementation.
-- Explain errors in human terms and offer a clear recovery.
-- Avoid protocol, relay, cryptography, fixture, scenario, and developer terminology in ordinary product UI.
-- Write ordinary product-surface copy as final production copy. Never mention prototypes, simulations, fixtures, dummy data, or implementation boundaries there; record those constraints in documentation or development-only surfaces.
-- Use sentence case. Avoid hype, jokes, blame, and unnecessary reassurance.
+White Noise sounds calm, direct, human, and lightly warm.
 
-## Approved terms
+- Lead with the task or outcome using familiar words and short sentences.
+- Name the action instead of the implementation or protocol.
+- Use contractions when they sound natural.
+- Keep routine copy neutral. Do not turn controls, errors, or empty states into
+  privacy marketing.
+- Avoid hype, fear, blame, jokes, exclamation marks, and false reassurance in
+  serious states.
+- Use sentence case and remove words that do not add meaning.
+- Write all product copy as final production copy. Keep prototype, simulation,
+  fixture, dummy-data, and implementation-boundary language in documentation or
+  developer-only surfaces.
 
-| Use | Meaning |
-| --- | --- |
-| Sign in | Use an existing White Noise profile |
-| Sign up | Create a new White Noise profile |
-| Profile | A person’s identity in White Noise |
-| Profile key | User-facing name for a key when that feature is explicitly being discussed |
-| Chat | A direct or group conversation |
-| Group | A chat with multiple members |
-| Person | Someone discoverable before joining a group |
-| Member | Someone already in a group |
-| Sign out | Stop using the active profile on this device |
-| Remove profile | Remove a stored profile from this device |
+English is the authored language. Native layouts and custom compositions must
+still tolerate localization expansion and right-to-left presentation without
+inventing translated strings.
 
-Use technical terms only on team-only diagnostics or when the selected product feature genuinely requires and explains them.
+## Titles and actions
+
+- Name the task or situation, not the underlying subsystem.
+- Give alerts a specific, useful title; do not use **Error**, **Warning**, or an
+  internal code as the title.
+- Do not repeat a navigation title in the first line of body copy.
+- Label buttons with the result: **Sign In**, **Retry**, **Open Settings**,
+  **Remove Profile**.
+- Use **Cancel** for cancellation and the exact destructive action in a
+  confirmation.
+- Avoid **OK**, **Submit**, **Proceed**, **Yes**, and **No** when a clearer action
+  exists.
+- Do not explain an already-clear button in adjacent text.
+
+## Fields and help
+
+- Label information people recognize, not the format the app parses.
+- Keep persistent labels visible; placeholders are examples or brief hints, not
+  replacements for labels.
+- Add concise format guidance only when it prevents a likely error.
+- Never place private keys or other sensitive values in examples, screenshots,
+  logs, finished errors, or accessibility labels and values.
+
+## Empty, progress, and success states
+
+- State what is absent in the current context and offer the most useful next
+  action when one exists.
+- Use the action in progress: **Signing In…**, **Creating Profile…**.
+- Keep progress labels stable and near the initiating action.
+- Confirm the result without *successfully*: **Profile Created**, **Copied**.
+- Do not add success copy when the resulting screen already makes the outcome
+  obvious.
+
+## Errors and recovery
+
+Use this order:
+
+1. State what could not be completed.
+2. Explain the useful reason or consequence when known.
+3. Provide the next action.
+
+- Prefer **Couldn’t…** for action failures rather than **Failed to…**.
+- Never expose raw engine text, localized error descriptions, protocol codes,
+  payloads, or internal identifiers as finished product copy.
+- Use a generic fallback only when the app cannot distinguish the cause; still
+  name the attempted action and offer recovery.
+
+## Destructive actions
+
+- Name exactly what is removed.
+- Explain the unique consequence once, including what remains and whether the
+  action is recoverable.
+- Distinguish device-local removal from effects elsewhere.
+- Use a native destructive role and a safe **Cancel** action.
+- Do not soften irreversible loss or repeat the same warning in the title,
+  message, and button.
+
+## Permissions
+
+- Explain the feature benefit immediately before the system prompt when the
+  surrounding context does not already make it clear.
+- Let iOS present its permission alert.
+- After denial, state what is unavailable and offer **Open Settings** when that
+  resolves it.
+
+## Accessibility copy
+
+- Describe the action or current value, not the symbol’s appearance.
+- Avoid words the native control trait already announces.
+- Keep visible, spoken, and Voice Control names consistent.
+- Never announce private keys or other sensitive values.
+- Do not use color, sound, animation, or haptics as the only expression of a
+  state.
+
+## Product and developer surfaces
+
+Ordinary onboarding, Chats, Profile, Settings, permission, and recovery UI uses
+the human terms in `docs/terminology.md`. Developer Tools and Diagnostics may
+use exact protocol and implementation terms when precision is their purpose.
+
+When a technical value must appear in ordinary UI, introduce the human label
+first and show the technical form secondarily only where recognition helps
+complete the task.
+
+## Apple writing authority
+
+- [Writing for interfaces](https://developer.apple.com/videos/play/wwdc2022/10037/)
+- [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts)
+- [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback)
+
+These live Apple sources govern interface structure and writing behavior. This
+local reference owns White Noise voice and terminology.

@@ -67,7 +67,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 
 - [SecureField](https://developer.apple.com/documentation/swiftui/securefield)
 - [SwiftUI Focus](https://developer.apple.com/documentation/swiftui/focus)
-- [SwiftUI disabled](https://developer.apple.com/documentation/swiftui/view/disabled%28_%3A%29)
+- [SwiftUI disabled](https://developer.apple.com/documentation/swiftui/view/disabled(_:))
 - [SwiftUI isEnabled](https://developer.apple.com/documentation/swiftui/environmentvalues/isenabled)
 - [Text fields HIG](https://developer.apple.com/design/human-interface-guidelines/text-fields)
 - [secondarySystemFill](https://developer.apple.com/documentation/uikit/uicolor/secondarysystemfill)
@@ -76,7 +76,7 @@ Use an existing White Noise profile by entering its private key. **Sign In** on 
 - [ButtonBorderShape](https://developer.apple.com/documentation/swiftui/buttonbordershape)
 - [ControlSize](https://developer.apple.com/documentation/swiftui/controlsize)
 - [Rejected bordered TextFieldStyle](https://developer.apple.com/documentation/swiftui/textfieldstyle)
-- [Rejected textInputBorderShape](https://developer.apple.com/documentation/swiftui/view/textinputbordershape%28_%3A%29)
+- [Rejected textInputBorderShape](https://developer.apple.com/documentation/swiftui/view/textinputbordershape(_:))
 - [Menus and actions](https://developer.apple.com/design/human-interface-guidelines/menus)
 - [Progress indicators](https://developer.apple.com/design/human-interface-guidelines/progress-indicators)
 - [DataScannerViewController](https://developer.apple.com/documentation/visionkit/datascannerviewcontroller)

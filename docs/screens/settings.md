@@ -40,6 +40,10 @@ Profile avatar provenance:
 
 Source pages:
 
+These links preserve asset provenance only. The local asset descriptions,
+transformations, intended uses, and acceptance criteria are complete and do
+not require the source pages during normal work.
+
 - [Hertz spark transmitter drawing](https://commons.wikimedia.org/wiki/File:Drawing_of_Heinrich_Hertz_spark_radio_transmitter_and_parabolic_antenna_1888.jpg)
 - [Modern printing press](https://commons.wikimedia.org/wiki/File:Modern_printing_press_(Unsplash).jpg)
 - [Jefferson disk cipher](https://commons.wikimedia.org/wiki/File:Jefferson%27s_disk_cipher.jpg)
@@ -187,7 +191,9 @@ Source pages:
 - The public relay fixtures are representative examples rather than a popularity ranking or availability report.
 - All statuses and transitions remain deterministic in-memory prototype behavior, but that implementation boundary appears only in this documentation—not in product-surface copy.
 
-Relay operator references verified July 27, 2026:
+Optional relay-operator references verified July 27, 2026. They preserve the
+fixture research context only; the local relay behavior above is authoritative
+and does not require these sites during normal work.
 
 - [Primal network settings](https://primal.net/settings/network)
 - [Nostr.Band relay](https://relay.nostr.band/)
@@ -230,7 +236,11 @@ Relay operator references verified July 27, 2026:
 - Profile rows combine visible name and shortened public key; decorative avatars are hidden from assistive technologies.
 - Progress, validation, selected state, privacy warnings, destructive consequences, and copied state are communicated without color alone.
 
-## Product references
+## Optional historical product citations
+
+The local decisions and acceptance criteria above are authoritative and
+complete. These GitHub links preserve historical context only; agents do not
+need to open them to implement or evaluate Settings.
 
 - [Settings hub #850](https://github.com/marmot-protocol/whitenoise-ios/issues/850)
 - [Share Profile #851](https://github.com/marmot-protocol/whitenoise-ios/issues/851)

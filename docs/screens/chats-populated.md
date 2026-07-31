@@ -125,6 +125,9 @@ The complete ten-person legacy marketing cast now forms the uninterrupted hero b
 ## Avatar provenance
 
 The list mixes 25 locally bundled image avatars with 13 native one-letter monograms. The images represent fixture identities only; they are not White Noise users. The app performs no runtime fetching.
+The source links in this section preserve asset provenance only. The local
+asset names, uses, transformations, and acceptance criteria are complete; an
+agent does not need to open these sources to implement or evaluate the screen.
 
 | Asset | Fixture identity | Photographer | Unsplash source |
 | --- | --- | --- | --- |
@@ -181,7 +184,7 @@ The ten legacy avatars below come from the approved [White Noise marketing Chat 
 - Status meaning is not conveyed by color alone.
 - Preview text can grow to two lines without a fixed row height.
 
-## Apple references
+## Apple developer references
 
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
 - [UICollectionLayoutListConfiguration](https://developer.apple.com/documentation/uikit/uicollectionlayoutlistconfiguration)
@@ -203,6 +206,10 @@ The ten legacy avatars below come from the approved [White Noise marketing Chat 
 - [BadgeProminence](https://developer.apple.com/documentation/swiftui/badgeprominence)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
 - [Accessibility fundamentals](https://developer.apple.com/documentation/swiftui/accessibility-fundamentals)
+
+Optional Apple product comparisons below preserve historical visual context.
+They are not platform authority and are not required to implement this screen.
+
 - [About iMessage](https://support.apple.com/guide/iphone/about-imessage-iph4e9799206/ios)
 - [Use iMessage apps in Messages on iPhone](https://support.apple.com/guide/iphone/use-imessage-apps-iphf9c9c01d3/ios)
 

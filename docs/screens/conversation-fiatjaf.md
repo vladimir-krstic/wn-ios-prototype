@@ -57,10 +57,10 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 
 ## References
 
+- The behavior and acceptance criteria in this brief are complete and do not
+  require another repository. The following Figma link is optional visual and
+  asset-provenance evidence supplied by the user.
 - [White Noise marketing conversation](https://www.figma.com/design/jzWaS92LwoBjqTtOLP6ij7/White-Noise---Web---Marketing?node-id=1273-8364)
-- Read-only production evidence: `../whitenoise-ios/whitenoise-ios/Conversation/ConversationView.swift`
-- Read-only production evidence: `../whitenoise-ios/whitenoise-ios/Conversation/MessageBubble.swift`
-- Read-only production evidence: `../whitenoise-ios/whitenoise-ios/Conversation/ComposerBar.swift`
 - [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack)
 - [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars)
 - [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview)

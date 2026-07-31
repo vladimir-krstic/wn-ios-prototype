@@ -53,3 +53,24 @@ working style remains authoritative.
   scanner backdrop dimensions while using efficient photographic compression.
 - Raw public-key QR values and key-shaped export fixtures must not expose
   prototype terminology through shareable product surfaces.
+
+## WN-PROTOTYPE-0004 — Self-contained project knowledge
+
+- Date: 2026-07-31
+- Status: Approved
+
+- All White Noise product knowledge, terminology, screen requirements,
+  decisions, and workflow rules required for normal work live in this
+  repository.
+- Do not read, invoke, or depend on project-specific files, source code,
+  instructions, or skills from another local project unless the user explicitly
+  requests a bounded cross-project investigation.
+- Current official Apple design and developer documentation is an intentional
+  live authority. Use `docs/references/apple.md` to open the relevant source
+  before a material platform decision and apply
+  `docs/references/native-ui.md` when evaluating the result.
+- The user’s latest direction outranks Apple’s default pattern. Record an
+  approved exception in the selected screen brief.
+- User-supplied Figma links, GitHub issues, shipped-app examples, and asset
+  sources may remain as optional provenance or comparison evidence, but no
+  implementation may require them.

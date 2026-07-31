@@ -19,6 +19,34 @@ The prototype currently includes:
 All product state is deterministic and process-local. There is no backend,
 networking, persistence, authentication, or cryptography.
 
+## Self-contained project knowledge
+
+All White Noise product rules, terminology, decisions, screen requirements,
+assets, and implementation context required for normal work live in this
+repository. Work must not depend on another local checkout or project-specific
+skill.
+
+Official Apple documentation is an intentional live authority. Agents use the
+local index to open current Apple sources before material component or
+interaction decisions.
+
+- [AGENTS.md](AGENTS.md) — authority, boundaries, workflow, build, and
+  inspection rules.
+- [Project decisions](docs/decisions.md) — durable project decisions.
+- [Product language](docs/product-language.md) — product voice and
+  interface-writing rules.
+- [Terminology](docs/terminology.md) — canonical White Noise product terms.
+- [Apple reference index](docs/references/apple.md) — organized official Apple
+  source router.
+- [Native UI evaluation](docs/references/native-ui.md) — local
+  native-component and review method.
+- [Screen briefs](docs/screens/) — decision-complete briefs for implemented
+  screens.
+
+User-supplied Figma links, GitHub issues, shipped-app examples, and asset source
+links are optional provenance or comparison evidence. They are not required to
+understand or implement a screen.
+
 ## Requirements
 
 - Xcode 27 beta at `/Applications/Xcode-beta.app`

@@ -60,7 +60,7 @@ Show the main Chats destination when the current profile has no chats. The profi
 - `ContentUnavailableView`, `Menu`, `Picker`, toolbar buttons, and search retain their native semantics and Dynamic Type behavior.
 - The Filter’s custom artwork remains inside the native Menu’s system-owned 44-point interaction target.
 
-## Apple references
+## Apple developer references
 
 - [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview)
 - [Refining Liquid Glass in toolbars](https://developer.apple.com/documentation/swiftui/landmarks-refining-the-system-provided-glass-effect-in-toolbars)
@@ -71,11 +71,18 @@ Show the main Chats destination when the current profile has no chats. The profi
 - [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
 - [Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+
+Optional Apple product comparisons below preserve historical visual context.
+They are not platform authority and are not required to implement this screen.
+
 - [Send and reply to messages on iPhone](https://support.apple.com/en-ca/guide/iphone/-iph82fb73ba3/ios)
 - [About iMessage](https://support.apple.com/guide/iphone/about-imessage-iph4e9799206/ios)
 - [Use iMessage apps in Messages on iPhone](https://support.apple.com/guide/iphone/use-imessage-apps-iphf9c9c01d3/ios)
 
 ## Comparative reference
+
+These shipped-app source links are optional comparison evidence. The local
+brief remains complete and authoritative.
 
 - [Signal iOS `DateUtil`](https://github.com/signalapp/Signal-iOS/blob/main/SignalServiceKit/Util/DateUtil.swift) — comparative evidence for compact chat-list recency labels and their transition points.
 - [Signal iOS `ChatListCell`](https://github.com/signalapp/Signal-iOS/blob/main/Signal/src/ViewControllers/HomeView/Chat%20List/ChatListCell.swift) — comparative evidence that the conversation-list timestamp refreshes dynamically while recent.

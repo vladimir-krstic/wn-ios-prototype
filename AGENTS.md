@@ -7,11 +7,14 @@ Build a polished native iPhone prototype quickly, one user-agreed screen or tigh
 ## Authority
 
 1. Latest explicit user direction.
-2. Official Apple sources in `docs/references/apple.md`.
-3. Product language in `docs/product-language.md`.
-4. The brief for the screen currently being built.
-5. Read-only implementation evidence from `../whitenoise-ios` and product evidence from `../wn-ios-agile`.
-6. Mobbin and shipped apps as optional comparative inspiration.
+2. Current official Apple design and developer documentation routed through
+   `docs/references/apple.md`.
+3. Local White Noise product language in `docs/product-language.md` and
+   terminology in `docs/terminology.md`.
+4. The local brief for the screen currently being built and approved decisions
+   in `docs/decisions.md`.
+5. The current local implementation.
+6. User-supplied references and shipped apps as optional comparison evidence.
 
 ## Boundaries
 
@@ -19,7 +22,19 @@ Build a polished native iPhone prototype quickly, one user-agreed screen or tigh
 - Do not add backend, networking, Nostr, Marmot, Rust, real authentication, cryptography, Keychain, LocalAuthentication, UserDefaults, databases, or third-party runtime dependencies.
 - Keep prototype state in memory and deterministic when a screen needs state.
 - Product-surface copy must be production-ready. Never expose prototype, simulation, fixture, dummy-data, or implementation-boundary language outside development-only surfaces.
-- Never edit `../whitenoise-ios` or `../wn-ios-agile`.
+- Keep all White Noise product knowledge, terminology, decisions, screen
+  requirements, and workflow rules inside this repository. Do not read,
+  invoke, or depend on project-specific files, source code, instructions, or
+  skills outside this repository unless the user explicitly requests a bounded
+  cross-project investigation.
+- Generic Codex and Xcode tooling is allowed, but it cannot supply White Noise
+  product authority. Official Apple web research is allowed and Apple
+  documentation is an intentional live authority, not a prohibited
+  dependency.
+- When the user requests bounded external product research, record any adopted
+  conclusion in the relevant local decision or screen brief before
+  implementation. Future work must not depend on memory of, or continued
+  access to, the external source.
 - Use native SwiftUI/UIKit components, SF Symbols, semantic typography, system spacing, system colors, native navigation, and system motion whenever an equivalent exists.
 - Let standard Apple controls own typography, control height, padding, shape, material, spacing, and motion. Use safe areas, system margins, default spacing, and semantic values instead of copying numeric recipes; add explicit sizing only for a user-approved custom brand element recorded in the current screen brief.
 
@@ -27,6 +42,15 @@ Build a polished native iPhone prototype quickly, one user-agreed screen or tigh
 
 - Work only on the screen or small flow the user has selected.
 - Before implementation, create a short brief in `docs/screens/` for that work: purpose, navigation, exact copy, native components, important states, accessibility, relevant Apple links, and observable acceptance criteria.
+- Before making a material platform decision, use
+  `docs/references/apple.md` to open the relevant current official Apple source
+  and apply the evaluation process in `docs/references/native-ui.md`. Do not
+  rely only on remembered API behavior.
+- Start with the closest public SwiftUI/UIKit pattern. Never invent a custom
+  control before checking whether a current public Apple equivalent exists.
+- Record the Apple sources that materially govern a screen in its brief. When
+  explicit user direction differs from Apple’s default pattern, follow the user
+  and document the approved exception.
 - Keep briefs focused on durable accepted decisions. Do not record every temporary visual experiment or spacing iteration.
 - Do not create speculative architecture, models, services, scenarios, assets, or future screens.
 - Implement the requested change and use lightweight static validation by default. Do not compile previews, open Device Hub, launch a simulator, install the app, or capture simulator evidence unless the user explicitly asks.
