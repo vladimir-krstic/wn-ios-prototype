@@ -238,7 +238,13 @@ not require the source pages during normal work.
   - A regular, neutrally tinted indeterminate `ProgressView` for **Reconnecting**.
   - `xmark.circle.fill` for **Disconnected**.
 - The spinner uses SwiftUI's default regular control size so it isn't artificially smaller than the status symbols. `LabeledContent` owns the shared trailing alignment; no fixed icon frames are used.
-- Connected and disconnected use semantic success/error colors. Reconnecting remains neutral because ongoing activity is not a warning. VoiceOver receives the full **Connected**, **Reconnecting**, or **Disconnected** value.
+- Connected and disconnected use semantic success/error colors in normal mode.
+  Reconnecting remains neutral because ongoing activity is not a warning.
+  While editing, the same three indicators remain in the same trailing
+  position but all use the secondary foreground style. This preserves useful
+  status context without competing with the red removal controls or causing
+  row reflow. VoiceOver continues to receive the full **Connected**,
+  **Reconnecting**, or **Disconnected** value in both modes.
 - Representative deterministic fixtures:
   - Primal — `wss://relay.primal.net` — Connected.
   - Damus — `wss://relay.damus.io` — Connected.
@@ -247,7 +253,15 @@ not require the source pages during normal work.
   - Vertex — `wss://relay.vertexlab.io (Read Only)` — Connected.
   - White Noise Profile — `wss://relay.whitenoise.chat` — Reconnecting.
   - White Noise Inbox — `wss://inbox.whitenoise.chat` — Disconnected.
-- `EditButton` owns native Edit and Done states. Native deletion controls and the **Add Relay** row appear only during editing; normal-mode swipe-to-delete is disabled.
+- The trailing toolbar action reads **Edit** in normal mode and a prominent
+  **Done** while editing. Done is always available because it exits edit mode;
+  it does not depend on whether the relay list changed.
+- Relays has no Cancel action. Additions and deletions apply immediately, so a
+  Cancel control would incorrectly imply that those changes can be rolled
+  back. The Add Relay sheet retains its own Cancel action because it is a
+  separate, dismissible task.
+- Native deletion controls and the **Add Relay** row appear only during
+  editing; normal-mode swipe-to-delete is disabled.
 - **Add Relay** opens a medium native sheet with Cancel and Add toolbar actions, a URL field, and the helper **Enter a relay URL beginning with wss://.**
 - Add remains system-disabled for malformed or duplicate URLs. Once the URL is valid, Add uses the native adaptive monochrome `glassProminent` treatment, appearing black in Light Mode. A newly added relay deterministically changes from **Reconnecting** to **Connected** after 1.5 seconds.
 - A standard **Advanced** `NavigationLink` appears at the bottom of the Form.

@@ -152,7 +152,18 @@ struct RelaysPrototypeView: View {
         .navigationTitle("Relays")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            EditButton()
+            ToolbarItem(placement: .primaryAction) {
+                if isEditing {
+                    Button("Done") {
+                        editMode?.wrappedValue = .inactive
+                    }
+                    .buttonStyle(.glassProminent)
+                } else {
+                    Button("Edit") {
+                        editMode?.wrappedValue = .active
+                    }
+                }
+            }
         }
         .sheet(isPresented: $isShowingAddRelay) {
             AddRelaySheet(existingRelays: settings.relays) { url in
@@ -168,7 +179,10 @@ struct RelaysPrototypeView: View {
 
     private func relayRow(_ relay: PrototypeRelay) -> some View {
         LabeledContent {
-            RelayConnectionStatusView(state: relay.connectionState)
+            RelayConnectionStatusView(
+                state: relay.connectionState,
+                isEditing: isEditing
+            )
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(relay.displayName)
@@ -249,13 +263,13 @@ struct RelaysPrototypeView: View {
 
 private struct RelayConnectionStatusView: View {
     let state: PrototypeRelayConnectionState
+    let isEditing: Bool
 
     var body: some View {
         Group {
             switch state {
             case .connected:
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
 
             case .reconnecting:
                 ProgressView()
@@ -264,11 +278,26 @@ private struct RelayConnectionStatusView: View {
 
             case .disconnected:
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.red)
             }
         }
+        .foregroundStyle(statusStyle)
         .imageScale(.medium)
         .accessibilityHidden(true)
+    }
+
+    private var statusStyle: AnyShapeStyle {
+        if isEditing {
+            return AnyShapeStyle(.secondary)
+        }
+
+        switch state {
+        case .connected:
+            return AnyShapeStyle(.green)
+        case .reconnecting:
+            return AnyShapeStyle(.secondary)
+        case .disconnected:
+            return AnyShapeStyle(.red)
+        }
     }
 }
 
