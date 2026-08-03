@@ -25,8 +25,6 @@ struct PrototypeSettingsState {
     var anonymousTelemetry = false
     var auditLogging = false
 
-    var relays = PrototypeRelay.fixtures
-
     var developerMode = false
     var streamingDebug = false
     var keyPackages = PrototypeKeyPackage.fixtures
@@ -198,21 +196,348 @@ enum PrototypeRelayCapability: Equatable {
 }
 
 enum PrototypeRelayUsage: String, CaseIterable, Identifiable {
-    case publishing = "Publishing"
-    case mentions = "Mentions"
-    case messages = "Messages"
+    case profile = "Profile"
+    case inbox = "Inbox"
+    case chatMessages = "Chat Messages"
 
     var id: Self { self }
 
+    var symbol: String {
+        switch self {
+        case .profile:
+            "person.crop.circle"
+        case .inbox:
+            "tray"
+        case .chatMessages:
+            "message"
+        }
+    }
+
     var explanation: String {
         switch self {
-        case .publishing:
-            "Sends your profile information."
-        case .mentions:
-            "Tells people where to send mentions of your profile."
-        case .messages:
-            "Receives your private messages."
+        case .profile:
+            "Publishes your profile and connection information."
+        case .inbox:
+            "Receives invitations to new chats and groups."
+        case .chatMessages:
+            "Used for messages in chats you create. Existing chats keep their current relays."
         }
+    }
+
+    var unavailableCapability: String {
+        switch self {
+        case .profile:
+            "profile publishing"
+        case .inbox:
+            "chat invitations"
+        case .chatMessages:
+            "new chats"
+        }
+    }
+
+    var recoveryCapability: String {
+        switch self {
+        case .profile:
+            "publishing"
+        case .inbox:
+            "invitations"
+        case .chatMessages:
+            "new chats"
+        }
+    }
+
+    var unavailableMessage: String {
+        switch self {
+        case .profile:
+            "Profile changes can’t be published."
+        case .inbox:
+            "New chat and group invitations can’t arrive."
+        case .chatMessages:
+            "New chats can’t be created."
+        }
+    }
+}
+
+enum PrototypeRelayRoleAvailability: Equatable {
+    case available
+    case reconnecting
+    case disconnected
+    case unassigned
+
+    var isAvailable: Bool {
+        self == .available
+    }
+}
+
+struct PrototypeRelayConfiguration: Equatable {
+    var relays: [PrototypeRelay]
+
+    static let defaultConfiguration = PrototypeRelayConfiguration(
+        relays: PrototypeRelay.fixtures
+    )
+
+    static let fixtures = defaultConfiguration
+
+    static let missingProfile = fixtures.missing([.profile])
+    static let missingInbox = fixtures.missing([.inbox])
+    static let missingChatMessages = fixtures.missing([.chatMessages])
+    static let missingProfileAndInbox = fixtures.missing([
+        .profile,
+        .inbox,
+    ])
+    static let missingProfileAndChatMessages = fixtures.missing([
+        .profile,
+        .chatMessages,
+    ])
+    static let missingInboxAndChatMessages = fixtures.missing([
+        .inbox,
+        .chatMessages,
+    ])
+    static let missingAll = fixtures.missing(
+        Set(PrototypeRelayUsage.allCases)
+    )
+    static let reconnectingOnly = fixtures.settingConnectionState(
+        .reconnecting
+    )
+    static let fullyDisconnected = fixtures.settingConnectionState(
+        .disconnected
+    )
+
+    var unavailableUsages: Set<PrototypeRelayUsage> {
+        Set(
+            PrototypeRelayUsage.allCases.filter { usage in
+                !availability(for: usage).isAvailable
+            }
+        )
+    }
+
+    var unassignedUsages: Set<PrototypeRelayUsage> {
+        usages(with: .unassigned)
+    }
+
+    var reconnectingUsages: Set<PrototypeRelayUsage> {
+        usages(with: .reconnecting)
+    }
+
+    var disconnectedUsages: Set<PrototypeRelayUsage> {
+        usages(with: .disconnected)
+    }
+
+    var needsAttention: Bool {
+        !unavailableUsages.isEmpty
+    }
+
+    var isDefaultConfiguration: Bool {
+        self == .defaultConfiguration
+    }
+
+    var unavailableSummary: String {
+        Self.unavailableSummary(for: unavailableUsages)
+    }
+
+    var recoverySummary: String {
+        guard needsAttention else {
+            return ""
+        }
+
+        guard relays.contains(where: {
+            $0.capability == .readWrite
+        }) else {
+            return "Add a relay to publish your profile, receive invitations, and start new chats."
+        }
+
+        let recoveryDetails = [
+            Self.unassignedSummary(for: unassignedUsages),
+            Self.disconnectedSummary(for: disconnectedUsages),
+            Self.reconnectingSummary(for: reconnectingUsages),
+        ].compactMap { $0 }
+        let isTemporarilyUnavailable =
+            unavailableUsages == reconnectingUsages
+
+        return (
+            recoveryDetails
+                + [
+                    Self.unavailableSummary(
+                        for: unavailableUsages,
+                        temporarily: isTemporarilyUnavailable
+                    ),
+                ]
+        )
+            .joined(separator: " ")
+    }
+
+    func availability(
+        for usage: PrototypeRelayUsage
+    ) -> PrototypeRelayRoleAvailability {
+        let assignedRelays = relays.filter { relay in
+            relay.capability == .readWrite
+                && relay.usages.contains(usage)
+        }
+
+        guard !assignedRelays.isEmpty else {
+            return .unassigned
+        }
+
+        if assignedRelays.contains(where: {
+            $0.connectionState == .connected
+        }) {
+            return .available
+        }
+
+        if assignedRelays.contains(where: {
+            $0.connectionState == .reconnecting
+        }) {
+            return .reconnecting
+        }
+
+        return .disconnected
+    }
+
+    func isAvailable(for usage: PrototypeRelayUsage) -> Bool {
+        availability(for: usage).isAvailable
+    }
+
+    func hasConfiguredRelay(for usage: PrototypeRelayUsage) -> Bool {
+        relays.contains { relay in
+            relay.capability == .readWrite
+                && relay.usages.contains(usage)
+        }
+    }
+
+    func removalImpact(for relayID: String) -> Set<PrototypeRelayUsage> {
+        guard let relay = relays.first(where: { $0.id == relayID }) else {
+            return []
+        }
+
+        return Set(
+            relay.usages.filter { usage in
+                relays.count { candidate in
+                    candidate.capability == .readWrite
+                        && candidate.usages.contains(usage)
+                } == 1
+            }
+        )
+    }
+
+    mutating func restoreDefaults() {
+        self = .defaultConfiguration
+    }
+
+    static func unavailableSummary(
+        for usages: Set<PrototypeRelayUsage>,
+        temporarily: Bool = false
+    ) -> String {
+        let capabilities = PrototypeRelayUsage.allCases.compactMap { usage in
+            usages.contains(usage) ? usage.recoveryCapability : nil
+        }
+        let formatted = ListFormatter.localizedString(
+            byJoining: capabilities
+        )
+
+        guard !formatted.isEmpty else {
+            return ""
+        }
+
+        let subject = formatted.prefix(1).uppercased() + formatted.dropFirst()
+        let verb = usages == [.profile] ? "is" : "are"
+        let qualifier = temporarily ? "temporarily " : ""
+        return "\(subject) \(verb) \(qualifier)unavailable."
+    }
+
+    private static func unassignedSummary(
+        for usages: Set<PrototypeRelayUsage>
+    ) -> String? {
+        let names = orderedRoleNames(for: usages)
+
+        switch names.count {
+        case 0:
+            return nil
+        case 1:
+            return "Choose a relay for \(names[0])."
+        default:
+            return "Choose relays for \(formattedList(names))."
+        }
+    }
+
+    private static func disconnectedSummary(
+        for usages: Set<PrototypeRelayUsage>
+    ) -> String? {
+        let names = orderedRoleNames(for: usages)
+
+        switch names.count {
+        case 0:
+            return nil
+        case 1:
+            return "No \(names[0]) relay is connected."
+        case PrototypeRelayUsage.allCases.count:
+            return "No assigned relay is connected."
+        default:
+            return "No relay for \(names.joined(separator: " or ")) is connected."
+        }
+    }
+
+    private static func reconnectingSummary(
+        for usages: Set<PrototypeRelayUsage>
+    ) -> String? {
+        let names = orderedRoleNames(for: usages)
+
+        switch names.count {
+        case 0:
+            return nil
+        case 1:
+            return "\(names[0]) relays are reconnecting."
+        case PrototypeRelayUsage.allCases.count:
+            return "Your relays are reconnecting."
+        default:
+            return "Relays for \(formattedList(names)) are reconnecting."
+        }
+    }
+
+    private static func orderedRoleNames(
+        for usages: Set<PrototypeRelayUsage>
+    ) -> [String] {
+        PrototypeRelayUsage.allCases.compactMap { usage in
+            usages.contains(usage) ? usage.rawValue : nil
+        }
+    }
+
+    private static func formattedList(_ values: [String]) -> String {
+        ListFormatter.localizedString(byJoining: values)
+    }
+
+    private func missing(
+        _ usages: Set<PrototypeRelayUsage>
+    ) -> PrototypeRelayConfiguration {
+        var configuration = self
+
+        for relayIndex in configuration.relays.indices {
+            configuration.relays[relayIndex].usages.subtract(usages)
+        }
+
+        return configuration
+    }
+
+    private func usages(
+        with availability: PrototypeRelayRoleAvailability
+    ) -> Set<PrototypeRelayUsage> {
+        Set(
+            PrototypeRelayUsage.allCases.filter {
+                self.availability(for: $0) == availability
+            }
+        )
+    }
+
+    private func settingConnectionState(
+        _ state: PrototypeRelayConnectionState
+    ) -> PrototypeRelayConfiguration {
+        var configuration = self
+
+        for relayIndex in configuration.relays.indices
+        where configuration.relays[relayIndex].capability == .readWrite {
+            configuration.relays[relayIndex].connectionState = state
+        }
+
+        return configuration
     }
 }
 
@@ -231,7 +556,7 @@ struct PrototypeRelay: Identifiable, Equatable {
             url: "wss://relay.primal.net",
             capability: .readWrite,
             connectionState: .connected,
-            usages: [.publishing, .mentions, .messages]
+            usages: [.profile, .inbox, .chatMessages]
         ),
         PrototypeRelay(
             id: "damus",
@@ -239,7 +564,7 @@ struct PrototypeRelay: Identifiable, Equatable {
             url: "wss://relay.damus.io",
             capability: .readWrite,
             connectionState: .connected,
-            usages: [.publishing, .mentions]
+            usages: [.profile, .chatMessages]
         ),
         PrototypeRelay(
             id: "nos-lol",
@@ -247,7 +572,7 @@ struct PrototypeRelay: Identifiable, Equatable {
             url: "wss://nos.lol",
             capability: .readWrite,
             connectionState: .connected,
-            usages: [.publishing, .mentions, .messages]
+            usages: [.profile, .inbox, .chatMessages]
         ),
         PrototypeRelay(
             id: "nostr-band",
@@ -255,7 +580,7 @@ struct PrototypeRelay: Identifiable, Equatable {
             url: "wss://relay.nostr.band",
             capability: .readWrite,
             connectionState: .connected,
-            usages: [.mentions]
+            usages: [.profile]
         ),
         PrototypeRelay(
             id: "vertex",
@@ -271,7 +596,7 @@ struct PrototypeRelay: Identifiable, Equatable {
             url: "wss://relay.whitenoise.chat",
             capability: .readWrite,
             connectionState: .reconnecting,
-            usages: [.publishing, .mentions]
+            usages: [.profile, .chatMessages]
         ),
         PrototypeRelay(
             id: "white-noise-inbox",
@@ -279,7 +604,7 @@ struct PrototypeRelay: Identifiable, Equatable {
             url: "wss://inbox.whitenoise.chat",
             capability: .readWrite,
             connectionState: .disconnected,
-            usages: [.messages]
+            usages: [.inbox]
         ),
     ]
 }

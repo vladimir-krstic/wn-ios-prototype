@@ -4,6 +4,15 @@ import UIKit
 struct SupportPrototypeView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var state = SupportState.ready
+    @Binding private var relayConfiguration: PrototypeRelayConfiguration
+
+    init(
+        relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
+            .fixtures
+        )
+    ) {
+        _relayConfiguration = relayConfiguration
+    }
 
     var body: some View {
         Group {
@@ -36,6 +45,12 @@ struct SupportPrototypeView: View {
                         .buttonStyle(.glassProminent)
                         .controlSize(.large)
                         .listRowBackground(Color.clear)
+                        .disabled(
+                            !relayConfiguration.isAvailable(
+                                for: .chatMessages
+                            )
+                        )
+                        .accessibilityHint(startChatAccessibilityHint)
                     } footer: {
                         Text(
                             "If a support chat already exists, White Noise opens that conversation."
@@ -71,6 +86,14 @@ struct SupportPrototypeView: View {
             try? await Task.sleep(for: .seconds(1.5))
             state = .complete
         }
+    }
+
+    private var startChatAccessibilityHint: String {
+        if relayConfiguration.isAvailable(for: .chatMessages) {
+            return "Opens a chat with White Noise Support."
+        }
+
+        return "Check your profile relays to start a support chat."
     }
 }
 

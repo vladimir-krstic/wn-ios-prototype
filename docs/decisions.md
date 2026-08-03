@@ -74,3 +74,82 @@ working style remains authoritative.
 - User-supplied Figma links, GitHub issues, shipped-app examples, and asset
   sources may remain as optional provenance or comparison evidence, but no
   implementation may require them.
+
+## WN-PROTOTYPE-0005 — Per-profile relay roles
+
+- Date: 2026-08-03
+- Status: Approved
+
+- Each profile owns an independent union list of configured relay endpoints.
+- Ordinary Settings shows that single list. Relay Details assigns any capable
+  relay to one or more human-facing roles: **Profile**, **Inbox**, and **Chat
+  Messages**. The main list summarizes those assignments with semantic role
+  symbols so a separate Advanced destination is unnecessary.
+- **Profile** represents the account relay behavior used to publish profile and
+  connection information. Key-package publication uses the appropriate
+  profile-relay behavior internally and is not a fourth product setting.
+- **Inbox** receives invitations to new chats and groups.
+- **Chat Messages** is the per-profile default relay set copied into chats that
+  profile creates. Existing chats retain their signed routing, and incoming
+  chats carry their own routing. Per-chat editing is a separate future flow.
+- At least one capable relay remains assigned to every role. Read-only relays
+  can remain configured but cannot be assigned to these write-requiring roles.
+- A new relay’s roles are chosen before it becomes active and default to all
+  three. Initial onboarding relay selection remains a future requirement.
+- The production transport layer currently accepts default group-routing
+  relays at process construction. Production translation therefore requires a
+  per-profile default-routing input or public setter; this local decision is
+  complete and does not require access to another repository.
+
+## WN-PROTOTYPE-0006 — Relay Details owns removal
+
+- Date: 2026-08-03
+- Status: Approved
+
+- The main Relays list is a quiet two-line endpoint overview. It has no Edit
+  mode, inline role controls, or swipe-to-delete behavior.
+- Every relay row opens Relay Details. That destination owns the three role
+  toggles and a destructive **Remove Relay** action at the bottom.
+- Removal always requires the native consequence-aware confirmation. A normal
+  removal says that this profile will stop using the relay; a removal that
+  empties roles also names the capabilities that become unavailable.
+- **Add Relay** remains directly available from the main list.
+
+## WN-PROTOTYPE-0007 — Relay degraded mode and recovery
+
+- Date: 2026-08-03
+- Status: Approved; supersedes the minimum-role invariant in
+  WN-PROTOTYPE-0005
+
+- A person may intentionally leave **Profile**, **Inbox**, or **Chat Messages**
+  without a relay. Relay choices belong to the active profile; leaving a role
+  empty never assigns that profile to an unwanted endpoint.
+- Assignment alone does not make a role operational. A role is **Available**
+  only while at least one assigned read/write relay is connected. Otherwise it
+  is **Reconnecting**, **Disconnected**, or **Unassigned**. Read-only relays
+  never satisfy availability.
+- Every unavailable state degrades only the role's dependent capability:
+  Profile editing is unavailable without an available Profile relay,
+  invitations cannot arrive without an available Inbox relay, and new chats
+  cannot be created without an available Chat Messages relay. A connected
+  sibling relay keeps the role available when another assigned relay fails.
+  Existing chats keep their own routing and history remains available; while
+  any profile relay role is unavailable, the empty Fiatjaf composer
+  prioritizes the direct recovery route.
+- Turning off the final relay for a role and removing a relay that empties a
+  role are allowed after a native consequence-aware confirmation.
+- Relays owns the complete recovery explanation through its inline status
+  callout. While setup needs attention, Chats replaces its New Message toolbar
+  symbol with a compact outlined orange warning, and an open conversation uses
+  its complete empty composer as the same recovery link. Both push the active
+  profile's Relays destination; the native Back action returns to the
+  originating screen. Other signed-in destinations don't repeat the warning.
+- Relay connection feedback uses green for Connected, a neutral spinner for
+  Reconnecting, and red for Disconnected. The user approved red as the clearer
+  concrete endpoint-failure status even though the condition is recoverable.
+  Aggregate recovery links and callouts remain orange so they read as guidance
+  rather than destructive actions or field validation. Symbols, text, and
+  accessibility values carry the meaning without relying on color.
+- **Restore Default Relays** performs a confirmed full reset for the active
+  profile. It removes custom endpoints and restores the original seven-relay
+  list and role assignments.

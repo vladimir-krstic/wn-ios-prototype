@@ -20,7 +20,8 @@ Show the main Chats destination when the current profile has no chats. The profi
 - Search empty title: **No Results**
 - Search empty description: **Check the spelling or try a different search.**
 - Filter choices: **Chats**, **Unread**, **Archived**, **Left**
-- Actions: **Profile**, **Search Chats**, **Filter Chats**, **New Message**
+- Actions: **Profile**, **Relay Setup** when needed, **Search Chats**, **Filter
+  Chats**, **New Message**
 
 ## Native components
 
@@ -35,6 +36,11 @@ Show the main Chats destination when the current profile has no chats. The profi
 - A default toolbar New Message button using `plus.bubble`, sharing the group’s system Liquid Glass background without a prominent tint.
 - System-provided toolbar Liquid Glass, spacing, hit regions, menus, search motion, typography, and materials.
 - One approved custom profile element: the 44-point circular profile avatar. Marmota uses the bundled user-supplied photo, with a one-letter monogram as the fallback for profiles without an image. A native `NavigationLink` owns its interaction and opens Settings. Its avatar-specific button style preserves the approved full-contrast artwork during the interactive navigation transition instead of applying a transient dimmed label treatment. `sharedBackgroundVisibility(.hidden)` keeps the avatar outside Liquid Glass while matching the native controls’ row size.
+- When the active profile has an unavailable relay role, the existing New Message
+  toolbar slot becomes a native `NavigationLink` with the outlined orange
+  `exclamationmark.triangle` symbol. The system toolbar retains the same Liquid
+  Glass group and pressing the warning pushes Relays; the native Back action
+  returns to Chats. No extra toolbar item or warning banner changes geometry.
 
 ## Important behavior
 
@@ -51,6 +57,9 @@ Show the main Chats destination when the current profile has no chats. The profi
 - Filter menu icons are `bubble.left.and.bubble.right` for Chats, `message.badge` for Unread, `archivebox` for Archived, and `rectangle.portrait.and.arrow.right` for Left.
 - A nonempty search query shows the search-specific empty state.
 - The profile avatar opens Settings through native stack navigation. Both the Back button and interactive swipe-back return to the same enabled avatar appearance. New Message exposes a callback whose destination is deferred.
+- The relay warning action appears while a relay role is unassigned,
+  reconnecting, or disconnected and disappears as soon as every role has at
+  least one connected assigned relay.
 - The toolbar contains one unified trailing glass group so the three chat-level actions read as a quiet, related control cluster.
 
 ## Accessibility
@@ -94,6 +103,9 @@ brief remains complete and authoritative.
 - Chats uses the plain Filter glyph with no black selected background. Unread, Archived, and Left show their name and Filter glyph on one compact adaptive selected capsule inside the same shared toolbar group.
 - New Message uses the same default toolbar treatment as Filter and Search and remains the trailing action inside their shared pill.
 - The profile avatar appears independently at the leading edge, without Liquid Glass, and matches the controls’ 44-point row size.
+- An unavailable relay role replaces New Message with one compact outlined
+  orange recovery button in the same system toolbar group; it opens Relays and
+  Back restores the same Chats destination.
 - Tapping the profile avatar pushes Settings, and completing an interactive swipe-back restores the avatar without a stale pressed or disabled appearance.
 - The toolbar remains title-free in every scope and the list never receives a separate filter header or dismissible chip.
 - Selecting Chats in the Filter menu returns to the unfiltered scope.

@@ -17,7 +17,7 @@ authority by itself.
 | Conversation | **Chat** | Session, thread, MLS group | Use **Group** when membership or administration matters. |
 | Discoverable participant | **Person**, **People**, or their name | User, peer, member outside a group | **Member** is correct inside a group. |
 | Profile address | **Nostr Address** or **Address** | NIP-05, identifier | Use an address example only when it helps entry. |
-| Message transport settings | **Relays** | NIP-65, outbox relay list | Advanced role details may use **Publishing**, **Mentions**, and **Messages**. |
+| Message transport settings | **Relays** | NIP-65, outbox relay list | Relays and role assignments belong to the active profile. Relay Details uses **Profile**, **Inbox**, and **Chat Messages**. **Inbox** receives invitations; **Chat Messages** supplies the defaults for chats this profile creates. A role is available only while at least one assigned read/write relay is connected. Recovery names whether a role is unassigned, reconnecting, or disconnected and names the unavailable capability rather than calling the complete app offline. |
 | Stop using active profile while retaining it | **Sign Out** | Logout, remove account | State that the profile remains on this device when the consequence matters. |
 | Remove active profile and local data | **Sign Out and Remove Data** | Delete account, wipe identity | Destructive; explain what is removed and what remains elsewhere. |
 | Remove another stored profile | **Remove Profile** | Delete account, wipe identity | Use for an inactive locally stored profile. |

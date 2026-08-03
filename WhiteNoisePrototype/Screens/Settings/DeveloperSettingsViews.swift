@@ -61,7 +61,7 @@ struct DeveloperToolsPrototypeView: View {
 
                 NavigationLink {
                     DiagnosticsPrototypeView(
-                        settings: settings,
+                        relayConfiguration: profile.relayConfiguration,
                         profileCount: profileCount
                     )
                 } label: {
@@ -220,7 +220,7 @@ private struct DiagnosticsPrototypeView: View {
     @State private var isRunningSelfCheck = false
     @State private var selfCheckPassed = false
 
-    let settings: PrototypeSettingsState
+    let relayConfiguration: PrototypeRelayConfiguration
     let profileCount: Int
 
     var body: some View {
@@ -228,7 +228,7 @@ private struct DiagnosticsPrototypeView: View {
             Section("Relay Health") {
                 LabeledContent(
                     "Total",
-                    value: settings.relays.count.formatted()
+                    value: relayConfiguration.relays.count.formatted()
                 )
                 LabeledContent(
                     "Connected",
@@ -330,7 +330,9 @@ private struct DiagnosticsPrototypeView: View {
     private func relayCount(
         for state: PrototypeRelayConnectionState
     ) -> Int {
-        settings.relays.count { $0.connectionState == state }
+        relayConfiguration.relays.count {
+            $0.connectionState == state
+        }
     }
 }
 

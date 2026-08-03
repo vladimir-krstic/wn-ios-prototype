@@ -71,6 +71,36 @@ Use this order:
 - Use a generic fallback only when the app cannot distinguish the cause; still
   name the attempted action and offer recovery.
 
+### Relay ownership and recovery
+
+- Treat relays and role assignments as properties of the active profile. Use
+  **this profile** in confirmations and consequences, **your profile** in
+  explanatory copy, and White Noise only when the app itself is the actor.
+- Use **Profile relays need attention** when a required relay role is
+  unassigned, reconnecting, or disconnected. Do not describe the complete app
+  as offline or broken.
+- Name only what is unavailable: **Profile publishing**, **chat invitations**,
+  or **new chats**.
+- Group recovery by cause instead of emitting one full sentence per role.
+  Use **Choose a relay for…** for unassigned roles, **…relays are
+  reconnecting** while recovery is in progress, and **No … relay is
+  connected** when assigned relays are disconnected. Follow the grouped cause
+  sentences with one concise combined impact using **publishing**,
+  **invitations**, and **new chats**. Use **temporarily unavailable** only when
+  every affected role is reconnecting. Keep the complete explanation on
+  **Relays**;
+  Chats may use a compact warning in the New Message toolbar slot, while an
+  open conversation uses the complete empty **Check your profile relays**
+  composer as the same recovery action. Both link to Relays without repeating
+  the full explanation.
+- Before a final role is turned off, state that this profile needs at least one
+  relay for that role, then name the exact consequence. Before a relay is
+  removed, name any capability that removal makes unavailable. Use **Turn
+  Off** or **Remove Relay** rather than a generic confirmation.
+- Use **Restore Default Relays** and **Restore Defaults** for the confirmed
+  full reset. State that the default relays and role assignments will replace
+  the current profile configuration and that custom relays will be removed.
+
 ## Destructive actions
 
 - Name exactly what is removed.

@@ -231,20 +231,31 @@ not require the source pages during normal work.
 
 ### Relays
 
-- A native `Form` presents each relay using regular semantic SF Pro typography and `LabeledContent`.
-- The main relay-list footer uses production copy: **Relays help White Noise find profiles and exchange messages.**
-- Every row places the relay name above its URL and shows one compact trailing simulated connection-state indicator:
+- Relay configuration belongs to the active profile. Switching profiles shows
+  an independent relay list and role selection; application-wide preferences
+  remain in the separate Settings state.
+- A native `Form` presents one union list of configured relay endpoints. The
+  main list is the complete overview; there is no Advanced Relays destination.
+- The main relay-list footer reads **Relays let your profile publish
+  information, receive chat invitations, and deliver messages.**
+- Every collapsed relay row uses the same restrained two-line hierarchy: relay
+  name, URL, and trailing connection status. Role symbols are omitted from the
+  overview. Read-only relays retain **(Read Only)** beside the URL.
+- VoiceOver combines the relay name, complete URL, connection status, and
+  read-only capability when applicable. Role controls remain individually
+  accessible in Relay Details.
+- Connection status uses:
   - `checkmark.circle.fill` for **Connected**.
   - A regular, neutrally tinted indeterminate `ProgressView` for **Reconnecting**.
   - `xmark.circle.fill` for **Disconnected**.
-- The spinner uses SwiftUI's default regular control size so it isn't artificially smaller than the status symbols. `LabeledContent` owns the shared trailing alignment; no fixed icon frames are used.
-- Connected and disconnected use semantic success/error colors in normal mode.
-  Reconnecting remains neutral because ongoing activity is not a warning.
-  While editing, the same three indicators remain in the same trailing
-  position but all use the secondary foreground style. This preserves useful
-  status context without competing with the red removal controls or causing
-  row reflow. VoiceOver continues to receive the full **Connected**,
-  **Reconnecting**, or **Disconnected** value in both modes.
+- The spinner uses SwiftUI's default regular control size so it isn't
+  artificially smaller than the status symbols. No fixed icon frames are used.
+- Connected uses system green, Reconnecting remains neutral active progress,
+  and Disconnected uses system red as the user-approved concrete
+  endpoint-failure status. Aggregate recovery callouts and links remain system
+  orange so they read as recoverable guidance rather than destructive actions.
+  VoiceOver continues to receive the full **Connected**, **Reconnecting**, or
+  **Disconnected** value, so color is never the only signal.
 - Representative deterministic fixtures:
   - Primal — `wss://relay.primal.net` — Connected.
   - Damus — `wss://relay.damus.io` — Connected.
@@ -253,27 +264,114 @@ not require the source pages during normal work.
   - Vertex — `wss://relay.vertexlab.io (Read Only)` — Connected.
   - White Noise Profile — `wss://relay.whitenoise.chat` — Reconnecting.
   - White Noise Inbox — `wss://inbox.whitenoise.chat` — Disconnected.
-- The trailing toolbar action reads **Edit** in normal mode and a prominent
-  **Done** while editing. Done is always available because it exits edit mode;
-  it does not depend on whether the relay list changed.
-- Relays has no Cancel action. Additions and deletions apply immediately, so a
-  Cancel control would incorrectly imply that those changes can be rolled
-  back. The Add Relay sheet retains its own Cancel action because it is a
-  separate, dismissible task.
-- Native deletion controls and the **Add Relay** row appear only during
-  editing; normal-mode swipe-to-delete is disabled.
-- **Add Relay** opens a medium native sheet with Cancel and Add toolbar actions, a URL field, and the helper **Enter a relay URL beginning with wss://.**
-- Add remains system-disabled for malformed or duplicate URLs. Once the URL is valid, Add uses the native adaptive monochrome `glassProminent` treatment, appearing black in Light Mode. A newly added relay deterministically changes from **Reconnecting** to **Connected** after 1.5 seconds.
-- A standard **Advanced** `NavigationLink` appears at the bottom of the Form.
-- **Advanced** is one native scrolling `Form`, without another navigation level. It exposes three direct checkmark-selection sections:
-  - **Publishing** — **Sends your profile information.**
-  - **Mentions** — **Tells people where to send mentions of your profile.**
-  - **Messages** — **Receives your private messages.**
-- Advanced section headers are plain native text without decorative symbols. Native `Form` and `Section` own the grouped spacing; no custom section padding or numeric spacing is introduced.
-- A relay can serve more than one role. At least one relay must remain selected in every role.
-- Read-only relays remain visible with **(Read Only)** beside the URL, and their Advanced selection rows are disabled. User-facing explanations describe this capability generally and never name a fixture relay.
+- Every relay row uses a native `NavigationLink`. Relay Details contains Name,
+  URL, Status, the three **Use For** toggles, and a destructive **Remove Relay**
+  action at the bottom. The main list has no Edit mode, inline role controls,
+  or swipe-to-delete behavior.
+- **Add Relay** remains a visible standard row on the main list.
+- Remove Relay opens a native alert titled **Remove [relay name]?** with
+  **This profile will stop using this relay.**, destructive **Remove Relay**,
+  and **Cancel**. Cancel preserves the relay. Confirmation first dismisses the
+  alert and returns to Relays, then removes the endpoint from the parent list;
+  Relay Details never invalidates its own active navigation destination.
+- If removal would empty one or more roles, the same confirmation names the
+  affected roles, states that this profile needs at least one relay for them,
+  and names the unavailable capabilities. Confirmation is still allowed; the
+  inline Relays recovery callout updates immediately afterward.
+- A role is operational only while at least one assigned read/write relay is
+  connected. Its state is **Available**, **Reconnecting**, **Disconnected**,
+  or **Unassigned**; read-only relays never provide operational coverage. A
+  connected sibling keeps the role available when another assigned relay is
+  reconnecting or disconnected.
+- Relays shows an orange inline callout titled **Profile relays need
+  attention** whenever any role is unavailable. The detail groups roles by
+  cause in this order: unassigned, disconnected, then reconnecting. It uses
+  **Choose a relay for…**, **No … relay is connected**, and **…relays are
+  reconnecting**, followed by one combined impact sentence using
+  **publishing**, **invitations**, and **new chats**. **Temporarily
+  unavailable** appears only when every affected role is reconnecting. When no
+  assignable relay exists, the detail is **Add a relay to publish your profile,
+  receive invitations, and start new chats.**
+- **Add Relay** opens a medium native sheet with Cancel and Add toolbar actions,
+  a URL field, the helper **Enter a relay URL beginning with wss://.**, and a
+  native **Use For** Toggle for every role.
+- Every new relay role starts selected. Add remains system-disabled for a
+  malformed or duplicate URL or when every role is deselected. The endpoint is
+  not appended or activated until Add is pressed. A newly added relay then
+  changes deterministically from **Reconnecting** to **Connected** after 1.5
+  seconds.
+- The three independent roles are:
+  - **Profile** — **Publishes your profile and connection information.**
+  - **Inbox** — **Receives invitations to new chats and groups.**
+  - **Chat Messages** — **Used for messages in chats you create. Existing chats
+    keep their current relays.**
+- Relay-detail role changes apply immediately and use standard native Toggles;
+  there is no secondary Edit, Save, or Cancel mode. Turning off a role that is
+  still assigned elsewhere is immediate. Turning off its final assignment
+  first presents **Turn off [role]?**, states that this profile needs at least
+  one relay for that role, explains the exact lost capability, and offers
+  destructive **Turn Off** and **Cancel**. Confirmation permits the degraded
+  state.
+- A relay can serve more than one role. Relay Details is the sole role-editing
+  surface, and changes update the shared configuration immediately.
+- Read-only relays remain visible with **(Read Only)** beside the URL, and their
+  Relay Details Toggles are disabled. The explanation reads
+  **This relay is read only, so this profile can’t use it to send data.**
+- Deterministic role fixtures are:
+  - Primal — Profile, Inbox, Chat Messages.
+  - Damus — Profile, Chat Messages.
+  - nos.lol — Profile, Inbox, Chat Messages.
+  - Nostr.Band — Profile.
+  - Vertex — no assignable role; Read Only.
+  - White Noise Profile — Profile, Chat Messages.
+  - White Noise Inbox — Inbox.
+- Chat Messages is a per-profile default for chats created afterward. It does
+  not rewrite existing or incoming chat routing. Per-chat relay editing is
+  deferred to a future chat or group-details flow.
+- Production translation requires the transport layer to accept a per-profile
+  default chat-routing input or public setter; the current process-construction
+  default is not sufficient. Initial relay choice before first publication is
+  likewise deferred to future onboarding work.
+- A separate destructive **Restore Default Relays** action performs a confirmed
+  full reset for the active profile. Its footer and confirmation state that the
+  default relays and role assignments will replace this profile’s current
+  configuration. It removes custom relays and restores the original seven
+  endpoints and assignments; it is disabled while the configuration already
+  matches those defaults.
+- Unavailable roles affect only their dependent capabilities:
+  - Without an available **Profile** relay, Profile remains readable but
+    **Edit** is disabled.
+  - Without an available **Inbox** relay, new chat and group invitations cannot
+    arrive.
+  - Without an available **Chat Messages** relay, **New Message**, **Start
+    Chat**, and future chat/group creation actions are disabled.
+  - Existing chat history, Share & Connect, Profile Keys, appearance, local
+    settings, profile switching, and relay recovery remain available with every
+    role missing. In the Fiatjaf prototype, the empty composer becomes the
+    direct recovery route until relay setup is complete.
+- Relays is the only destination that shows the complete recovery explanation.
+  While a role is unavailable, Chats replaces New Message with a compact orange
+  `exclamationmark.triangle` recovery link in the same system Liquid Glass
+  toolbar slot. An open conversation makes its complete empty composer—with
+  **Check your profile relays** and the same outlined symbol—the recovery link
+  instead of adding a toolbar button. Both native `NavigationLink` actions push this profile's Relays
+  destination, and the system Back action returns to the originating screen.
+  No app-wide banner, custom warning surface, or launch alert is used. Other
+  Settings destinations don't repeat the warning.
 - The public relay fixtures are representative examples rather than a popularity ranking or availability report.
 - All statuses and transitions remain deterministic in-memory prototype behavior, but that implementation boundary appears only in this documentation—not in product-surface copy.
+- Governing Apple sources: [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables),
+  [Form](https://developer.apple.com/documentation/swiftui/form),
+  [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink),
+  [Toggle](https://developer.apple.com/documentation/swiftui/toggle),
+  [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts),
+  [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback),
+  [systemOrange](https://developer.apple.com/documentation/uikit/uicolor/systemorange),
+  [systemRed](https://developer.apple.com/documentation/uikit/uicolor/systemred),
+  [Standard colors](https://developer.apple.com/documentation/uikit/standard-colors),
+  [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons),
+  [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars),
+  and [SF Symbols](https://developer.apple.com/sf-symbols/).
 
 Optional relay-operator references verified July 27, 2026. They preserve the
 fixture research context only; the local relay behavior above is authoritative
@@ -423,6 +521,22 @@ need to open them to implement or evaluate Settings.
 - Completing Sign In or Sign Up from **Add Profile** appends or reactivates that profile, reveals the deterministic pseudonym set, makes the added profile active, and changes profile management to the multi-profile presentation.
 - Profile editing, sharing, switching, adding, signing out, and removing update only deterministic in-memory state.
 - Every visible settings control works or presents a deterministic outcome without exposing prototype implementation language.
+- Relay configuration is independent per profile. The Relays overview stays
+  limited to name, URL, and status; role assignment and removal live in Relay
+  Details.
+- Read-only relays cannot be assigned. Final-role Toggle changes and relay removals explain the
+  lost capability, then permit the degraded state after confirmation. Relays'
+  inline recovery callout tells the person to turn on at least one relay for
+  every missing role and combines every missing-role consequence. Chats uses
+  the New Message slot for its compact recovery link, while an open
+  conversation places recovery inside its empty composer. Re-enabling every
+  role restores the normal New Message and waveform actions immediately.
+  Changing Chat Messages does not alter existing chats.
+- Restore Default Relays removes custom endpoints, restores the complete
+  per-profile default list, clears every missing role, and re-enables affected
+  actions. The eight complete/degraded fixtures cover every role combination.
+- Relay Details uses the native consequence-aware removal confirmation. The
+  main list has no Edit mode or swipe deletion.
 - Appearance, message colors, and Return-key behavior update the implemented product surfaces immediately; notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
 - Destructive and secret-related actions use distinct native confirmations and exact safety language.
 - The complete app builds with Xcode 27 beta and contains no third-party runtime dependency or network/persistence implementation.

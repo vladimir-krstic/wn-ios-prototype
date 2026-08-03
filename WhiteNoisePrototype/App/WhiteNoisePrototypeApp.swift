@@ -36,6 +36,8 @@ private struct PrototypeRootView: View {
                     ChatsView(
                         chats: activeChats,
                         settings: $settings,
+                        relayConfiguration:
+                            activeProfileBinding.relayConfiguration,
                         profile: activeProfile,
                         settingsDestination: {
                             SettingsView(
@@ -81,6 +83,20 @@ private struct PrototypeRootView: View {
     private var activeProfile: PrototypeProfile {
         profiles.first { $0.id == activeProfileID }
             ?? PrototypeProfile.marmota
+    }
+
+    private var activeProfileBinding: Binding<PrototypeProfile> {
+        Binding {
+            activeProfile
+        } set: { profile in
+            guard let index = profiles.firstIndex(
+                where: { $0.id == activeProfileID }
+            ) else {
+                return
+            }
+
+            profiles[index] = profile
+        }
     }
 
     private var activeChats: Binding<[ChatListItem]> {

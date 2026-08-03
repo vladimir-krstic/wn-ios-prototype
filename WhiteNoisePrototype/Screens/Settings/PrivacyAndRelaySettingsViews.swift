@@ -106,84 +106,95 @@ struct PrivacySecurityPrototypeView: View {
 }
 
 struct RelaysPrototypeView: View {
-    @Binding var settings: PrototypeSettingsState
-    @Environment(\.editMode) private var editMode
+    @Binding var configuration: PrototypeRelayConfiguration
     @State private var isShowingAddRelay = false
+    @State private var isShowingRestoreDefaultsConfirmation = false
 
     var body: some View {
         Form {
+            if configuration.needsAttention {
+                Section {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Profile relays need attention")
+
+                            Text(configuration.recoverySummary)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
             Section {
-                if settings.relays.isEmpty {
-                    Text("No relays added")
+                if configuration.relays.isEmpty {
+                    Text("This profile has no relays")
                         .foregroundStyle(.secondary)
                 }
 
-                ForEach(settings.relays) { relay in
-                    relayRow(relay)
-                        .deleteDisabled(!isEditing)
-                }
-                .onDelete(perform: deleteRelays)
-
-                if isEditing {
-                    Button {
-                        isShowingAddRelay = true
+                ForEach(configuration.relays) { relay in
+                    NavigationLink {
+                        RelayDetailView(
+                            configuration: $configuration,
+                            relayID: relay.id
+                        )
                     } label: {
-                        Label("Add Relay", systemImage: "plus.circle")
+                        relayRow(relay)
                     }
                 }
-            } header: {
-                Text("Profile Relays")
+
+                Button {
+                    isShowingAddRelay = true
+                } label: {
+                    Label("Add Relay", systemImage: "plus.circle")
+                }
             } footer: {
                 Text(
-                    "Relays help White Noise find profiles and exchange messages."
+                    "Relays let your profile publish information, receive chat invitations, and deliver messages."
                 )
             }
 
             Section {
-                NavigationLink {
-                    AdvancedRelaysView(settings: $settings)
-                } label: {
-                    Label("Advanced", systemImage: "slider.horizontal.3")
+                Button("Restore Default Relays", role: .destructive) {
+                    isShowingRestoreDefaultsConfirmation = true
                 }
+                .disabled(configuration.isDefaultConfiguration)
             } footer: {
-                Text("Choose how White Noise uses each relay.")
+                Text(
+                    "Restores the default relays and role assignments for this profile."
+                )
             }
         }
         .navigationTitle("Relays")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if isEditing {
-                    Button("Done") {
-                        editMode?.wrappedValue = .inactive
-                    }
-                    .buttonStyle(.glassProminent)
-                } else {
-                    Button("Edit") {
-                        editMode?.wrappedValue = .active
-                    }
-                }
-            }
-        }
         .sheet(isPresented: $isShowingAddRelay) {
-            AddRelaySheet(existingRelays: settings.relays) { url in
-                addRelay(url)
+            AddRelaySheet(
+                existingRelays: configuration.relays
+            ) { url, usages in
+                addRelay(url, usages: usages)
             }
             .presentationDetents([.medium])
         }
-    }
-
-    private var isEditing: Bool {
-        editMode?.wrappedValue.isEditing == true
+        .alert(
+            "Restore default relays?",
+            isPresented: $isShowingRestoreDefaultsConfirmation
+        ) {
+            Button("Restore Defaults", role: .destructive) {
+                configuration.restoreDefaults()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "This replaces this profile’s relay list and role assignments with the defaults. Custom relays will be removed."
+            )
+        }
     }
 
     private func relayRow(_ relay: PrototypeRelay) -> some View {
-        LabeledContent {
-            RelayConnectionStatusView(
-                state: relay.connectionState,
-                isEditing: isEditing
-            )
-        } label: {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(relay.displayName)
 
@@ -193,6 +204,12 @@ struct RelaysPrototypeView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
+
+            Spacer()
+
+            RelayConnectionStatusView(
+                state: relay.connectionState
+            )
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(relay.displayName), \(relay.url)")
@@ -211,11 +228,13 @@ struct RelaysPrototypeView: View {
             status = "Disconnected"
         }
 
+        var values = [status]
+
         if relay.capability == .readOnly {
-            return "\(status), Read Only"
+            values.append("Read Only")
         }
 
-        return status
+        return values.joined(separator: ", ")
     }
 
     private func relayDisplayURL(_ relay: PrototypeRelay) -> String {
@@ -226,44 +245,92 @@ struct RelaysPrototypeView: View {
         return relay.url
     }
 
-    private func addRelay(_ url: String) {
+    private func addRelay(
+        _ url: String,
+        usages: Set<PrototypeRelayUsage>
+    ) {
         let relayID = "custom-\(url.lowercased())"
         let displayName = URL(string: url)?.host ?? "Custom Relay"
 
-        settings.relays.append(
+        configuration.relays.append(
             PrototypeRelay(
                 id: relayID,
                 displayName: displayName,
                 url: url,
                 capability: .readWrite,
                 connectionState: .reconnecting,
-                usages: Set(PrototypeRelayUsage.allCases)
+                usages: usages
             )
         )
 
         Task {
             try? await Task.sleep(for: .seconds(1.5))
 
-            guard let relayIndex = settings.relays.firstIndex(
+            guard let relayIndex = configuration.relays.firstIndex(
                 where: { $0.id == relayID }
             ) else {
                 return
             }
 
             withAnimation {
-                settings.relays[relayIndex].connectionState = .connected
+                configuration.relays[relayIndex].connectionState = .connected
             }
         }
     }
+}
 
-    private func deleteRelays(at offsets: IndexSet) {
-        settings.relays.remove(atOffsets: offsets)
+private func relayRemovalMessage(
+    for impact: Set<PrototypeRelayUsage>
+) -> String {
+    guard !impact.isEmpty else {
+        return "This profile will stop using this relay."
     }
+
+    let roles = relayUsageList(impact)
+    let requirement: String
+
+    if impact.count == 1 {
+        requirement = "This profile needs at least one \(roles) relay."
+    } else {
+        requirement = "This profile needs at least one relay for \(roles)."
+    }
+
+    return requirement
+        + " If you remove this relay, \(relayCapabilityList(impact)) will be unavailable."
+        + " You can choose another relay or restore defaults later."
+}
+
+private func relayFinalRoleMessage(
+    for usage: PrototypeRelayUsage
+) -> String {
+    "This profile needs at least one \(usage.rawValue) relay for "
+        + "\(usage.unavailableCapability). If you turn this off, "
+        + "\(usage.unavailableCapability) will be unavailable. "
+        + "You can choose another relay or restore defaults later."
+}
+
+private func relayUsageList(
+    _ usages: Set<PrototypeRelayUsage>
+) -> String {
+    let names = PrototypeRelayUsage.allCases.compactMap { usage in
+        usages.contains(usage) ? usage.rawValue : nil
+    }
+
+    return ListFormatter.localizedString(byJoining: names)
+}
+
+private func relayCapabilityList(
+    _ usages: Set<PrototypeRelayUsage>
+) -> String {
+    let capabilities = PrototypeRelayUsage.allCases.compactMap { usage in
+        usages.contains(usage) ? usage.unavailableCapability : nil
+    }
+
+    return ListFormatter.localizedString(byJoining: capabilities)
 }
 
 private struct RelayConnectionStatusView: View {
     let state: PrototypeRelayConnectionState
-    let isEditing: Bool
 
     var body: some View {
         Group {
@@ -286,10 +353,6 @@ private struct RelayConnectionStatusView: View {
     }
 
     private var statusStyle: AnyShapeStyle {
-        if isEditing {
-            return AnyShapeStyle(.secondary)
-        }
-
         switch state {
         case .connected:
             return AnyShapeStyle(.green)
@@ -301,94 +364,264 @@ private struct RelayConnectionStatusView: View {
     }
 }
 
-private struct AdvancedRelaysView: View {
-    @Binding var settings: PrototypeSettingsState
+private struct RelayDetailView: View {
+    private enum RelayDetailAlert: Identifiable {
+        case confirmDisableUsage(PrototypeRelayUsage)
+        case confirmRemoval(
+            relayID: String,
+            relayName: String,
+            impact: Set<PrototypeRelayUsage>
+        )
 
-    var body: some View {
-        Form {
-            ForEach(PrototypeRelayUsage.allCases) { usage in
-                Section {
-                    ForEach($settings.relays) { $relay in
-                        Button {
-                            toggleUsage(for: &relay, usage: usage)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(relay.displayName)
-                                        .foregroundStyle(.primary)
-
-                                    Text(relayDisplayURL(relay))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                }
-
-                                Spacer()
-
-                                if relay.usages.contains(usage) {
-                                    Image(systemName: "checkmark")
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                        }
-                        .disabled(
-                            relay.capability == .readOnly
-                                || isOnlySelection(relay, for: usage)
-                        )
-                        .accessibilityValue(
-                            relay.usages.contains(usage)
-                                ? "Selected"
-                                : "Not selected"
-                        )
-                    }
-                } header: {
-                    Text(usage.rawValue)
-                } footer: {
-                    Text(
-                        "\(usage.explanation) Read-only relays can’t be selected. At least one relay must remain selected."
-                    )
-                }
+        var id: String {
+            switch self {
+            case .confirmDisableUsage(let usage):
+                "disable-\(usage.id)"
+            case .confirmRemoval(let relayID, _, _):
+                "remove-\(relayID)"
             }
         }
-        .navigationTitle("Advanced")
-        .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func relayDisplayURL(_ relay: PrototypeRelay) -> String {
-        if relay.capability == .readOnly {
-            return "\(relay.url) (Read Only)"
+    @Binding var configuration: PrototypeRelayConfiguration
+    @Environment(\.dismiss) private var dismiss
+    @State private var relayAlert: RelayDetailAlert?
+    @State private var pendingRemovalID: String?
+
+    let relayID: String
+
+    var body: some View {
+        Group {
+            if let relayIndex {
+                Form {
+                    Section {
+                        LabeledContent(
+                            "Name",
+                            value: relay.displayName
+                        )
+
+                        LabeledContent("URL") {
+                            Text(relay.url)
+                                .font(.subheadline.monospaced())
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+                        }
+
+                        LabeledContent("Status") {
+                            HStack {
+                                Text(statusTitle)
+                                    .foregroundStyle(.secondary)
+
+                                RelayConnectionStatusView(
+                                    state: relay.connectionState
+                                )
+                            }
+                        }
+                    }
+
+                    Section {
+                        ForEach(PrototypeRelayUsage.allCases) { usage in
+                            Toggle(
+                                isOn: usageBinding(
+                                    usage,
+                                    relayIndex: relayIndex
+                                )
+                            ) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(usage.rawValue)
+
+                                    Text(usage.explanation)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .disabled(
+                                relay.capability == .readOnly
+                            )
+                            .accessibilityHint(
+                                usageAccessibilityHint(usage)
+                            )
+                        }
+                    } header: {
+                        Text("Use For")
+                    } footer: {
+                        if relay.capability == .readOnly {
+                            Text(
+                                "This relay is read only, so this profile can’t use it to send data."
+                            )
+                        }
+                    }
+
+                    Section {
+                        Button("Remove Relay", role: .destructive) {
+                            relayAlert = .confirmRemoval(
+                                relayID: relay.id,
+                                relayName: relay.displayName,
+                                impact: configuration.removalImpact(
+                                    for: relay.id
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                ContentUnavailableView(
+                    "Relay Not Available",
+                    systemImage: "antenna.radiowaves.left.and.right"
+                )
+            }
+        }
+        .navigationTitle("Relay")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert(item: $relayAlert) { alert in
+            switch alert {
+            case .confirmDisableUsage(let usage):
+                Alert(
+                    title: Text("Turn off \(usage.rawValue)?"),
+                    message: Text(relayFinalRoleMessage(for: usage)),
+                    primaryButton: .destructive(Text("Turn Off")) {
+                        disableUsage(usage)
+                    },
+                    secondaryButton: .cancel()
+                )
+
+            case .confirmRemoval(
+                let relayID,
+                let relayName,
+                let impact
+            ):
+                Alert(
+                    title: Text("Remove \(relayName)?"),
+                    message: Text(relayRemovalMessage(for: impact)),
+                    primaryButton: .destructive(Text("Remove Relay")) {
+                        pendingRemovalID = relayID
+                        relayAlert = nil
+
+                        Task { @MainActor in
+                            await Task.yield()
+                            dismiss()
+                        }
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+        }
+        .onDisappear {
+            guard let pendingRemovalID else {
+                return
+            }
+
+            configuration.relays.removeAll {
+                $0.id == pendingRemovalID
+            }
+            self.pendingRemovalID = nil
+        }
+    }
+
+    private var relayIndex: Int? {
+        configuration.relays.firstIndex { $0.id == relayID }
+    }
+
+    private var relay: PrototypeRelay {
+        guard let relayIndex else {
+            return PrototypeRelay(
+                id: "missing",
+                displayName: "Relay",
+                url: "",
+                capability: .readWrite,
+                connectionState: .disconnected,
+                usages: []
+            )
         }
 
-        return relay.url
+        return configuration.relays[relayIndex]
+    }
+
+    private var statusTitle: String {
+        switch relay.connectionState {
+        case .connected:
+            "Connected"
+        case .reconnecting:
+            "Reconnecting"
+        case .disconnected:
+            "Disconnected"
+        }
+    }
+
+    private func usageBinding(
+        _ usage: PrototypeRelayUsage,
+        relayIndex: Int
+    ) -> Binding<Bool> {
+        Binding {
+            configuration.relays[relayIndex].usages.contains(usage)
+        } set: { isSelected in
+            if isSelected {
+                setUsage(usage, isEnabled: true)
+            } else if isOnlySelection(usage) {
+                relayAlert = .confirmDisableUsage(usage)
+            } else {
+                setUsage(usage, isEnabled: false)
+            }
+        }
+    }
+
+    private func disableUsage(_ usage: PrototypeRelayUsage) {
+        setUsage(usage, isEnabled: false)
+    }
+
+    private func setUsage(
+        _ usage: PrototypeRelayUsage,
+        isEnabled: Bool
+    ) {
+        guard let relayIndex else {
+            return
+        }
+
+        var updatedConfiguration = configuration
+
+        if isEnabled {
+            updatedConfiguration.relays[relayIndex].usages.insert(usage)
+        } else {
+            updatedConfiguration.relays[relayIndex].usages.remove(usage)
+        }
+
+        configuration = updatedConfiguration
     }
 
     private func isOnlySelection(
-        _ relay: PrototypeRelay,
-        for usage: PrototypeRelayUsage
+        _ usage: PrototypeRelayUsage
     ) -> Bool {
         relay.usages.contains(usage)
-            && settings.relays.count { $0.usages.contains(usage) } == 1
+            && configuration.relays.count {
+                $0.capability == .readWrite
+                    && $0.usages.contains(usage)
+            } == 1
     }
 
-    private func toggleUsage(
-        for relay: inout PrototypeRelay,
-        usage: PrototypeRelayUsage
-    ) {
-        if relay.usages.contains(usage) {
-            relay.usages.remove(usage)
-        } else {
-            relay.usages.insert(usage)
+    private func usageAccessibilityHint(
+        _ usage: PrototypeRelayUsage
+    ) -> String {
+        if relay.capability == .readOnly {
+            return "This relay is read only."
         }
+
+        if isOnlySelection(usage) {
+            return "Turning this off makes \(usage.unavailableCapability) unavailable."
+        }
+
+        return usage.explanation
     }
 }
 
 private struct AddRelaySheet: View {
     let existingRelays: [PrototypeRelay]
-    let onAdd: (String) -> Void
+    let onAdd: (String, Set<PrototypeRelayUsage>) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var relayURL = ""
+    @State private var selectedUsages = Set(
+        PrototypeRelayUsage.allCases
+    )
 
     var body: some View {
         NavigationStack {
@@ -406,6 +639,22 @@ private struct AddRelaySheet: View {
                 } footer: {
                     Text("Enter a relay URL beginning with wss://.")
                 }
+
+                Section("Use For") {
+                    ForEach(PrototypeRelayUsage.allCases) { usage in
+                        Toggle(
+                            isOn: usageBinding(usage)
+                        ) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(usage.rawValue)
+
+                                Text(usage.explanation)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("Add Relay")
             .navigationBarTitleDisplayMode(.inline)
@@ -418,7 +667,7 @@ private struct AddRelaySheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
-                        onAdd(normalizedRelayURL)
+                        onAdd(normalizedRelayURL, selectedUsages)
                         dismiss()
                     }
                     .buttonStyle(.glassProminent)
@@ -438,9 +687,11 @@ private struct AddRelaySheet: View {
             return false
         }
 
-        return !existingRelays.contains {
-            normalizedKey(for: $0.url) == normalizedKey(for: normalizedRelayURL)
-        }
+        return !selectedUsages.isEmpty
+            && !existingRelays.contains {
+                normalizedKey(for: $0.url)
+                    == normalizedKey(for: normalizedRelayURL)
+            }
     }
 
     private var normalizedRelayURL: String {
@@ -465,6 +716,20 @@ private struct AddRelaySheet: View {
 
         return key
     }
+
+    private func usageBinding(
+        _ usage: PrototypeRelayUsage
+    ) -> Binding<Bool> {
+        Binding {
+            selectedUsages.contains(usage)
+        } set: { isSelected in
+            if isSelected {
+                selectedUsages.insert(usage)
+            } else {
+                selectedUsages.remove(usage)
+            }
+        }
+    }
 }
 
 #Preview("Privacy & Security") {
@@ -476,18 +741,91 @@ private struct AddRelaySheet: View {
 }
 
 #Preview("Relays") {
-    @Previewable @State var settings = PrototypeSettingsState()
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.fixtures
 
     NavigationStack {
-        RelaysPrototypeView(settings: $settings)
+        RelaysPrototypeView(configuration: $configuration)
     }
 }
 
-#Preview("Relays — Edit") {
-    @Previewable @State var settings = PrototypeSettingsState()
+#Preview("Relays Recovery — Profile") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingProfile
 
     NavigationStack {
-        RelaysPrototypeView(settings: $settings)
+        RelaysPrototypeView(configuration: $configuration)
     }
-    .environment(\.editMode, .constant(.active))
+}
+
+#Preview("Relays Recovery — Inbox") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingInbox
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — Chat Messages") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingChatMessages
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — Profile and Inbox") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingProfileAndInbox
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — Profile and Chat Messages") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingProfileAndChatMessages
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — Inbox and Chat Messages") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingInboxAndChatMessages
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — All Roles") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.missingAll
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — Reconnecting") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.reconnectingOnly
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
+}
+
+#Preview("Relays Recovery — Disconnected") {
+    @Previewable @State var configuration =
+        PrototypeRelayConfiguration.fullyDisconnected
+
+    NavigationStack {
+        RelaysPrototypeView(configuration: $configuration)
+    }
 }

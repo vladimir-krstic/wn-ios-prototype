@@ -70,6 +70,8 @@ struct ProfileSettingsView: View {
                         .disabled(!canFinishEditing)
                 } else {
                     Button("Edit", action: beginEditing)
+                        .disabled(!canEditProfile)
+                        .accessibilityHint(editAccessibilityHint)
                 }
             }
         }
@@ -209,6 +211,18 @@ struct ProfileSettingsView: View {
 
     private var canFinishEditing: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var canEditProfile: Bool {
+        profile.relayConfiguration.isAvailable(for: .profile)
+    }
+
+    private var editAccessibilityHint: String {
+        if canEditProfile {
+            return "Edits this profile."
+        }
+
+        return "Check your profile relays before editing this profile."
     }
 
     private func beginEditing() {

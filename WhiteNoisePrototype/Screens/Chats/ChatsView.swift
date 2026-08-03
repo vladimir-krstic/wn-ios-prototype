@@ -40,6 +40,7 @@ struct ChatsView<SettingsContent: View>: View {
 
     @Binding private var chats: [ChatListItem]
     @Binding private var settings: PrototypeSettingsState
+    @Binding private var relayConfiguration: PrototypeRelayConfiguration
     @State private var scope = ChatScope.all
     @State private var searchText = ""
     @State private var isSearchMounted = false
@@ -54,6 +55,9 @@ struct ChatsView<SettingsContent: View>: View {
     init(
         chats: Binding<[ChatListItem]>,
         settings: Binding<PrototypeSettingsState>,
+        relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
+            .fixtures
+        ),
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
         profile: PrototypeProfile = .marmota,
@@ -65,6 +69,7 @@ struct ChatsView<SettingsContent: View>: View {
         self.onNewMessage = onNewMessage
         _chats = chats
         _settings = settings
+        _relayConfiguration = relayConfiguration
         _scope = State(initialValue: initialScope)
         _searchText = State(initialValue: initialSearchText)
     }
@@ -101,12 +106,19 @@ struct ChatsView<SettingsContent: View>: View {
                         .labelStyle(.iconOnly)
                 }
 
-                Button(action: onNewMessage) {
-                    Label(
-                        "New Message",
-                        systemImage: "plus.bubble"
+                if !relayConfiguration.needsAttention {
+                    Button(action: onNewMessage) {
+                        Label(
+                            "New Message",
+                            systemImage: "plus.bubble"
+                        )
+                        .labelStyle(.iconOnly)
+                    }
+                    .accessibilityHint(newMessageAccessibilityHint)
+                } else {
+                    RelayWarningLink(
+                        configuration: $relayConfiguration
                     )
-                    .labelStyle(.iconOnly)
                 }
             }
 
@@ -120,7 +132,10 @@ struct ChatsView<SettingsContent: View>: View {
         .navigationDestination(
             isPresented: $isShowingFiatjafConversation
         ) {
-            FiatjafConversationView(settings: $settings)
+            FiatjafConversationView(
+                settings: $settings,
+                relayConfiguration: $relayConfiguration
+            )
         }
     }
 
@@ -171,6 +186,14 @@ struct ChatsView<SettingsContent: View>: View {
         }
         .buttonStyle(ProfileAvatarNavigationStyle())
         .accessibilityLabel("Profile")
+    }
+
+    private var newMessageAccessibilityHint: String {
+        if relayConfiguration.isAvailable(for: .chatMessages) {
+            return "Creates a new chat."
+        }
+
+        return "Check your profile relays to create a new chat."
     }
 
     private func markChatRead(_ id: String) {

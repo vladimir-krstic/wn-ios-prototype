@@ -304,9 +304,17 @@ struct SettingsView: View {
         case .dataAndStorage:
             DataStoragePrototypeView(settings: $settings)
         case .relays:
-            RelaysPrototypeView(settings: $settings)
+            if let activeProfileBinding {
+                RelaysPrototypeView(
+                    configuration: activeProfileBinding.relayConfiguration
+                )
+            }
         case .support:
-            SupportPrototypeView()
+            SupportPrototypeView(
+                relayConfiguration:
+                    activeProfileBinding?.relayConfiguration
+                        ?? .constant(.fixtures)
+            )
         case .donate:
             DonatePrototypeView()
         case .developerTools:

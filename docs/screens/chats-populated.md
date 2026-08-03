@@ -44,6 +44,13 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - The existing native search, menu, and Picker remain unchanged. Filter, Search, and New Message share one system Liquid Glass toolbar group; New Message uses the default toolbar treatment rather than a separate prominent tint.
 - The navigation toolbar remains titleless. The Filter Menu is icon-only in Chats and uses the compact adaptive symbol-plus-text selected label defined in `chats-empty.md` for Unread, Archived, and Left. No separate list header or dismissible chip is introduced.
 - The leading profile avatar is a native `NavigationLink` to Settings, allowing SwiftUI’s navigation stack to own both the Back button and interactive swipe-back lifecycle. Marmota uses the bundled user-supplied photo, while profiles without an image fall back to their initial. Its avatar-specific button style returns the system link label without transient dimming so the artwork remains full contrast throughout the transition.
+- When the active profile has an unavailable relay role, the New Message slot in the
+  existing trailing toolbar group becomes a `NavigationLink` using the outlined
+  orange `exclamationmark.triangle` SF Symbol. The system retains the same
+  Liquid Glass group; pressing it pushes Relays and the native Back action
+  returns to the same Chats scope and state. A role is unavailable while it is
+  unassigned, reconnecting, or disconnected; one connected assigned relay is
+  sufficient coverage. No extra item or recovery banner changes list geometry.
 
 ## Deterministic data and behavior
 
@@ -231,6 +238,8 @@ They are not platform authority and are not required to implement this screen.
 - Rows use 56-point avatars, one-letter monograms, no separators, no chevrons, and support two-line previews while scrolling.
 - At rest the top toolbar has no hard container boundary. Scrolling rows beneath it reveals Apple’s native hard glass container, and returning fully to the top removes it again.
 - Returning from Settings by either the Back button or the interactive swipe gesture restores the profile avatar at full contrast without retaining a pressed or disabled state.
+- An unavailable relay role replaces New Message with the compact warning
+  action; New Message returns as soon as every role has connected coverage.
 - The list fills the viewport through the bottom device safe area without leaving a separate white strip beneath its final visible row.
 - Every message preview uses the same regular secondary text style.
 - Numeric unread, mute, draft, and failed states are visibly distinct.

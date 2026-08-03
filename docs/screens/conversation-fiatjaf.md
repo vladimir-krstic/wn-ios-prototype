@@ -25,6 +25,13 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 
 - `NavigationStack` and the system Back button own navigation and interactive swipe-back.
 - The title uses a compact circular Fiatjaf avatar and semantic headline typography in the principal toolbar position.
+- When the active profile has an unavailable relay role, the toolbar remains
+  unchanged. The empty composer uses **Check your profile relays** as its prompt and
+  replaces the waveform action with an outlined orange
+  `exclamationmark.triangle` SF Symbol. The complete composer is a native
+  `NavigationLink`; pressing anywhere inside it pushes
+  Relays, and Back returns to this conversation without resetting it. Typing
+  resumes after relay setup is repaired.
 - A native `ScrollView` with `LazyVStack` owns timeline scrolling without a visible scroll indicator. Messages are bottom-aligned when the content is shorter than the viewport.
 - Outgoing messages use the adaptive app accent: black with white content in Light Mode and white with black content in Dark Mode.
 - Incoming messages use the adaptive semantic `secondarySystemFill`.
@@ -43,10 +50,17 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - Resting conversation with reply, reaction, and media examples.
 - Focused composer with the real system keyboard.
 - Empty composer: no Send button.
-- Empty composer: the trailing waveform control is visible inside the glass text-entry capsule.
+- Empty composer with complete relay setup: the trailing waveform control is
+  visible inside the glass text-entry capsule.
+- Empty composer with unavailable profile relays: **Check your profile relays** and the
+  outlined warning replace the normal entry field; the complete capsule opens
+  Relays.
 - Nonempty composer: Send appears and works.
 - Attachment menu opens native photo and file pickers; selected content appears in memory in the timeline.
 - Back returns to Chats without resetting the in-memory list.
+- The composer recovery treatment appears while a relay role is unassigned,
+  reconnecting, or disconnected; it restores **Message** and the waveform as
+  soon as every role has connected coverage.
 
 ## Accessibility
 
@@ -63,6 +77,7 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - [White Noise marketing conversation](https://www.figma.com/design/jzWaS92LwoBjqTtOLP6ij7/White-Noise---Web---Marketing?node-id=1273-8364)
 - [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack)
 - [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars)
+- [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink)
 - [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview)
 - [LazyVStack](https://developer.apple.com/documentation/swiftui/lazyvstack)
 - [TextField](https://developer.apple.com/documentation/swiftui/textfield)

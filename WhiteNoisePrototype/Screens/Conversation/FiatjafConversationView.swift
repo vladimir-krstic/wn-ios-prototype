@@ -24,6 +24,17 @@ struct FiatjafConversationView: View {
     @FocusState private var isComposerFocused: Bool
 
     @Binding var settings: PrototypeSettingsState
+    @Binding var relayConfiguration: PrototypeRelayConfiguration
+
+    init(
+        settings: Binding<PrototypeSettingsState>,
+        relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
+            .fixtures
+        )
+    ) {
+        _settings = settings
+        _relayConfiguration = relayConfiguration
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -130,6 +141,7 @@ struct FiatjafConversationView: View {
                 }
                 .accessibilityElement(children: .combine)
             }
+
         }
         .fileImporter(
             isPresented: $isFileImporterPresented,
@@ -321,33 +333,37 @@ struct FiatjafConversationView: View {
                 .accessibilityLabel("Add Attachment")
 
                 HStack(alignment: .bottom, spacing: 4) {
-                    composerTextField
+                    if !canSend && hasRelayIssue && !isVoiceRecording {
+                        relayComposerLink
+                    } else {
+                        composerTextField
 
-                    if !canSend {
-                        Button {
-                            isVoiceRecording.toggle()
-                        } label: {
-                            Image(
-                                systemName: isVoiceRecording
-                                    ? "stop.fill"
-                                    : "waveform"
+                        if !canSend {
+                            Button {
+                                isVoiceRecording.toggle()
+                            } label: {
+                                Image(
+                                    systemName: isVoiceRecording
+                                        ? "stop.fill"
+                                        : "waveform"
+                                )
+                                .contentTransition(
+                                    .symbolEffect(.replace)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .foregroundStyle(
+                                isVoiceRecording
+                                    ? Color.red
+                                    : Color.secondary
                             )
-                            .contentTransition(
-                                .symbolEffect(.replace)
+                            .accessibilityLabel(
+                                isVoiceRecording
+                                    ? "Stop Recording"
+                                    : "Record Voice Message"
                             )
                         }
-                        .buttonStyle(.plain)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .foregroundStyle(
-                            isVoiceRecording
-                                ? Color.red
-                                : Color.secondary
-                        )
-                        .accessibilityLabel(
-                            isVoiceRecording
-                                ? "Stop Recording"
-                                : "Record Voice Message"
-                        )
                     }
                 }
                 .padding(.leading, 14)
@@ -372,6 +388,33 @@ struct FiatjafConversationView: View {
 
     private var canSend: Bool {
         !trimmedDraft.isEmpty
+    }
+
+    private var hasRelayIssue: Bool {
+        relayConfiguration.needsAttention
+    }
+
+    private var relayComposerLink: some View {
+        NavigationLink {
+            RelaysPrototypeView(configuration: $relayConfiguration)
+        } label: {
+            HStack(spacing: 4) {
+                Text("Check your profile relays")
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Profile relays need attention")
+        .accessibilityValue(relayConfiguration.recoverySummary)
+        .accessibilityHint("Opens Relays.")
     }
 
     @ViewBuilder
