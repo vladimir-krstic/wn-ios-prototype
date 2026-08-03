@@ -223,128 +223,15 @@ struct AppearanceSettingsPrototypeView: View {
             Section {
                 Picker("Language", selection: $settings.language) {
                     ForEach(PrototypeLanguage.allCases) { language in
-                        Text(language.rawValue)
+                        Text(language.title)
                             .tag(language)
                     }
                 }
-            }
-
-            Section {
-                Toggle(
-                    "Return Key Sends",
-                    isOn: Binding {
-                        settings.returnKeyBehavior == .send
-                    } set: { sends in
-                        settings.returnKeyBehavior = sends
-                            ? .send
-                            : .newLine
-                    }
-                )
-
-                NavigationLink {
-                    MessageColorSettingsView(settings: $settings)
-                } label: {
-                    LabeledContent("Message Colors") {
-                        HStack {
-                            Circle()
-                                .fill(settings.incomingMessageColor.color)
-                            Circle()
-                                .fill(settings.outgoingMessageColor.color)
-                        }
-                        .frame(height: 20)
-                    }
-                }
-            } footer: {
-                Text(
-                    "When Return Key Sends is off, Return inserts a new line."
-                )
+                .pickerStyle(.navigationLink)
             }
         }
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private struct MessageColorSettingsView: View {
-    @Binding var settings: PrototypeSettingsState
-
-    var body: some View {
-        Form {
-            Section {
-                messagePreview
-            }
-            .listRowBackground(Color.clear)
-
-            Section {
-                Picker(
-                    "Incoming",
-                    selection: $settings.incomingMessageColor
-                ) {
-                    ForEach(PrototypeMessageColor.allCases) { color in
-                        Label {
-                            Text(color.rawValue)
-                        } icon: {
-                            Image(systemName: "circle.fill")
-                                .foregroundStyle(color.color)
-                        }
-                        .tag(color)
-                    }
-                }
-
-                Picker(
-                    "Outgoing",
-                    selection: $settings.outgoingMessageColor
-                ) {
-                    ForEach(PrototypeMessageColor.allCases) { color in
-                        Label {
-                            Text(color.rawValue)
-                        } icon: {
-                            Image(systemName: "circle.fill")
-                                .foregroundStyle(color.color)
-                        }
-                        .tag(color)
-                    }
-                }
-            } footer: {
-                Text(
-                    "White Noise keeps text readable by choosing black or white automatically."
-                )
-            }
-
-            Section {
-                Button("Reset to Defaults") {
-                    settings.incomingMessageColor = .gray
-                    settings.outgoingMessageColor = .black
-                }
-            }
-        }
-        .navigationTitle("Message Colors")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var messagePreview: some View {
-        VStack(alignment: .leading) {
-            Text("That works for me.")
-                .foregroundStyle(
-                    settings.incomingMessageColor.foregroundColor
-                )
-                .padding()
-                .background(
-                    settings.incomingMessageColor.color,
-                    in: RoundedRectangle(cornerRadius: 18)
-                )
-
-            Text("Great — see you then.")
-                .foregroundStyle(
-                    settings.outgoingMessageColor.foregroundColor
-                )
-                .padding()
-                .background(
-                    settings.outgoingMessageColor.color,
-                    in: RoundedRectangle(cornerRadius: 18)
-                )
-                .frame(maxWidth: .infinity, alignment: .trailing)
-        }
     }
 }
 

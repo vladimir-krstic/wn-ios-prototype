@@ -49,10 +49,29 @@ enum PrototypeAppearance: String, CaseIterable, Identifiable {
 }
 
 enum PrototypeLanguage: String, CaseIterable, Identifiable {
-    case system = "System"
-    case english = "English"
+    case system
+    case english
+    case german
+    case spanish
+    case french
+    case italian
+    case portuguese
+    case serbian
 
     var id: Self { self }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .system: "System"
+        case .english: "English"
+        case .german: "German"
+        case .spanish: "Spanish"
+        case .french: "French"
+        case .italian: "Italian"
+        case .portuguese: "Portuguese"
+        case .serbian: "Serbian"
+        }
+    }
 }
 
 enum PrototypeReturnKeyBehavior: String, CaseIterable, Identifiable {

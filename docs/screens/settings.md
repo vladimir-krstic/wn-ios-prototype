@@ -198,9 +198,21 @@ not require the source pages during normal work.
 ### Appearance
 
 - Appearance: **System**, **Light**, **Dark**. No True Black mode.
-- Language: **System** or **English**.
-- Return key: **New Line** or **Send Message**. The selected behavior applies to the implemented Fiatjaf composer.
-- Message Colors destination with incoming/outgoing semantic presets, preview bubbles, and Reset. The default is Gray incoming and adaptive Black outgoing; selections apply to the implemented conversation.
+- **Language** uses the native navigation-link `Picker` style. The Appearance
+  row pushes Apple's system-owned single-selection list with checkmarks rather
+  than opening an increasingly crowded menu.
+- The intended language choices are **System**, **English**, **German**,
+  **Spanish**, **French**, **Italian**, **Portuguese**, and **Serbian**.
+  **System** follows the iPhone's preferred supported language.
+- English remains the only authored localization in the current prototype.
+  Shipping another selectable language requires adding and completing that
+  localization in an Xcode string catalog; the selector does not stand in for
+  translated product copy.
+- Appearance contains no Return Key or Message Colors preferences.
+- Governing Apple sources: [Settings](https://developer.apple.com/design/human-interface-guidelines/settings),
+  [Picker](https://developer.apple.com/documentation/swiftui/picker),
+  [Supporting multiple languages in your app](https://developer.apple.com/documentation/xcode/supporting-multiple-languages-in-your-app),
+  and [Localizing and varying text with a string catalog](https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog).
 
 ### Privacy & Security
 

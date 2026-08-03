@@ -190,6 +190,8 @@ system.
 | [Dynamic Type](https://developer.apple.com/documentation/swiftui/environmentvalues/dynamictypesize) | Content-size adaptation | Checking semantic typography and layout growth | All screens | 2026-07-31 |
 | [Reduce Motion](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion) | Motion adaptation from the environment | Adding or reviewing custom motion | Animated flows | 2026-07-31 |
 | [Localization](https://developer.apple.com/documentation/xcode/localization) | String catalogs, language and region adaptation, and localization testing | Preparing production copy or checking expansion and right-to-left behavior | All product copy | 2026-07-31 |
+| [Supporting multiple languages in your app](https://developer.apple.com/documentation/xcode/supporting-multiple-languages-in-your-app) | Internationalization and system language adaptation | Adding or reviewing supported app languages | Appearance and all product copy | 2026-08-03 |
+| [Localizing and varying text with a string catalog](https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog) | String-catalog setup, translations, plurals, and language variants | Turning a planned language into a complete localization | Appearance and all product copy | 2026-08-03 |
 
 ## 9. Testing, responsiveness, and performance
 
