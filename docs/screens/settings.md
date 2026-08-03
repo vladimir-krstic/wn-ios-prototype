@@ -116,11 +116,30 @@ not require the source pages during normal work.
 
 ### Profile
 
-- Native `PhotosPicker` and Remove action for the process-local avatar. Selected photos are normalized to a maximum 512-pixel dimension before being held in memory.
-- Name, About, Nostr Address, and Lightning Address fields in a native `Form`.
-- **Generate Name** supplies a deterministic pet name.
-- Public notice: **Profile is public** / **Your profile information will be visible to everyone on the network.**
-- Native toolbar **Save** action with deterministic progress.
+- Profile is a native pushed Settings destination with the centered **Profile**
+  title, system Back behavior, and a trailing **Edit** action. Edit changes to
+  a prominent trailing **Done** action while a draft is active and temporarily
+  replaces Back with the
+  native leading **Cancel** action. Cancel discards the complete draft and
+  returns to read-only presentation without navigating away. Done commits the
+  in-memory draft when it changed, otherwise simply exits editing, returns to
+  read-only presentation, and does not dismiss the destination.
+- The avatar, one-third-of-available-width sizing, monogram treatment, photo
+  action, source menu, Name card, and About card reuse the same local components
+  and native Form structure as Sign Up.
+- The photo action appears only while editing and reads **Add Photo** or
+  **Change Photo**. Its native menu provides **Choose from Photos**, **Choose
+  from Files**, and **Remove Photo** when applicable.
+- `PhotosPicker` and `fileImporter` retain their system presentation. Selected
+  photos are normalized to a maximum 512-pixel dimension before being held in
+  memory.
+- Name and About are read-only until Edit is chosen. While editing, they use
+  separate native grouped Form cards with the same prompts, semantic fill,
+  focus order, multiline behavior, and Dynamic Type behavior as Sign Up.
+- Profile contains no generated-name action, dice symbol, Nostr Address field,
+  Lightning Address field, or email-shaped placeholder.
+- Done remains available when the unchanged draft is valid so it can exit edit
+  mode. It is disabled only when the required Name is empty.
 
 ### Profile Keys
 
@@ -262,10 +281,18 @@ need to open them to implement or evaluate Settings.
 - [Settings](https://developer.apple.com/design/human-interface-guidelines/settings)
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
 - [Form](https://developer.apple.com/documentation/swiftui/form)
+- [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)
+- [Text fields](https://developer.apple.com/design/human-interface-guidelines/text-fields)
+- [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars)
+- [primaryAction](https://developer.apple.com/documentation/swiftui/toolbaritemplacement/primaryaction)
+- [navigationBarBackButtonHidden](https://developer.apple.com/documentation/swiftui/view/navigationbarbackbuttonhidden(_:))
+- [Menus](https://developer.apple.com/design/human-interface-guidelines/menus)
 - [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink)
 - [Picker](https://developer.apple.com/documentation/swiftui/picker)
 - [Toggle](https://developer.apple.com/documentation/swiftui/toggle)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
+- [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app)
+- [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:))
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
 - [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback)
 - [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback)
@@ -282,6 +309,18 @@ need to open them to implement or evaluate Settings.
 ## Acceptance
 
 - Every hub row opens its working destination; no development placeholder remains.
+- Profile initially presents its existing avatar, Name, and About as read-only
+  content. Its avatar and field cards match Sign Up in size, geometry, semantic
+  fill, typography, and spacing.
+- Profile shows **Edit** in the trailing toolbar. Edit reveals the matching
+  photo action and editable Name/About fields, replaces Edit with a prominent
+  trailing **Done**, and replaces Back with the leading **Cancel** action.
+- Cancel restores the stored avatar, Name, and About even when the draft has
+  changes, and exits editing without navigating away.
+- Done exits edit mode even when nothing changed. For a changed valid draft it
+  commits the avatar, Name, and About without dismissing Profile. It remains
+  disabled only while Name is empty and never exposes a dice action or
+  address/email fields.
 - Share & Connect pushes from Settings with the native side transition, Back
   chevron, interactive swipe-back gesture, and adaptive grouped background.
 - Its npub button shows a checkmark for two seconds, resets without a second

@@ -45,6 +45,61 @@ struct ProfileAvatarView: View {
     }
 }
 
+struct ProfileEditorAvatarView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let name: String
+    let image: UIImage?
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Circle()
+                    .fill(Color("AccentColor"))
+
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(
+                            width: geometry.size.width,
+                            height: geometry.size.height
+                        )
+                } else {
+                    Text(initial)
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(
+                            colorScheme == .dark
+                                ? Color.black
+                                : Color.white
+                        )
+                }
+            }
+            .frame(
+                width: geometry.size.width,
+                height: geometry.size.height
+            )
+            .clipShape(.circle)
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            image == nil
+                ? "Profile photo, \(initial)"
+                : "Profile photo"
+        )
+    }
+
+    private var initial: String {
+        name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .first
+            .map { String($0).uppercased() }
+            ?? "?"
+    }
+}
+
 struct ProfileSummary: View {
     let profile: PrototypeProfile
     let avatarSize: CGFloat

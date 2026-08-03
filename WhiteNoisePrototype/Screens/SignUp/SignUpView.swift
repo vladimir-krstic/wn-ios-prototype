@@ -4,8 +4,6 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct SignUpView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     @State private var name: String
     @State private var about = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -30,14 +28,6 @@ struct SignUpView: View {
     private enum Field {
         case name
         case about
-    }
-
-    private var initial: String {
-        name
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .first
-            .map { String($0).uppercased() }
-            ?? "?"
     }
 
     var body: some View {
@@ -165,42 +155,9 @@ struct SignUpView: View {
     }
 
     private var avatar: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Circle()
-                    .fill(Color("AccentColor"))
-
-                if let avatarImage {
-                    Image(uiImage: avatarImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(
-                            width: geometry.size.width,
-                            height: geometry.size.height
-                        )
-                } else {
-                    Text(initial)
-                        .font(.largeTitle)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(
-                            colorScheme == .dark
-                                ? Color.black
-                                : Color.white
-                        )
-                }
-            }
-            .frame(
-                width: geometry.size.width,
-                height: geometry.size.height
-            )
-            .clipShape(.circle)
-        }
-        .aspectRatio(1, contentMode: .fit)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            avatarImage == nil
-                ? "Profile photo, \(initial)"
-                : "Profile photo"
+        ProfileEditorAvatarView(
+            name: name,
+            image: avatarImage
         )
     }
 

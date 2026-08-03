@@ -1,258 +1,319 @@
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
+import UIKit
 
 struct ProfileSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-
     @Binding private var profile: PrototypeProfile
 
     @State private var name: String
     @State private var about: String
-    @State private var nostrAddress: String
-    @State private var lightningAddress: String
     @State private var avatar: PrototypeAvatar
-    @State private var selectedPhoto: PhotosPickerItem?
-    @State private var isSaving = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isPhotosPickerPresented = false
+    @State private var isFileImporterPresented = false
+    @State private var photoError: String?
+    @State private var isEditing = false
+
+    @FocusState private var focusedField: Field?
 
     init(profile: Binding<PrototypeProfile>) {
         _profile = profile
         _name = State(initialValue: profile.wrappedValue.name)
         _about = State(initialValue: profile.wrappedValue.about)
-        _nostrAddress = State(
-            initialValue: profile.wrappedValue.nostrAddress
-        )
-        _lightningAddress = State(
-            initialValue: profile.wrappedValue.lightningAddress
-        )
         _avatar = State(initialValue: profile.wrappedValue.avatar)
+    }
+
+    private enum Field {
+        case name
+        case about
     }
 
     var body: some View {
         Form {
-            Section {
-                VStack {
-                    editableAvatar
-                    avatarMenu
-                }
+            avatarSection
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+            Section("Name") {
+                nameContent
+                    .listRowBackground(
+                        Color(uiColor: .secondarySystemFill)
+                    )
             }
 
-            Section {
-                Label {
-                    VStack(alignment: .leading) {
-                        Text("Profile is public")
-                        Text(
-                            "Your profile information will be visible to everyone on the network."
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "globe")
-                }
-            }
-
-            Section {
-                HStack {
-                    TextField("Name", text: $name)
-                        .textContentType(.name)
-                        .disabled(isSaving)
-
-                    Button {
-                        name = generatedName
-                    } label: {
-                        Label(
-                            "Generate Name",
-                            systemImage: "dice"
-                        )
-                        .labelStyle(.iconOnly)
-                    }
-                    .disabled(isSaving)
-                }
-
-                TextField(
-                    "About",
-                    text: $about,
-                    prompt: Text("A little about you"),
-                    axis: .vertical
-                )
-                .lineLimit(3...6)
-                .disabled(isSaving)
-            }
-
-            Section {
-                TextField(
-                    "Nostr Address",
-                    text: $nostrAddress,
-                    prompt: Text("name@example.com")
-                )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.emailAddress)
-                .disabled(isSaving)
-
-                TextField(
-                    "Lightning Address",
-                    text: $lightningAddress,
-                    prompt: Text("name@example.com")
-                )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.emailAddress)
-                .disabled(isSaving)
-            } footer: {
-                if let validationMessage {
-                    Text(validationMessage)
-                        .foregroundStyle(.red)
-                }
+            Section("About") {
+                aboutContent
+                    .listRowBackground(
+                        Color(uiColor: .secondarySystemFill)
+                    )
             }
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(isEditing)
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                if isSaving {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel("Saving profile")
+            if isEditing {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: cancelEditing)
+                }
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                if isEditing {
+                    Button("Done", action: finishEditing)
+                        .buttonStyle(.glassProminent)
+                        .disabled(!canFinishEditing)
                 } else {
-                    Button("Save", action: save)
-                        .disabled(!canSave)
+                    Button("Edit", action: beginEditing)
                 }
             }
         }
-        .onChange(of: selectedPhoto) { _, newValue in
-            guard let newValue else {
-                return
+        .fileImporter(
+            isPresented: $isFileImporterPresented,
+            allowedContentTypes: [.image]
+        ) { result in
+            handleImportedFile(result)
+        }
+        .photosPicker(
+            isPresented: $isPhotosPickerPresented,
+            selection: $selectedPhotoItem,
+            matching: .images
+        )
+        .onChange(of: selectedPhotoItem) {
+            loadSelectedPhoto()
+        }
+        .background(.background)
+    }
+
+    private var avatarSection: some View {
+        VStack(spacing: 0) {
+            ProfileEditorAvatarView(
+                name: name,
+                image: avatarImage
+            )
+            .containerRelativeFrame(
+                .horizontal,
+                count: 3,
+                span: 1,
+                spacing: 0
+            )
+
+            if isEditing {
+                avatarMenu
+                    .padding(.top)
             }
 
-            Task {
-                defer {
-                    selectedPhoto = nil
-                }
-
-                guard let data = try? await newValue.loadTransferable(
-                    type: Data.self
-                ) else {
-                    return
-                }
-
-                guard let preparedData = ProfileAvatarImageProcessor
-                    .preparedData(from: data) else {
-                    return
-                }
-
-                avatar = .imageData(preparedData)
+            if let photoError {
+                Text(photoError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.top)
             }
         }
     }
 
-    private var editableAvatar: some View {
-        ProfileAvatarView(
-            profile: editableProfile,
-            size: 72,
-            isDecorative: false
-        )
-        .accessibilityLabel("Profile avatar")
+    @ViewBuilder
+    private var nameContent: some View {
+        if isEditing {
+            TextField("Name", text: $name)
+                .textContentType(.name)
+                .submitLabel(.next)
+                .focused($focusedField, equals: .name)
+                .onSubmit {
+                    focusedField = .about
+                }
+        } else {
+            Text(name)
+        }
+    }
+
+    @ViewBuilder
+    private var aboutContent: some View {
+        if isEditing {
+            TextField(
+                "A little about you",
+                text: $about,
+                axis: .vertical
+            )
+            .lineLimit(3...6)
+            .focused($focusedField, equals: .about)
+            .accessibilityLabel("About")
+        } else if about.isEmpty {
+            Text("A little about you")
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("About, not set")
+        } else {
+            Text(about)
+                .accessibilityLabel("About, \(about)")
+        }
     }
 
     private var avatarMenu: some View {
         Menu {
-            PhotosPicker(
-                selection: $selectedPhoto,
-                matching: .images
-            ) {
-                Label("Choose from Photos", systemImage: "photo")
+            Button {
+                isPhotosPickerPresented = true
+            } label: {
+                Label(
+                    "Choose from Photos",
+                    systemImage: "photo.on.rectangle"
+                )
+            }
+
+            Button {
+                isFileImporterPresented = true
+            } label: {
+                Label("Choose from Files", systemImage: "folder")
             }
 
             if avatar != .monogram {
+                Divider()
+
                 Button(role: .destructive) {
-                    avatar = .monogram
+                    removePhoto()
                 } label: {
-                    Label("Remove Avatar", systemImage: "trash")
+                    Label {
+                        Text("Remove Photo")
+                    } icon: {
+                        Image(uiImage: destructiveTrashSymbol)
+                    }
                 }
             }
         } label: {
-            Text(
-                avatar == .monogram
-                    ? "Choose Avatar"
-                    : "Edit Avatar"
-            )
+            Text(avatar == .monogram ? "Add Photo" : "Change Photo")
         }
-        .buttonStyle(.bordered)
-        .disabled(isSaving)
+        .buttonStyle(.glass)
     }
 
-    private var validationMessage: String? {
-        if !nostrAddress.isEmpty && !isAddressValid(nostrAddress) {
-            return "Enter a valid Nostr Address like name@example.com."
+    private var avatarImage: UIImage? {
+        switch avatar {
+        case let .asset(name):
+            UIImage(named: name)
+        case let .imageData(data):
+            UIImage(data: data)
+        case .monogram:
+            nil
         }
-
-        if !lightningAddress.isEmpty && !isAddressValid(lightningAddress) {
-            return "Enter a valid Lightning Address like name@example.com."
-        }
-
-        return nil
     }
 
-    private var canSave: Bool {
-        !isSaving
-            && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && validationMessage == nil
-            && hasChanges
+    private var destructiveTrashSymbol: UIImage {
+        UIImage(systemName: "trash")?
+            .withTintColor(.systemRed, renderingMode: .alwaysOriginal)
+            ?? UIImage()
     }
 
-    private var hasChanges: Bool {
-        name != profile.name
-            || about != profile.about
-            || nostrAddress != profile.nostrAddress
-            || lightningAddress != profile.lightningAddress
-            || avatar != profile.avatar
+    private var canFinishEditing: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var generatedName: String {
-        let names = [
-            "Gentle Badger",
-            "Brisk Heron",
-            "Quiet Otter",
-            "Silver Finch",
-        ]
-        return names.first { $0 != name } ?? names[0]
+    private func beginEditing() {
+        name = profile.name
+        about = profile.about
+        avatar = profile.avatar
+        photoError = nil
+        isEditing = true
     }
 
-    private func isAddressValid(_ value: String) -> Bool {
-        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
-        return parts.count == 2
-            && !parts[0].isEmpty
-            && parts[1].contains(".")
+    private func cancelEditing() {
+        focusedField = nil
+        name = profile.name
+        about = profile.about
+        avatar = profile.avatar
+        selectedPhotoItem = nil
+        photoError = nil
+        isEditing = false
     }
 
-    private func save() {
-        guard canSave else {
+    private func finishEditing() {
+        guard canFinishEditing else {
             return
         }
 
-        isSaving = true
+        let normalizedName = name.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        focusedField = nil
+        name = normalizedName
+        profile.name = normalizedName
+        profile.about = about
+        profile.avatar = avatar
+        isEditing = false
+    }
+
+    private func loadSelectedPhoto() {
+        guard let selectedPhotoItem else {
+            return
+        }
+
+        photoError = nil
+
         Task {
-            try? await Task.sleep(for: .seconds(1))
-            profile.name = name.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            profile.about = about
-            profile.nostrAddress = nostrAddress
-            profile.lightningAddress = lightningAddress
-            profile.avatar = avatar
-            isSaving = false
-            dismiss()
+            defer {
+                self.selectedPhotoItem = nil
+            }
+
+            do {
+                guard
+                    let data = try await selectedPhotoItem.loadTransferable(
+                        type: Data.self
+                    ),
+                    let preparedData = ProfileAvatarImageProcessor
+                        .preparedData(from: data)
+                else {
+                    showPhotoError()
+                    return
+                }
+
+                avatar = .imageData(preparedData)
+            } catch {
+                showPhotoError()
+            }
         }
     }
 
-    private var editableProfile: PrototypeProfile {
-        var editableProfile = profile
-        editableProfile.name = name
-        editableProfile.avatar = avatar
-        return editableProfile
+    private func handleImportedFile(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let data = try Data(contentsOf: url)
+                guard let preparedData = ProfileAvatarImageProcessor
+                    .preparedData(from: data) else {
+                    showPhotoError()
+                    return
+                }
+
+                avatar = .imageData(preparedData)
+                selectedPhotoItem = nil
+                photoError = nil
+            } catch {
+                showPhotoError()
+            }
+        case .failure:
+            showPhotoError()
+        }
+    }
+
+    private func removePhoto() {
+        avatar = .monogram
+        selectedPhotoItem = nil
+        photoError = nil
+    }
+
+    private func showPhotoError() {
+        selectedPhotoItem = nil
+        photoError = "Couldn't use that photo. Choose another image and try again."
     }
 }
 
