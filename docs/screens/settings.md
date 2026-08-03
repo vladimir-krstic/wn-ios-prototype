@@ -174,10 +174,26 @@ not require the source pages during normal work.
 
 ### Notifications
 
-- Local Notifications.
-- Native Push Notifications.
+- **Local Notifications** creates the visible message notification from details
+  processed on the iPhone. Without Native Push, delivery may wait until White
+  Noise is active.
+- **Native Push** sends a generic APNs wake-up so White Noise can check for new
+  messages in the background; message details remain on the iPhone. It
+  supplements Local Notifications rather than creating a second alert, so both
+  can be enabled together and Native Push becomes unavailable when Local
+  Notifications is off.
+- The two delivery options use separate native Form sections with their own
+  concise descriptions.
+- The screen reads the live `UNNotificationSettings.authorizationStatus`.
+  Delivery toggles and preview controls are disabled without iOS authorization.
+  An undetermined state offers **Allow Notifications** and invokes the native
+  permission prompt; a denied state explains the dependency and offers **Open
+  Settings**, deep-linked to this app's notification settings. The denied state
+  stays informational: **Notifications are off** uses primary text, its concise
+  explanation and `bell.slash` symbol use secondary styling, and no warning
+  color or custom surface is added.
 - Preview mode: **Sender and Message**, **Sender Only**, or **Generic**, with a deterministic example.
-- Static prototype delivery status.
+- No static permission or push-service status is shown.
 
 ### Appearance
 
@@ -322,6 +338,11 @@ need to open them to implement or evaluate Settings.
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
 - [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback)
 - [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback)
+- [User Notifications](https://developer.apple.com/documentation/usernotifications)
+- [UNNotificationSettings](https://developer.apple.com/documentation/usernotifications/unnotificationsettings)
+- [Asking permission to use notifications](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)
+- [Open notification settings](https://developer.apple.com/documentation/uikit/uiapplication/opennotificationsettingsurlstring)
+- [Pushing background updates to your app](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app)
 - [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette)
 - [System-provided glass in toolbars](https://developer.apple.com/documentation/swiftui/landmarks-refining-the-system-provided-glass-effect-in-toolbars)
 - [ProgressView](https://developer.apple.com/documentation/swiftui/progressview)

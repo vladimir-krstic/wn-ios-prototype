@@ -1,26 +1,44 @@
 import SwiftUI
+import UIKit
+import UserNotifications
 
 struct NotificationSettingsPrototypeView: View {
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+
+    @State private var authorizationStatus: UNAuthorizationStatus?
+    @State private var isShowingPermissionError = false
+
     @Binding var settings: PrototypeSettingsState
 
     var body: some View {
         Form {
+            permissionSection
+
             Section {
                 Toggle(
                     "Local Notifications",
-                    isOn: $settings.localNotificationsEnabled
+                    isOn: localNotificationsBinding
                 )
-
-                Toggle(
-                    "Native Push",
-                    isOn: $settings.nativePushEnabled
-                )
-                .disabled(!settings.localNotificationsEnabled)
-            } header: {
-                Text("Delivery")
+                .disabled(!notificationsAreAuthorized)
             } footer: {
                 Text(
-                    "Native push sends generic notification wakes. White Noise prepares the notification on your device."
+                    "Creates message notifications on this iPhone. Without Native Push, delivery may wait until White Noise is active."
+                )
+            }
+
+            Section {
+                Toggle(
+                    "Native Push",
+                    isOn: nativePushBinding
+                )
+                .disabled(
+                    !notificationsAreAuthorized ||
+                    !settings.localNotificationsEnabled
+                )
+            } footer: {
+                Text(
+                    "Uses a generic wake-up signal to check for new messages in the background. Message details stay on this iPhone."
                 )
             }
 
@@ -50,14 +68,133 @@ struct NotificationSettingsPrototypeView: View {
                     "Choose how much message information appears on the Lock Screen."
                 )
             }
-
-            Section("Status") {
-                LabeledContent("Permission", value: "Allowed")
-                LabeledContent("Push Service", value: "Ready")
-            }
+            .disabled(
+                !notificationsAreAuthorized ||
+                !settings.localNotificationsEnabled
+            )
         }
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await refreshAuthorizationStatus()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await refreshAuthorizationStatus()
+            }
+        }
+        .alert(
+            "Couldn’t Update Notifications",
+            isPresented: $isShowingPermissionError
+        ) {
+            Button("Dismiss", role: .cancel) {}
+        } message: {
+            Text("Try again, or allow notifications in iOS Settings.")
+        }
+    }
+
+    @ViewBuilder
+    private var permissionSection: some View {
+        switch authorizationStatus {
+        case .notDetermined:
+            Section {
+                Label(
+                    "Allow notifications to use these options.",
+                    systemImage: "bell.badge"
+                )
+
+                Button("Allow Notifications") {
+                    requestNotificationAuthorization()
+                }
+            }
+        case .denied:
+            Section {
+                Label {
+                    VStack(alignment: .leading) {
+                        Text("Notifications are off")
+                            .foregroundStyle(.primary)
+
+                        Text(
+                            "Turn them on in iOS Settings to use these options."
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: "bell.slash")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button("Open Settings") {
+                    openNotificationSettings()
+                }
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    private var notificationsAreAuthorized: Bool {
+        switch authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            true
+        default:
+            false
+        }
+    }
+
+    private var localNotificationsBinding: Binding<Bool> {
+        Binding {
+            notificationsAreAuthorized &&
+            settings.localNotificationsEnabled
+        } set: { isEnabled in
+            settings.localNotificationsEnabled = isEnabled
+            if !isEnabled {
+                settings.nativePushEnabled = false
+            }
+        }
+    }
+
+    private var nativePushBinding: Binding<Bool> {
+        Binding {
+            notificationsAreAuthorized &&
+            settings.localNotificationsEnabled &&
+            settings.nativePushEnabled
+        } set: { isEnabled in
+            settings.nativePushEnabled = isEnabled
+        }
+    }
+
+    private func refreshAuthorizationStatus() async {
+        let notificationSettings =
+            await UNUserNotificationCenter.current().notificationSettings()
+        authorizationStatus = notificationSettings.authorizationStatus
+    }
+
+    private func requestNotificationAuthorization() {
+        Task {
+            do {
+                _ = try await UNUserNotificationCenter.current()
+                    .requestAuthorization(options: [.alert, .sound, .badge])
+                await refreshAuthorizationStatus()
+            } catch {
+                isShowingPermissionError = true
+            }
+        }
+    }
+
+    private func openNotificationSettings() {
+        guard let url = URL(
+            string: UIApplication.openNotificationSettingsURLString
+        ) else {
+            return
+        }
+
+        openURL(url)
     }
 }
 
