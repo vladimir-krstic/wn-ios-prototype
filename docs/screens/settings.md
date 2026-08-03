@@ -143,11 +143,34 @@ not require the source pages during normal work.
 
 ### Profile Keys
 
-- Public key Copy action.
-- Safety: **Anyone with your private key can use your profile. Keep it private. White Noise can't recover it if you lose it.**
-- **Create Encrypted Backup** presents password, confirmation, minimum-length validation, strength progress, deterministic creation progress, and a fictional shareable result.
-- **Export Private Key** requires a separate destructive confirmation and exposes only a deterministic key-shaped result through the system share sheet.
-- Private-key material is never displayed inline.
+- **Public Key** shows the profile's complete public identifier in a
+  single-line, middle-truncated monospaced field with a trailing Copy/checkmark
+  control. Its help text reads **Share this key so people can find and connect
+  with you.**
+- **Private Key** is hidden by default and uses the native eye/eye-slash action
+  to reveal or hide the deterministic key-shaped value. The value is marked
+  privacy-sensitive, uses normal enabled-text contrast while concealed, and
+  remains hidden from accessibility speech even while it is visible onscreen.
+- **Copy Private Key** copies the complete value without requiring it to be
+  revealed. Public and private copy actions provide a checkmark, success
+  haptic, and a concise VoiceOver announcement, then reset after two seconds.
+- Private-key help reads **Keep this key private. Anyone with it can use your
+  profile, and White Noise can’t recover it.**
+- **Export Encrypted Private Key** is the first export action. It presents a native
+  sheet with Password, Confirm Password, password guidance, mismatch feedback,
+  and a native strength indicator. Mismatch feedback replaces the field help
+  in that section's footer instead of appearing as a separate Form row. The
+  strength bar retains the visible **Low**, **Fair**, or **Strong** label and
+  supplements it with the system red, yellow, or green color. Its prominent
+  **Export** action becomes
+  available when both nonempty values match, then
+  dismisses the sheet and opens the system Files save interface.
+- **Export Private Key** presents a destructive confirmation advising the
+  person to keep the file secure and prefer the encrypted export or a trusted
+  password manager, then opens the same system Files save interface.
+- Both exports use SwiftUI `FileDocument` and `fileExporter` with deterministic
+  process-local key-shaped content. They add no real cryptography, credentials,
+  persistence, or custom file browser.
 
 ### Notifications
 
@@ -293,12 +316,16 @@ need to open them to implement or evaluate Settings.
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app)
 - [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:))
+- [fileExporter](https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:))
+- [FileDocument](https://developer.apple.com/documentation/swiftui/filedocument)
+- [File management](https://developer.apple.com/design/human-interface-guidelines/file-management)
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
 - [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback)
 - [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback)
 - [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette)
 - [System-provided glass in toolbars](https://developer.apple.com/documentation/swiftui/landmarks-refining-the-system-provided-glass-effect-in-toolbars)
 - [ProgressView](https://developer.apple.com/documentation/swiftui/progressview)
+- [tint(_:)](https://developer.apple.com/documentation/swiftui/view/tint(_:))
 - [EditButton](https://developer.apple.com/documentation/swiftui/editbutton)
 - [EditMode](https://developer.apple.com/documentation/swiftui/editmode)
 - [LabeledContent](https://developer.apple.com/documentation/swiftui/labeledcontent)
@@ -321,6 +348,13 @@ need to open them to implement or evaluate Settings.
   commits the avatar, Name, and About without dismissing Profile. It remains
   disabled only while Name is empty and never exposes a dice action or
   address/email fields.
+- Profile Keys shows one public-key field and one private-key field. Public copy
+  is available inline; the private key starts hidden, reveals and hides without
+  being spoken by assistive technology, and can be copied independently.
+- Raw export uses the `arrow.down.document` SF Symbol and requires its explicit
+  destructive confirmation. Encrypted export
+  requires matching nonempty passwords. Both continue to the native Files
+  destination picker and never use a custom save surface.
 - Share & Connect pushes from Settings with the native side transition, Back
   chevron, interactive swipe-back gesture, and adaptive grouped background.
 - Its npub button shows a checkmark for two seconds, resets without a second

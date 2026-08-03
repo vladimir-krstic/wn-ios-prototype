@@ -1,134 +1,196 @@
+import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 import UIKit
 
 struct ProfileKeysSettingsView: View {
-    @State private var copied = false
+    private enum KeyKind: Equatable {
+        case publicKey
+        case privateKey
+    }
+
+    private enum ExportKind {
+        case privateKey
+        case encryptedPrivateKey
+
+        var defaultFilename: String {
+            switch self {
+            case .privateKey:
+                "White Noise Private Key"
+            case .encryptedPrivateKey:
+                "White Noise Encrypted Private Key"
+            }
+        }
+    }
+
+    private struct PendingKeyExport {
+        let document: KeyExportDocument
+        let kind: ExportKind
+    }
+
+    @State private var copiedKey: KeyKind?
+    @State private var copyFeedbackTrigger = 0
     @State private var copyResetTask: Task<Void, Never>?
-    @State private var isShowingEncryptedBackup = false
-    @State private var isShowingRawConfirmation = false
-    @State private var exportResult: KeyExportResult?
+    @State private var isPrivateKeyVisible = false
+    @State private var isShowingRawExportConfirmation = false
+    @State private var isShowingEncryptedPrivateKey = false
+    @State private var pendingEncryptedExport: PendingKeyExport?
+    @State private var exportDocument: KeyExportDocument?
+    @State private var exportFilename = ""
+    @State private var isFileExporterPresented = false
+    @State private var isShowingExportError = false
 
     let profile: PrototypeProfile
 
     var body: some View {
         Form {
-            Section {
-                Button {
-                    UIPasteboard.general.string = profile.publicKey
-                    copied = true
-                    scheduleCopyReset()
-                } label: {
-                    LabeledContent {
-                        Label(
-                            copied ? "Copied" : "Copy",
-                            systemImage: copied
-                                ? "checkmark"
-                                : "doc.on.doc"
-                        )
-                    } label: {
-                        Text(profile.shortPublicKey)
-                            .font(.body.monospaced())
-                            .foregroundStyle(.primary)
-                    }
-                }
-                .buttonStyle(.plain)
-            } header: {
-                Text("Public Key")
-            } footer: {
-                Text("Your public key is safe to share.")
-            }
-
-            Section {
-                Label(
-                    "Anyone with your private key can use your profile. Keep it private. White Noise can't recover it if you lose it.",
-                    systemImage: "exclamationmark.shield"
-                )
-                .font(.callout)
-            }
-
-            Section {
-                Button {
-                    isShowingEncryptedBackup = true
-                } label: {
-                    Label(
-                        "Create Encrypted Backup",
-                        systemImage: "lock.doc"
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .listRowBackground(Color.clear)
-
-                Button {
-                    isShowingRawConfirmation = true
-                } label: {
-                    Label(
-                        "Export Private Key",
-                        systemImage: "square.and.arrow.up"
-                    )
-                }
-            } footer: {
-                Text(
-                    "An encrypted backup is the recommended way to keep a copy."
-                )
-            }
+            publicKeySection
+            privateKeySection
+            exportSection
         }
         .navigationTitle("Profile Keys")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isShowingEncryptedBackup) {
-            EncryptedBackupSheet { passphrase in
-                isShowingEncryptedBackup = false
-                exportResult = KeyExportResult(
-                    title: "Encrypted Backup Ready",
-                    message: "Store this backup somewhere safe.",
-                    shareValue: "ncryptsec1-whitenoise-\(profile.id)-\(passphrase.count)"
-                )
-            }
-        }
-        .sheet(item: $exportResult) { result in
-            NavigationStack {
-                ContentUnavailableView {
-                    Label(result.title, systemImage: "checkmark.shield")
-                } description: {
-                    Text(result.message)
-                } actions: {
-                    ShareLink(item: result.shareValue) {
-                        Label("Share Backup", systemImage: "square.and.arrow.up")
-                    }
-                    .buttonStyle(.glassProminent)
-                }
-                .navigationTitle("Profile Keys")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            exportResult = nil
-                        }
-                    }
-                }
-            }
-        }
-        .confirmationDialog(
-            "Export your private key?",
-            isPresented: $isShowingRawConfirmation,
-            titleVisibility: .visible
+        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
+        .sheet(
+            isPresented: $isShowingEncryptedPrivateKey,
+            onDismiss: presentPendingEncryptedExport
         ) {
-            Button("Export Private Key", role: .destructive) {
-                exportResult = KeyExportResult(
-                    title: "Private Key Export Ready",
-                    message: "Keep this unencrypted copy private.",
-                    shareValue: rawPrivateKey
+            EncryptedPrivateKeySheet { password in
+                pendingEncryptedExport = PendingKeyExport(
+                    document: KeyExportDocument(
+                        text: encryptedPrivateKey(for: password)
+                    ),
+                    kind: .encryptedPrivateKey
                 )
+                isShowingEncryptedPrivateKey = false
             }
+        }
+        .alert(
+            "Keep Your Private Key Safe",
+            isPresented: $isShowingRawExportConfirmation
+        ) {
             Button("Cancel", role: .cancel) {}
+            Button("Export Private Key", role: .destructive) {
+                queueRawPrivateKeyExport()
+            }
         } message: {
             Text(
-                "This creates an unencrypted copy. Anyone who gets it can use your profile. White Noise permanently records that this key was handled without encryption."
+                "Store this file somewhere secure. The encrypted export or a trusted password manager is safer."
             )
         }
+        .fileExporter(
+            isPresented: $isFileExporterPresented,
+            document: exportDocument,
+            contentType: .plainText,
+            defaultFilename: exportFilename,
+            onCompletion: handleExportResult
+        )
+        .alert("Couldn’t Save File", isPresented: $isShowingExportError) {
+            Button("Dismiss", role: .cancel) {}
+        } message: {
+            Text("Choose another location and try again.")
+        }
         .onDisappear {
-            copyResetTask?.cancel()
+            resetCopyFeedback()
+            isPrivateKeyVisible = false
+        }
+    }
+
+    private var publicKeySection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Text(profile.publicKey)
+                    .font(.body.monospaced())
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .accessibilityLabel("Public key")
+                    .accessibilityValue(profile.shortPublicKey)
+
+                Spacer(minLength: 0)
+
+                copyButton(for: .publicKey)
+            }
+        } header: {
+            Text("Public Key")
+        } footer: {
+            Text("Share this key so people can find and connect with you.")
+        }
+    }
+
+    private var privateKeySection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Text(isPrivateKeyVisible ? rawPrivateKey : hiddenPrivateKey)
+                    .font(.body.monospaced())
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .privacySensitive()
+                    .accessibilityHidden(true)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    isPrivateKeyVisible.toggle()
+                } label: {
+                    Image(
+                        systemName: isPrivateKeyVisible
+                            ? "eye.slash"
+                            : "eye"
+                    )
+                    .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    isPrivateKeyVisible
+                        ? "Hide private key"
+                        : "Show private key"
+                )
+            }
+
+            Button {
+                copyKey(.privateKey)
+            } label: {
+                Label(
+                    "Copy Private Key",
+                    systemImage: copiedKey == .privateKey
+                        ? "checkmark"
+                        : "doc.on.doc"
+                )
+                .contentTransition(.symbolEffect(.replace))
+            }
+            .accessibilityLabel(
+                copiedKey == .privateKey
+                    ? "Private key copied"
+                    : "Copy private key"
+            )
+        } header: {
+            Text("Private Key")
+        } footer: {
+            Text(
+                "Keep this key private. Anyone with it can use your profile, and White Noise can’t recover it."
+            )
+        }
+    }
+
+    private var exportSection: some View {
+        Section("Export") {
+            Button {
+                isShowingEncryptedPrivateKey = true
+            } label: {
+                Label(
+                    "Export Encrypted Private Key",
+                    systemImage: "lock.doc"
+                )
+            }
+
+            Button {
+                isShowingRawExportConfirmation = true
+            } label: {
+                Label(
+                    "Export Private Key",
+                    systemImage: "arrow.down.document"
+                )
+            }
         }
     }
 
@@ -136,7 +198,44 @@ struct ProfileKeysSettingsView: View {
         "nsec1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7"
     }
 
-    private func scheduleCopyReset() {
+    private var hiddenPrivateKey: String {
+        String(repeating: "•", count: 24)
+    }
+
+    private func copyButton(for key: KeyKind) -> some View {
+        Button {
+            copyKey(key)
+        } label: {
+            Image(
+                systemName: copiedKey == key
+                    ? "checkmark"
+                    : "doc.on.doc"
+            )
+            .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            copiedKey == key ? "Public key copied" : "Copy public key"
+        )
+    }
+
+    private func copyKey(_ key: KeyKind) {
+        switch key {
+        case .publicKey:
+            UIPasteboard.general.string = profile.publicKey
+        case .privateKey:
+            UIPasteboard.general.string = rawPrivateKey
+        }
+
+        copiedKey = key
+        copyFeedbackTrigger += 1
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: key == .publicKey
+                ? "Public key copied"
+                : "Private key copied"
+        )
+
         copyResetTask?.cancel()
         copyResetTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
@@ -144,76 +243,119 @@ struct ProfileKeysSettingsView: View {
                 return
             }
 
-            copied = false
+            copiedKey = nil
             copyResetTask = nil
         }
     }
+
+    private func resetCopyFeedback() {
+        copyResetTask?.cancel()
+        copyResetTask = nil
+        copiedKey = nil
+    }
+
+    private func queueRawPrivateKeyExport() {
+        Task { @MainActor in
+            await Task.yield()
+            prepareExport(
+                PendingKeyExport(
+                    document: KeyExportDocument(text: rawPrivateKey),
+                    kind: .privateKey
+                )
+            )
+        }
+    }
+
+    private func presentPendingEncryptedExport() {
+        guard let pendingEncryptedExport else {
+            return
+        }
+
+        self.pendingEncryptedExport = nil
+        prepareExport(pendingEncryptedExport)
+    }
+
+    private func prepareExport(_ export: PendingKeyExport) {
+        exportDocument = export.document
+        exportFilename = export.kind.defaultFilename
+        isFileExporterPresented = true
+    }
+
+    private func handleExportResult(_ result: Result<URL, Error>) {
+        exportDocument = nil
+        exportFilename = ""
+        if case .failure = result {
+            isShowingExportError = true
+        }
+    }
+
+    private func encryptedPrivateKey(for password: String) -> String {
+        let passwordLength = String(format: "%02d", password.count)
+        return "ncryptsec1\(passwordLength)q8w4f6k1m9c5n7p3v2x6z8t4r1y9d5h7s3j6a2e8u4"
+    }
 }
 
-private struct EncryptedBackupSheet: View {
+private struct EncryptedPrivateKeySheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var passphrase = ""
+    @State private var password = ""
     @State private var confirmation = ""
-    @State private var isCreating = false
 
-    let onCreate: (String) -> Void
+    let onExport: (String) -> Void
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    SecureField("Passphrase", text: $passphrase)
+                    SecureField("Password", text: $password)
                         .textContentType(.newPassword)
                     SecureField(
-                        "Confirm Passphrase",
+                        "Confirm Password",
                         text: $confirmation
                     )
                     .textContentType(.newPassword)
                 } footer: {
-                    Text("Use at least 12 characters and keep it somewhere safe.")
-                }
-
-                Section("Strength") {
-                    LabeledContent(strength.label) {
-                        ProgressView(
-                            value: Double(strength.rawValue),
-                            total: 3
+                    if passwordsDoNotMatch {
+                        Label(
+                            "Passwords don’t match.",
+                            systemImage: "exclamationmark.circle.fill"
                         )
-                        .frame(maxWidth: 120)
+                        .foregroundStyle(.red)
+                    } else {
+                        Text(
+                            "Use a long, unique password. You’ll need it to open the encrypted file."
+                        )
                     }
                 }
 
-                if !confirmation.isEmpty && passphrase != confirmation {
-                    Section {
-                        Label(
-                            "Passphrases don't match.",
-                            systemImage: "exclamationmark.circle"
-                        )
-                        .foregroundStyle(.red)
+                if !password.isEmpty {
+                    Section("Strength") {
+                        LabeledContent(passwordStrength.label) {
+                            ProgressView(
+                                value: Double(passwordStrength.rawValue),
+                                total: 3
+                            )
+                            .tint(passwordStrength.color)
+                            .frame(maxWidth: 120)
+                        }
                     }
                 }
             }
-            .navigationTitle("Encrypted Backup")
+            .navigationTitle("Encrypted Private Key")
             .navigationBarTitleDisplayMode(.inline)
-            .interactiveDismissDisabled(isCreating)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .disabled(isCreating)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    if isCreating {
-                        ProgressView()
-                            .controlSize(.small)
-                            .accessibilityLabel("Creating backup")
-                    } else {
-                        Button("Create Backup", action: create)
-                            .disabled(!isValid)
+                    Button("Export") {
+                        onExport(password)
                     }
+                    .buttonStyle(.glassProminent)
+                    .disabled(!isValid)
                 }
             }
         }
@@ -221,62 +363,80 @@ private struct EncryptedBackupSheet: View {
     }
 
     private var isValid: Bool {
-        passphrase.count >= 12 && passphrase == confirmation
+        !password.isEmpty && password == confirmation
     }
 
-    private var strength: PassphraseStrength {
-        guard passphrase.count >= 12 else {
-            return .weak
+    private var passwordsDoNotMatch: Bool {
+        !confirmation.isEmpty && password != confirmation
+    }
+
+    private var passwordStrength: PasswordStrength {
+        guard password.count >= 12 else {
+            return .low
         }
 
-        let hasLetters = passphrase.rangeOfCharacter(
+        let hasLetters = password.rangeOfCharacter(
             from: .letters
         ) != nil
-        let hasDigits = passphrase.rangeOfCharacter(
+        let hasDigits = password.rangeOfCharacter(
             from: .decimalDigits
         ) != nil
-        let hasSymbols = passphrase.rangeOfCharacter(
+        let hasSymbols = password.rangeOfCharacter(
             from: .alphanumerics.inverted
         ) != nil
 
-        if passphrase.count >= 16 && hasLetters && hasDigits && hasSymbols {
+        if password.count >= 16 && hasLetters && hasDigits && hasSymbols {
             return .strong
         }
+
         return .fair
-    }
-
-    private func create() {
-        guard isValid else {
-            return
-        }
-
-        isCreating = true
-        Task {
-            try? await Task.sleep(for: .seconds(1))
-            onCreate(passphrase)
-        }
     }
 }
 
-private enum PassphraseStrength: Int {
-    case weak = 1
+private enum PasswordStrength: Int {
+    case low = 1
     case fair = 2
     case strong = 3
 
     var label: String {
         switch self {
-        case .weak: "Weak"
-        case .fair: "Fair"
-        case .strong: "Strong"
+        case .low:
+            "Low"
+        case .fair:
+            "Fair"
+        case .strong:
+            "Strong"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .low:
+            .red
+        case .fair:
+            .yellow
+        case .strong:
+            .green
         }
     }
 }
 
-private struct KeyExportResult: Identifiable {
-    let id = UUID()
-    let title: String
-    let message: String
-    let shareValue: String
+private struct KeyExportDocument: FileDocument {
+    static let readableContentTypes: [UTType] = [.plainText]
+
+    let data: Data
+
+    init(text: String) {
+        data = Data(text.utf8)
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
 }
 
 #Preview("Profile Keys") {
