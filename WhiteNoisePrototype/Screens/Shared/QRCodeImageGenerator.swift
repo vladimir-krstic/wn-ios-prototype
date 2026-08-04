@@ -4,7 +4,8 @@ import UIKit
 enum QRCodeImageGenerator {
     static func image(
         for payload: String,
-        scale: CGFloat = 12
+        scale: CGFloat = 12,
+        removesQuietZone: Bool = false
     ) -> UIImage? {
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(payload.utf8)
@@ -14,7 +15,22 @@ enum QRCodeImageGenerator {
             return nil
         }
 
-        let scaledImage = outputImage.transformed(
+        let sourceImage: CIImage
+        if removesQuietZone {
+            let symbolExtent = outputImage.extent.insetBy(dx: 1, dy: 1)
+            sourceImage = outputImage
+                .cropped(to: symbolExtent)
+                .transformed(
+                    by: CGAffineTransform(
+                        translationX: -symbolExtent.minX,
+                        y: -symbolExtent.minY
+                    )
+                )
+        } else {
+            sourceImage = outputImage
+        }
+
+        let scaledImage = sourceImage.transformed(
             by: CGAffineTransform(scaleX: scale, y: scale)
         )
         let context = CIContext()

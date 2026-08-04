@@ -443,9 +443,35 @@ and does not require these sites during normal work.
 
 ### Donate
 
-- Lightning and Bitcoin donation methods.
-- Locally generated QR codes, exact public-address Copy actions, and copied feedback.
+- A centered, transparent introduction uses the outline `heart` symbol,
+  **Support White Noise**, and the concise explanation: **White Noise is free
+  and open source. Donations help us improve it and keep it available to
+  everyone.** It is regular informational content rather than an unavailable
+  or empty state, so it does not use `ContentUnavailableView` or a dense Form
+  card.
+- The principal toolbar contains the same native extra-large palette `Picker`
+  pattern as Share & Connect, with **Lightning** and **Bitcoin**. It shows one
+  donation method at a time so the selected QR receives the full visual focus.
+- Both shareable QR presentations remove the generator's payload-dependent
+  margin, then scale the symbol inside one fixed square card with the same
+  twelve-point visible inset. The outer card remains the same size for every
+  payload; the symbol scales down rather than enlarging it.
+- Each exact public-address Copy action sits below its QR card, has a maximum
+  width eight points inside each card edge, and reuses the subdued semantic-fill
+  capsule, middle truncation, trailing
+  Copy/checkmark transition, two-second reset, haptic, and VoiceOver feedback.
+  The QR-to-copy spacing remains deliberately larger than the compact grouping
+  used on Share & Connect.
+- **Lightning Address** or **Bitcoin Silent Payment** follows the copy action
+  using the same centered callout typography and secondary color as Share &
+  Connect's **Scan to connect.** caption.
 - No wallet, payment, or network integration.
+- Governing Apple sources: [Picker](https://developer.apple.com/documentation/swiftui/picker),
+  [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette),
+  [Form](https://developer.apple.com/documentation/swiftui/form),
+  [Button](https://developer.apple.com/documentation/swiftui/button),
+  [SF Symbols](https://developer.apple.com/sf-symbols/), and
+  [QR code generator](https://developer.apple.com/documentation/coreimage/cifilter/qrcodegenerator()).
 
 ### Developer Tools
 

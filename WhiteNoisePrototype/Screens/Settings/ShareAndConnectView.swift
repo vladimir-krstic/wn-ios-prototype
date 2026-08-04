@@ -21,7 +21,8 @@ struct ShareAndConnectView: View {
     init(profile: PrototypeProfile) {
         self.profile = profile
         qrImage = QRCodeImageGenerator.image(
-            for: profile.publicKey
+            for: profile.publicKey,
+            removesQuietZone: true
         )
     }
 
@@ -118,22 +119,11 @@ struct ShareAndConnectView: View {
 
     private var copyPublicKeyButton: some View {
         Button(action: copyPublicKey) {
-            HStack {
-                Text(compactPublicKey)
-                    .lineLimit(1)
-                    .font(.subheadline.monospaced())
-                    .foregroundStyle(.secondary)
-
-                copyStateSymbol
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .background(
-                Color(uiColor: .secondarySystemFill),
-                in: .capsule
+            CompactCopyValueLabel(
+                value: compactPublicKey,
+                isCopied: copied
             )
             .padding(.bottom, 14)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(
@@ -148,15 +138,6 @@ struct ShareAndConnectView: View {
         }
 
         return "\(profile.publicKey.prefix(14))…\(profile.publicKey.suffix(4))"
-    }
-
-    private var copyStateSymbol: some View {
-        Image(systemName: copied ? "checkmark" : "doc.on.doc")
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(.secondary)
-            .frame(width: 14, height: 14)
-            .contentTransition(.symbolEffect(.replace))
-            .animation(.default, value: copied)
     }
 
     private var profileAvatar: some View {
@@ -179,24 +160,10 @@ struct ShareAndConnectView: View {
     private var qrCodeContent: some View {
         VStack(spacing: 6) {
             if let qrImage {
-                Image(uiImage: qrImage)
-                    .resizable()
-                    .interpolation(.none)
-                    .scaledToFit()
-                    .containerRelativeFrame(.horizontal) { length, _ in
-                        length * 0.81
-                    }
-                    .padding(4)
-                    .background(
-                        .white,
-                        in: RoundedRectangle(
-                            cornerRadius: 16,
-                            style: .continuous
-                        )
-                    )
-                    .accessibilityLabel(
-                        "\(profile.name)’s profile QR code"
-                    )
+                ShareableQRCodeView(
+                    image: qrImage,
+                    accessibilityLabel: "\(profile.name)’s profile QR code"
+                )
 
                 Text("Scan to connect.")
                     .font(.callout)

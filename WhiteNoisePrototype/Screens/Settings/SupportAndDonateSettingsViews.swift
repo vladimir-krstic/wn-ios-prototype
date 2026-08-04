@@ -113,78 +113,121 @@ struct SupportPrototypeView: View {
 }
 
 struct DonatePrototypeView: View {
+    @State private var selectedMethod = DonationMethod.lightning
     @State private var copiedMethod: DonationMethod?
+    @State private var copyFeedbackTrigger = 0
     @State private var copyResetTask: Task<Void, Never>?
 
     var body: some View {
         Form {
             Section {
-                VStack {
-                    Image(systemName: "heart.fill")
-                        .font(.title)
-                        .foregroundStyle(.pink)
-
-                    Text(
-                        "White Noise is free and open source. Donations keep it that way."
-                    )
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
+                donationIntroduction
             }
             .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
 
-            donationSection(.lightning)
-            donationSection(.bitcoin)
+            donationSection(selectedMethod)
         }
         .navigationTitle("Donate")
         .navigationBarTitleDisplayMode(.inline)
-        .onDisappear {
-            copyResetTask?.cancel()
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Donation method", selection: $selectedMethod) {
+                    ForEach(DonationMethod.allCases) { method in
+                        Text(method.selectorTitle)
+                            .tag(method)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.palette)
+                .controlSize(.extraLarge)
+                .frame(width: 180)
+            }
         }
+        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
+        .onChange(of: selectedMethod) { _, _ in
+            resetCopyFeedback()
+        }
+        .onDisappear {
+            resetCopyFeedback()
+        }
+    }
+
+    private var donationIntroduction: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "heart")
+                .font(.largeTitle)
+                .foregroundStyle(.primary)
+
+            Text("Support White Noise")
+                .font(.headline)
+
+            Text(
+                "White Noise is free and open source. Donations help us improve it and keep it available to everyone."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 
     private func donationSection(
         _ method: DonationMethod
     ) -> some View {
-        Section(method.title) {
-            VStack {
+        Section {
+            VStack(spacing: 0) {
                 if let image = QRCodeImageGenerator.image(
                     for: method.address,
-                    scale: 8
+                    removesQuietZone: true
                 ) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(maxWidth: 180)
-                        .padding()
-                        .background(.white, in: RoundedRectangle(cornerRadius: 16))
-                        .accessibilityLabel("\(method.title) QR code")
+                    ShareableQRCodeView(
+                        image: image,
+                        accessibilityLabel: "\(method.title) QR code"
+                    )
                 }
 
-                Button {
-                    UIPasteboard.general.string = method.address
-                    copiedMethod = method
-                    scheduleCopyReset()
-                } label: {
-                    Label(
-                        copiedMethod == method
-                            ? "Copied"
-                            : method.displayAddress,
-                        systemImage: copiedMethod == method
-                            ? "checkmark"
-                            : "doc.on.doc"
+                Button(action: { copy(method) }) {
+                    CompactCopyValueLabel(
+                        value: method.address,
+                        isCopied: copiedMethod == method,
+                        fillsAvailableWidth: true
                     )
-                    .font(.callout.monospaced())
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .containerRelativeFrame(.horizontal) { length, _ in
+                    (length * 0.81) - 16
+                }
+                .padding(.top, 18)
+                .accessibilityLabel(
+                    copiedMethod == method
+                        ? "\(method.title) copied"
+                        : "Copy \(method.title)"
+                )
+
+                Text(method.addressTitle)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 6)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical)
         }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
+    }
+
+    private func copy(_ method: DonationMethod) {
+        UIPasteboard.general.string = method.address
+        copiedMethod = method
+        copyFeedbackTrigger += 1
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: "\(method.title) copied"
+        )
+        scheduleCopyReset()
     }
 
     private func scheduleCopyReset() {
@@ -200,13 +243,35 @@ struct DonatePrototypeView: View {
             copyResetTask = nil
         }
     }
+
+    private func resetCopyFeedback() {
+        copyResetTask?.cancel()
+        copyResetTask = nil
+        copiedMethod = nil
+    }
 }
 
-private enum DonationMethod: CaseIterable, Equatable {
+private enum DonationMethod: CaseIterable, Equatable, Identifiable {
     case lightning
     case bitcoin
 
+    var id: Self { self }
+
+    var selectorTitle: String {
+        switch self {
+        case .lightning: "Lightning"
+        case .bitcoin: "Bitcoin"
+        }
+    }
+
     var title: String {
+        switch self {
+        case .lightning: "Lightning Address"
+        case .bitcoin: "Bitcoin Silent Payment Address"
+        }
+    }
+
+    var addressTitle: String {
         switch self {
         case .lightning: "Lightning Address"
         case .bitcoin: "Bitcoin Silent Payment"
@@ -222,12 +287,6 @@ private enum DonationMethod: CaseIterable, Equatable {
         }
     }
 
-    var displayAddress: String {
-        guard address.count > 36 else {
-            return address
-        }
-        return "\(address.prefix(18))…\(address.suffix(12))"
-    }
 }
 
 #Preview("Chat with Support") {
