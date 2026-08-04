@@ -39,6 +39,7 @@ struct ChatsView<SettingsContent: View>: View {
     }
 
     @Binding private var chats: [ChatListItem]
+    @Binding private var supportMessages: [SupportConversationMessage]
     @Binding private var settings: PrototypeSettingsState
     @Binding private var relayConfiguration: PrototypeRelayConfiguration
     @State private var scope = ChatScope.all
@@ -46,6 +47,7 @@ struct ChatsView<SettingsContent: View>: View {
     @State private var isSearchMounted = false
     @State private var isSearchPresented = false
     @State private var isShowingFiatjafConversation = false
+    @State private var isShowingSupportConversation = false
     @FocusState private var isSearchFocused: Bool
 
     let profile: PrototypeProfile
@@ -54,6 +56,7 @@ struct ChatsView<SettingsContent: View>: View {
 
     init(
         chats: Binding<[ChatListItem]>,
+        supportMessages: Binding<[SupportConversationMessage]> = .constant([]),
         settings: Binding<PrototypeSettingsState>,
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
             .fixtures
@@ -68,6 +71,7 @@ struct ChatsView<SettingsContent: View>: View {
         self.settingsDestination = settingsDestination()
         self.onNewMessage = onNewMessage
         _chats = chats
+        _supportMessages = supportMessages
         _settings = settings
         _relayConfiguration = relayConfiguration
         _scope = State(initialValue: initialScope)
@@ -137,6 +141,16 @@ struct ChatsView<SettingsContent: View>: View {
                 relayConfiguration: $relayConfiguration
             )
         }
+        .navigationDestination(
+            isPresented: $isShowingSupportConversation
+        ) {
+            WhiteNoiseSupportConversationView(
+                messages: $supportMessages,
+                chats: $chats,
+                settings: $settings,
+                senderName: profile.name
+            )
+        }
     }
 
     @ViewBuilder
@@ -147,10 +161,13 @@ struct ChatsView<SettingsContent: View>: View {
                 actions: NativeChatList.Actions(
                     canOpen: { id in
                         id == "fiatjaf"
+                            || id == ChatListFixtures.supportChatID
                     },
                     open: { id in
                         if id == "fiatjaf" {
                             isShowingFiatjafConversation = true
+                        } else if id == ChatListFixtures.supportChatID {
+                            isShowingSupportConversation = true
                         }
                     },
                     markRead: markChatRead,

@@ -35,6 +35,8 @@ private struct PrototypeRootView: View {
                 NavigationStack {
                     ChatsView(
                         chats: activeChats,
+                        supportMessages:
+                            activeProfileBinding.supportMessages,
                         settings: $settings,
                         relayConfiguration:
                             activeProfileBinding.relayConfiguration,

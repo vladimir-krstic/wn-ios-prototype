@@ -420,8 +420,26 @@ and does not require these sites during normal work.
 
 ### Chat with support
 
-- Explains that support opens a private White Noise conversation.
-- **Start Chat** uses deterministic progress and a ready state; no conversation or backend is fabricated.
+- A native Form card presents the local White Noise Support identity with a
+  question-mark speech-bubble avatar and the summary **Questions, problems,
+  and suggestions**.
+- Supporting copy says **Ask how something works, report a problem, or share a
+  suggestion.**
+- The centered full-width **Start Chat** action uses the same `plus.bubble`
+  symbol as New Message. The button removes only the Form row's content inset
+  so its system-rendered prominent surface spans the complete section width;
+  the native `Label` centers the symbol and title together as one action. It
+  creates the profile's single deterministic support conversation or returns
+  to the existing one without creating a duplicate.
+- Starting a new support conversation requires an available Chat Messages
+  relay. An existing support conversation remains available because it retains
+  its own routing.
+- The conversation is also listed directly below Fiatjaf in Chats and follows
+  the behavior in `conversation-support.md`.
+- Governing Apple sources: [Form](https://developer.apple.com/documentation/swiftui/form),
+  [Button](https://developer.apple.com/documentation/swiftui/button),
+  [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink),
+  and [SF Symbols](https://developer.apple.com/sf-symbols/).
 
 ### Donate
 

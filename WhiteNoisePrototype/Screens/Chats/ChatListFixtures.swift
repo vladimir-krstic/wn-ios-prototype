@@ -1,4 +1,19 @@
 enum ChatListFixtures {
+    static let supportChatID = "white-noise-support"
+
+    static let supportChat = ChatListItem(
+        id: supportChatID,
+        title: "White Noise Support",
+        avatar: .systemSymbol("questionmark.bubble"),
+        preview: "Ask a question, report a problem, or share a suggestion.",
+        timestamp: "Thursday",
+        isArchived: false,
+        unreadCount: 0,
+        isMuted: false,
+        isDraft: false,
+        deliveryState: .none
+    )
+
     static let populated: [ChatListItem] = [
         ChatListItem(
             id: "nostr-devs",
@@ -138,6 +153,7 @@ enum ChatListFixtures {
             isDraft: false,
             deliveryState: .none
         ),
+        supportChat,
         ChatListItem(
             id: "mina-park",
             title: "Mina Park",
@@ -496,4 +512,20 @@ enum ChatListFixtures {
     ]
 
     static let empty: [ChatListItem] = []
+
+    static func ensureSupportChat(in chats: inout [ChatListItem]) {
+        guard !chats.contains(where: { chat in
+            chat.id == supportChatID
+        }) else {
+            return
+        }
+
+        if let fiatjafIndex = chats.firstIndex(where: { chat in
+            chat.id == "fiatjaf"
+        }) {
+            chats.insert(supportChat, at: fiatjafIndex + 1)
+        } else {
+            chats.insert(supportChat, at: 0)
+        }
+    }
 }

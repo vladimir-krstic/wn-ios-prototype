@@ -311,9 +311,14 @@ struct SettingsView: View {
             }
         case .support:
             SupportPrototypeView(
+                chats: activeProfileBinding?.chats ?? .constant([]),
+                supportMessages:
+                    activeProfileBinding?.supportMessages ?? .constant([]),
+                settings: $settings,
                 relayConfiguration:
                     activeProfileBinding?.relayConfiguration
-                        ?? .constant(.fixtures)
+                        ?? .constant(.fixtures),
+                profileName: activeProfile?.name ?? "Profile"
             )
         case .donate:
             DonatePrototypeView()

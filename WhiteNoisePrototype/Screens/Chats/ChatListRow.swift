@@ -78,6 +78,12 @@ struct ChatListRow: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
                     .accessibilityHidden(true)
+
+            case let .systemSymbol(name):
+                Image(systemName: name)
+                    .font(.title2)
+                    .foregroundStyle(.primary)
+                    .accessibilityHidden(true)
             }
         }
         .frame(width: 56, height: 56)

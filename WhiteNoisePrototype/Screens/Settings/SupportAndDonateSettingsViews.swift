@@ -2,105 +2,114 @@ import SwiftUI
 import UIKit
 
 struct SupportPrototypeView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var state = SupportState.ready
+    @State private var isShowingSupportConversation = false
+    @Binding private var chats: [ChatListItem]
+    @Binding private var supportMessages: [SupportConversationMessage]
+    @Binding private var settings: PrototypeSettingsState
     @Binding private var relayConfiguration: PrototypeRelayConfiguration
+    private let profileName: String
 
     init(
+        chats: Binding<[ChatListItem]> = .constant([]),
+        supportMessages: Binding<[SupportConversationMessage]> = .constant([]),
+        settings: Binding<PrototypeSettingsState> = .constant(
+            PrototypeSettingsState()
+        ),
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
             .fixtures
-        )
+        ),
+        profileName: String = "Marmota"
     ) {
+        _chats = chats
+        _supportMessages = supportMessages
+        _settings = settings
         _relayConfiguration = relayConfiguration
+        self.profileName = profileName
     }
 
     var body: some View {
-        Group {
-            switch state {
-            case .ready:
-                Form {
-                    Section {
-                        Label {
-                            VStack(alignment: .leading) {
-                                Text("White Noise Support")
-                                    .font(.headline)
-                                Text("Help with White Noise")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "person.crop.circle.badge.questionmark")
-                                .font(.title2)
-                        }
-                    }
+        Form {
+            Section {
+                HStack(spacing: 12) {
+                    WhiteNoiseSupportAvatar(size: 56)
 
-                    Section {
-                        Button(action: startChat) {
-                            Label(
-                                "Start Chat",
-                                systemImage: "message"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.glassProminent)
-                        .controlSize(.large)
-                        .listRowBackground(Color.clear)
-                        .disabled(
-                            !relayConfiguration.isAvailable(
-                                for: .chatMessages
-                            )
-                        )
-                        .accessibilityHint(startChatAccessibilityHint)
-                    } footer: {
-                        Text(
-                            "If a support chat already exists, White Noise opens that conversation."
-                        )
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("White Noise Support")
+                            .font(.headline)
+
+                        Text("Questions, problems, and suggestions")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                 }
-            case .loading:
-                ContentUnavailableView {
-                    ProgressView()
-                } description: {
-                    Text("Opening support chat…")
+                .accessibilityElement(children: .combine)
+            } footer: {
+                Text(
+                    "Ask how something works, report a problem, or share a suggestion."
+                )
+            }
+
+            Section {
+                Button(action: openSupportChat) {
+                    Label("Start Chat", systemImage: "plus.bubble")
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(
+                            Color(uiColor: .systemBackground)
+                        )
+                        .frame(maxWidth: .infinity)
                 }
-            case .complete:
-                ContentUnavailableView {
-                    Label("Support Chat Ready", systemImage: "checkmark.message")
-                } description: {
-                    Text("Your conversation with White Noise Support is ready.")
-                } actions: {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .buttonStyle(.glassProminent)
-                }
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+                .disabled(!canOpenSupportChat)
+                .accessibilityHint(startChatAccessibilityHint)
             }
         }
         .navigationTitle("Chat with support")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func startChat() {
-        state = .loading
-        Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            state = .complete
+        .navigationDestination(
+            isPresented: $isShowingSupportConversation
+        ) {
+            WhiteNoiseSupportConversationView(
+                messages: $supportMessages,
+                chats: $chats,
+                settings: $settings,
+                senderName: profileName
+            )
         }
     }
 
+    private var supportChatExists: Bool {
+        chats.contains(where: { chat in
+            chat.id == ChatListFixtures.supportChatID
+        })
+    }
+
+    private var canOpenSupportChat: Bool {
+        supportChatExists
+            || relayConfiguration.isAvailable(for: .chatMessages)
+    }
+
+    private func openSupportChat() {
+        if !supportChatExists {
+            ChatListFixtures.ensureSupportChat(in: &chats)
+        }
+
+        isShowingSupportConversation = true
+    }
+
     private var startChatAccessibilityHint: String {
+        if supportChatExists {
+            return "Opens your existing conversation with White Noise Support."
+        }
+
         if relayConfiguration.isAvailable(for: .chatMessages) {
-            return "Opens a chat with White Noise Support."
+            return "Starts a conversation with White Noise Support."
         }
 
         return "Check your profile relays to start a support chat."
     }
-}
-
-private enum SupportState {
-    case ready
-    case loading
-    case complete
 }
 
 struct DonatePrototypeView: View {

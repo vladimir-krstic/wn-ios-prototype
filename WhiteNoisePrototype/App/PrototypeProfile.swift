@@ -15,6 +15,7 @@ struct PrototypeProfile: Identifiable, Equatable {
     var lightningAddress: String
     var avatar: PrototypeAvatar
     var chats: [ChatListItem]
+    var supportMessages: [SupportConversationMessage]
     var relayConfiguration: PrototypeRelayConfiguration
 
     init(
@@ -26,6 +27,7 @@ struct PrototypeProfile: Identifiable, Equatable {
         lightningAddress: String = "",
         avatar: PrototypeAvatar = .monogram,
         chats: [ChatListItem],
+        supportMessages: [SupportConversationMessage] = [],
         relayConfiguration: PrototypeRelayConfiguration = .fixtures
     ) {
         self.id = id
@@ -36,6 +38,7 @@ struct PrototypeProfile: Identifiable, Equatable {
         self.lightningAddress = lightningAddress
         self.avatar = avatar
         self.chats = chats
+        self.supportMessages = supportMessages
         self.relayConfiguration = relayConfiguration
     }
 

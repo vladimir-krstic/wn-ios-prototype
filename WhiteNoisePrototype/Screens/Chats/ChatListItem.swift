@@ -4,6 +4,7 @@ struct ChatListItem: Identifiable, Equatable {
     enum Avatar: Equatable {
         case asset(String)
         case monogram(String)
+        case systemSymbol(String)
     }
 
     enum MembershipState: Equatable {
@@ -110,10 +111,10 @@ struct ChatListItem: Identifiable, Equatable {
     let id: String
     let title: String
     let avatar: Avatar
-    let preview: String
-    let previewAuthor: String?
-    let attachmentPreview: AttachmentPreview?
-    let timestamp: String
+    var preview: String
+    var previewAuthor: String?
+    var attachmentPreview: AttachmentPreview?
+    var timestamp: String
     var membershipState: MembershipState
     var isArchived: Bool
     var isPinned: Bool
