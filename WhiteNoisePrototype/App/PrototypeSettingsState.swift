@@ -19,9 +19,11 @@ struct PrototypeSettingsState {
         .files: .never,
     ]
 
-    var appLockEnabled = false
+    var hideScreenInAppSwitcher = false
+    var screenLockEnabled = false
     var autoLock = PrototypeAutoLock.immediately
-    var blockScreenshots = false
+    var deviceAuthenticationAvailability =
+        PrototypeDeviceAuthenticationAvailability.faceID
     var anonymousTelemetry = false
     var auditLogging = false
 
@@ -182,6 +184,16 @@ enum PrototypeAutoLock: String, CaseIterable, Identifiable {
     case fifteenMinutes = "After 15 Minutes"
 
     var id: Self { self }
+}
+
+enum PrototypeDeviceAuthenticationAvailability {
+    case faceID
+    case passcode
+    case passcodeRequired
+
+    var canAuthenticate: Bool {
+        self != .passcodeRequired
+    }
 }
 
 enum PrototypeRelayConnectionState: Hashable {

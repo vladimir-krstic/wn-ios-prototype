@@ -18,6 +18,8 @@ authority by itself.
 | Discoverable participant | **Person**, **People**, or their name | User, peer, member outside a group | **Member** is correct inside a group. |
 | Profile address | **Nostr Address** or **Address** | NIP-05, identifier | Use an address example only when it helps entry. |
 | Message transport settings | **Relays** | NIP-65, outbox relay list | Relays and role assignments belong to the active profile. Relay Details uses **Profile**, **Inbox**, and **Chat Messages**. **Inbox** receives invitations; **Chat Messages** supplies the defaults for chats this profile creates. A role is available only while at least one assigned read/write relay is connected. Recovery names whether a role is unassigned, reconnecting, or disconnected and names the unavailable capability rather than calling the complete app offline. |
+| Return-access protection | **Require Face ID** | Face ID Lock, PIN Lock | Uses system device-owner authentication: Face ID first with the iPhone passcode as fallback. There is no separate White Noise PIN. |
+| App-switcher privacy | **Hide Screen in App Switcher** | Block Screenshots, Hide During Screen Capture | This setting affects the app-switcher snapshot only. It doesn’t promise screenshot or recording prevention. |
 | Stop using active profile while retaining it | **Sign Out** | Logout, remove account | State that the profile remains on this device when the consequence matters. |
 | Remove active profile and local data | **Sign Out and Remove Data** | Delete account, wipe identity | Destructive; explain what is removed and what remains elsewhere. |
 | Remove another stored profile | **Remove Profile** | Delete account, wipe identity | Use for an inactive locally stored profile. |

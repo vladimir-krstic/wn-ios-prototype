@@ -216,11 +216,30 @@ not require the source pages during normal work.
 
 ### Privacy & Security
 
-- App Lock and conditional auto-lock interval.
-- Block Screenshots.
-- Anonymous Telemetry.
-- Audit Logging, View Audit Files, and destructive Delete Audit Files confirmation.
-- All controls are simulations; LocalAuthentication and real audit storage are out of scope.
+- Privacy & Security uses two separate native Form sections so each independent
+  preference has its own explanation. There is no redundant section header,
+  and no icons or custom control styling are added.
+- **Hide Screen in App Switcher** replaces sensitive content before UIKit
+  captures the app-switcher snapshot. Its footer reads **Hides your
+  conversations and profile details in the app switcher.** It does not claim
+  to block screenshots or screen recording.
+- **Require Face ID** uses device-owner authentication. Its normal footer reads
+  **Locks White Noise when you leave. Your iPhone passcode can be used if Face
+  ID isn't available.** If Face ID is not enrolled, the iPhone passcode
+  remains the system fallback and the footer names that state directly.
+- No separate White Noise PIN is offered. If the iPhone has no passcode,
+  Require Face ID is disabled with **Set an iPhone passcode to require Face
+  ID.**
+- Enabling Require Face ID reveals the native **Auto-Lock** picker.
+- The Signal App Security structure was accepted as optional comparison
+  evidence. The local requirements above are complete and do not depend on
+  Signal's repository or continued access to it.
+- App-switcher privacy and Face ID locking are deterministic simulations;
+  LocalAuthentication and real snapshot replacement remain out of scope.
+- Governing Apple sources: [Local Authentication](https://developer.apple.com/documentation/localauthentication),
+  [device-owner authentication](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthentication),
+  [canEvaluatePolicy](https://developer.apple.com/documentation/localauthentication/lacontext/canevaluatepolicy(_:error:)),
+  and [Preparing your UI to run in the background](https://developer.apple.com/documentation/uikit/preparing-your-ui-to-run-in-the-background).
 
 ### Data & Storage
 
@@ -396,6 +415,9 @@ and does not require these sites during normal work.
 
 - Runtime, local signing state, profile identifier, fictional local hex key, and MarmotKit status.
 - Developer Mode and Streaming Debug controls.
+- Anonymous Telemetry.
+- Audit Logging, local audit-file details, and destructive Delete All Audit
+  Logs confirmation.
 - Key Packages list with fictional publish/delete behavior.
 - Diagnostics with relay health, runtime facts, deterministic self-check progress, and recent events.
 

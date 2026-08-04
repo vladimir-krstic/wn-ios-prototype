@@ -5,6 +5,7 @@ struct DeveloperToolsPrototypeView: View {
     @Binding var settings: PrototypeSettingsState
     @State private var copied = false
     @State private var copyResetTask: Task<Void, Never>?
+    @State private var isShowingDeleteLogsConfirmation = false
 
     let profile: PrototypeProfile
     let profileCount: Int
@@ -73,6 +74,51 @@ struct DeveloperToolsPrototypeView: View {
                 )
             }
 
+            Section {
+                Toggle(
+                    "Anonymous Telemetry",
+                    isOn: $settings.anonymousTelemetry
+                )
+            } footer: {
+                Text(
+                    "Anonymous telemetry helps improve reliability and performance."
+                )
+            }
+
+            Section {
+                Toggle(
+                    "Audit Logging",
+                    isOn: $settings.auditLogging
+                )
+
+                if settings.auditLogging {
+                    LabeledContent(
+                        "white-noise-audit-01.jsonl",
+                        value: "24 KB"
+                    )
+                    LabeledContent(
+                        "white-noise-audit-02.jsonl",
+                        value: "8 KB"
+                    )
+
+                    Button(
+                        "Delete All Audit Logs",
+                        role: .destructive
+                    ) {
+                        isShowingDeleteLogsConfirmation = true
+                    }
+                } else {
+                    Text("No audit logs on this device.")
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Audit Logging")
+            } footer: {
+                Text(
+                    "Audit logs are stored locally for troubleshooting and forensic review."
+                )
+            }
+
             Section("Build") {
                 LabeledContent("Version", value: version)
                 LabeledContent("Build", value: build)
@@ -81,6 +127,19 @@ struct DeveloperToolsPrototypeView: View {
         }
         .navigationTitle("Developer Tools")
         .navigationBarTitleDisplayMode(.inline)
+        .alert(
+            "Delete all audit logs?",
+            isPresented: $isShowingDeleteLogsConfirmation
+        ) {
+            Button("Delete All Audit Logs", role: .destructive) {
+                settings.auditLogging = false
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "This permanently removes every local audit log on this device."
+            )
+        }
         .onDisappear {
             copyResetTask?.cancel()
         }

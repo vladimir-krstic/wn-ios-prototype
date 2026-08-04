@@ -47,6 +47,10 @@ pattern in the screen brief.
 | [systemRed](https://developer.apple.com/documentation/uikit/uicolor/systemred) | Adaptive system red for errors, destructive actions, and critical status | Presenting the user-approved disconnected endpoint status and destructive relay actions without fixed RGB values | Relays | 2026-08-03 |
 | [Standard colors](https://developer.apple.com/documentation/uikit/standard-colors) | Adaptive semantic system colors across appearances and accessibility settings | Selecting a semantic system color instead of a fixed RGB value | Status and recovery feedback | 2026-08-03 |
 | [Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy) | Contextual permission requests, transparency, and recovery | Requesting camera, photos, files, or other protected access | QR scanning, profile media | 2026-07-31 |
+| [Local Authentication](https://developer.apple.com/documentation/localauthentication) | System biometric and device-credential authentication | Designing Require Face ID or access to sensitive content | Privacy & Security | 2026-08-04 |
+| [Device-owner authentication](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthentication) | Face ID-first authentication with iPhone-passcode fallback | Choosing the Require Face ID authentication policy | Privacy & Security | 2026-08-04 |
+| [canEvaluatePolicy](https://developer.apple.com/documentation/localauthentication/lacontext/canevaluatepolicy(_:error:)) | Live authentication-policy availability and prerequisite checks | Handling missing device passcode or unavailable authentication | Privacy & Security | 2026-08-04 |
+| [Preparing your UI to run in the background](https://developer.apple.com/documentation/uikit/preparing-your-ui-to-run-in-the-background) | Sensitive-content removal before UIKit creates the app-switcher snapshot | Implementing Hide Screen in App Switcher | Privacy & Security | 2026-08-04 |
 
 ## 3. Navigation and presentation
 

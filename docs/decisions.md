@@ -153,3 +153,22 @@ working style remains authoritative.
 - **Restore Default Relays** performs a confirmed full reset for the active
   profile. It removes custom endpoints and restores the original seven-relay
   list and role assignments.
+
+## WN-PROTOTYPE-0008 — App Security
+
+- Date: 2026-08-04
+- Status: Approved
+
+- Privacy & Security uses separate native Form sections for **Hide Screen in
+  App Switcher** and **Require Face ID**, allowing each preference to carry its
+  own concise explanation.
+- Require Face ID uses device-owner authentication: Face ID first with the
+  iPhone passcode as the system fallback. White Noise does not add a separate
+  PIN. If no iPhone passcode is configured, Require Face ID is unavailable
+  until that device requirement is resolved.
+- Hide Screen in App Switcher covers the UIKit app snapshot. It does not claim
+  to prevent screenshots or active screen recording.
+- The prototype models these states deterministically and does not use
+  LocalAuthentication or real snapshot replacement.
+- Anonymous Telemetry and Audit Logging are developer controls and live in
+  Developer Tools rather than Privacy & Security.

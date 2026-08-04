@@ -119,6 +119,16 @@ Use this order:
 - After denial, state what is unavailable and offer **Open Settings** when that
   resolves it.
 
+## App privacy and authentication
+
+- Use **Require Face ID** for return authentication on the supported iPhone
+  experience. The device passcode remains the system fallback; don’t introduce
+  a separate White Noise PIN or call the preference **Face ID Lock**.
+- If device authentication is unavailable because no iPhone passcode exists,
+  name that requirement directly without blaming the person.
+- Use **Hide Screen in App Switcher** for snapshot privacy. Don’t call it
+  screenshot blocking or imply that it hides active screen recording.
+
 ## Accessibility copy
 
 - Describe the action or current value, not the symbol’s appearance.

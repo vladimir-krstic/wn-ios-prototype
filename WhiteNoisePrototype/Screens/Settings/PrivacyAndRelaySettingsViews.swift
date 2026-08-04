@@ -3,17 +3,32 @@ import SwiftUI
 
 struct PrivacySecurityPrototypeView: View {
     @Binding var settings: PrototypeSettingsState
-    @State private var isShowingDeleteLogsConfirmation = false
 
     var body: some View {
         Form {
             Section {
                 Toggle(
-                    "App Lock",
-                    isOn: $settings.appLockEnabled
+                    "Hide Screen in App Switcher",
+                    isOn: $settings.hideScreenInAppSwitcher
+                )
+            } footer: {
+                Text(
+                    "Hides your conversations and profile details in the app switcher."
+                )
+            }
+
+            Section {
+                Toggle(
+                    "Require Face ID",
+                    isOn: $settings.screenLockEnabled
+                )
+                .disabled(
+                    !settings.deviceAuthenticationAvailability.canAuthenticate
                 )
 
-                if settings.appLockEnabled {
+                if settings.screenLockEnabled
+                    && settings.deviceAuthenticationAvailability.canAuthenticate
+                {
                     Picker("Auto-Lock", selection: $settings.autoLock) {
                         ForEach(PrototypeAutoLock.allCases) { period in
                             Text(period.rawValue)
@@ -21,87 +36,23 @@ struct PrivacySecurityPrototypeView: View {
                         }
                     }
                 }
-            } header: {
-                Text("App Lock")
             } footer: {
-                Text(
-                    "Hides content in the app switcher and requires unlocking when you return."
-                )
-            }
-
-            Section {
-                Toggle(
-                    "Block Screenshots",
-                    isOn: $settings.blockScreenshots
-                )
-            } header: {
-                Text("Screen Capture")
-            } footer: {
-                Text(
-                    "Screenshots and recordings show a blank screen. The app-switcher preview is hidden too."
-                )
-            }
-
-            Section {
-                Toggle(
-                    "Anonymous Telemetry",
-                    isOn: $settings.anonymousTelemetry
-                )
-            } footer: {
-                Text(
-                    "Anonymous telemetry helps improve reliability and performance."
-                )
-            }
-
-            Section {
-                Toggle(
-                    "Audit Logging",
-                    isOn: $settings.auditLogging
-                )
-
-                if settings.auditLogging {
-                    LabeledContent(
-                        "white-noise-audit-01.jsonl",
-                        value: "24 KB"
+                switch settings.deviceAuthenticationAvailability {
+                case .faceID:
+                    Text(
+                        "Locks White Noise when you leave. Your iPhone passcode can be used if Face ID isn't available."
                     )
-                    LabeledContent(
-                        "white-noise-audit-02.jsonl",
-                        value: "8 KB"
+                case .passcode:
+                    Text(
+                        "Face ID isn't set up. Use your iPhone passcode to unlock White Noise."
                     )
-
-                    Button(
-                        "Delete All Audit Logs",
-                        role: .destructive
-                    ) {
-                        isShowingDeleteLogsConfirmation = true
-                    }
-                } else {
-                    Text("No audit logs on this device.")
-                        .foregroundStyle(.secondary)
+                case .passcodeRequired:
+                    Text("Set an iPhone passcode to require Face ID.")
                 }
-            } header: {
-                Text("Audit Logging")
-            } footer: {
-                Text(
-                    "Audit logs are stored locally for troubleshooting and forensic review."
-                )
             }
         }
         .navigationTitle("Privacy & Security")
         .navigationBarTitleDisplayMode(.inline)
-        .alert(
-            "Delete all audit logs?",
-            isPresented: $isShowingDeleteLogsConfirmation
-        ) {
-            Button("Delete All Audit Logs", role: .destructive) {
-                settings.auditLogging = false
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(
-                "This permanently removes every local audit log on this device."
-            )
-        }
     }
 }
 
@@ -734,6 +685,26 @@ private struct AddRelaySheet: View {
 
 #Preview("Privacy & Security") {
     @Previewable @State var settings = PrototypeSettingsState()
+
+    NavigationStack {
+        PrivacySecurityPrototypeView(settings: $settings)
+    }
+}
+
+#Preview("Privacy & Security — Passcode Required") {
+    @Previewable @State var settings = PrototypeSettingsState(
+        deviceAuthenticationAvailability: .passcodeRequired
+    )
+
+    NavigationStack {
+        PrivacySecurityPrototypeView(settings: $settings)
+    }
+}
+
+#Preview("Privacy & Security — Passcode Fallback") {
+    @Previewable @State var settings = PrototypeSettingsState(
+        deviceAuthenticationAvailability: .passcode
+    )
 
     NavigationStack {
         PrivacySecurityPrototypeView(settings: $settings)
