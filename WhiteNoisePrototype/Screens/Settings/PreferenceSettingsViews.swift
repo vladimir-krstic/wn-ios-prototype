@@ -235,44 +235,11 @@ struct AppearanceSettingsPrototypeView: View {
     }
 }
 
-struct DataStoragePrototypeView: View {
+struct DataUsagePrototypeView: View {
     @Binding var settings: PrototypeSettingsState
 
     var body: some View {
         Form {
-            Section {
-                ForEach(PrototypeMediaQuality.allCases) { quality in
-                    Button {
-                        settings.mediaQuality = quality
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(quality.rawValue)
-                                    .foregroundStyle(.primary)
-                                Text(quality.detail)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            if settings.mediaQuality == quality {
-                                Image(systemName: "checkmark")
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                }
-            } header: {
-                Text("Media Send Quality")
-            } footer: {
-                Text(
-                    "Smaller media is never enlarged. Identifying photo metadata is removed before sending."
-                )
-            }
-
             Section {
                 ForEach(PrototypeMediaType.allCases) { type in
                     NavigationLink {
@@ -287,28 +254,86 @@ struct DataStoragePrototypeView: View {
                                     .rawValue
                             )
                         } label: {
-                            Label(type.rawValue, systemImage: type.symbol)
+                            Text(type.rawValue)
                         }
                     }
                 }
 
-                Button("Reset Auto-Download Settings", role: .destructive) {
-                    settings.autoDownload = [
-                        .photos: .wifi,
-                        .audio: .wifi,
-                        .videos: .never,
-                        .files: .never,
-                    ]
+                Button("Reset Auto-Download Settings") {
+                    settings.autoDownload =
+                        PrototypeSettingsState.defaultAutoDownload
                 }
+                .disabled(
+                    settings.autoDownload ==
+                        PrototypeSettingsState.defaultAutoDownload
+                )
             } header: {
-                Text("Media Auto-Download")
+                Text("Auto-Download")
             } footer: {
                 Text(
                     "Media that isn't downloaded automatically shows a download button."
                 )
             }
+
+            Section {
+                NavigationLink {
+                    SentMediaQualityPrototypeView(settings: $settings)
+                } label: {
+                    LabeledContent(
+                        "Sent Media Quality",
+                        value: settings.mediaQuality.rawValue
+                    )
+                }
+            } header: {
+                Text("Sent Media")
+            } footer: {
+                Text("Choose the quality for photos and videos you send.")
+            }
         }
-        .navigationTitle("Data & Storage")
+        .navigationTitle("Data Usage")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct SentMediaQualityPrototypeView: View {
+    @Binding var settings: PrototypeSettingsState
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(PrototypeMediaQuality.allCases) { quality in
+                    Button {
+                        settings.mediaQuality = quality
+                    } label: {
+                        HStack {
+                            Text(quality.rawValue)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if settings.mediaQuality == quality {
+                                Image(systemName: "checkmark")
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(
+                        settings.mediaQuality == quality
+                            ? .isSelected
+                            : []
+                    )
+                }
+            } header: {
+                Text("Photos and Videos")
+            } footer: {
+                Text(
+                    "High sends uncompressed photos and videos for better quality, but uses more data. Standard compresses media to use less data."
+                )
+            }
+        }
+        .navigationTitle("Sent Media Quality")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -360,10 +385,10 @@ private struct AutoDownloadPrototypeView: View {
     }
 }
 
-#Preview("Data & Storage") {
+#Preview("Data Usage") {
     @Previewable @State var settings = PrototypeSettingsState()
 
     NavigationStack {
-        DataStoragePrototypeView(settings: $settings)
+        DataUsagePrototypeView(settings: $settings)
     }
 }

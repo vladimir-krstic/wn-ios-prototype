@@ -1,6 +1,15 @@
 import SwiftUI
 
 struct PrototypeSettingsState {
+    static let defaultAutoDownload: [
+        PrototypeMediaType: PrototypeAutoDownloadLevel
+    ] = [
+        .photos: .wifi,
+        .videos: .never,
+        .audio: .wifi,
+        .files: .never,
+    ]
+
     var appearance = PrototypeAppearance.system
     var language = PrototypeLanguage.system
     var returnKeyBehavior = PrototypeReturnKeyBehavior.newLine
@@ -12,12 +21,7 @@ struct PrototypeSettingsState {
     var notificationPreview = PrototypeNotificationPreview.generic
 
     var mediaQuality = PrototypeMediaQuality.standard
-    var autoDownload: [PrototypeMediaType: PrototypeAutoDownloadLevel] = [
-        .photos: .wifi,
-        .audio: .wifi,
-        .videos: .never,
-        .files: .never,
-    ]
+    var autoDownload = PrototypeSettingsState.defaultAutoDownload
 
     var hideScreenInAppSwitcher = false
     var screenLockEnabled = false
@@ -134,39 +138,19 @@ enum PrototypeNotificationPreview: String, CaseIterable, Identifiable {
 }
 
 enum PrototypeMediaQuality: String, CaseIterable, Identifiable {
-    case low = "Low"
     case standard = "Standard"
     case high = "High"
-    case original = "Original"
 
     var id: Self { self }
-
-    var detail: String {
-        switch self {
-        case .low: "Smallest data use"
-        case .standard: "Balanced quality and data use"
-        case .high: "Sharper media, more data"
-        case .original: "Full resolution"
-        }
-    }
 }
 
 enum PrototypeMediaType: String, CaseIterable, Identifiable {
     case photos = "Photos"
-    case audio = "Audio"
     case videos = "Videos"
+    case audio = "Audio"
     case files = "Files"
 
     var id: Self { self }
-
-    var symbol: String {
-        switch self {
-        case .photos: "photo"
-        case .audio: "waveform"
-        case .videos: "video"
-        case .files: "doc"
-        }
-    }
 }
 
 enum PrototypeAutoDownloadLevel: String, CaseIterable, Identifiable {

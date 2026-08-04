@@ -17,7 +17,7 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
   - One profile: **Add Profile**, which opens onboarding directly rather than presenting the switcher.
   - Two profiles: the newly added alternate profile identity.
   - Three or more: **Switch Profile**, up to three overlapping inactive avatars, and an opaque adaptive `+N` overflow badge.
-- Main card: **Profile**, **Profile Keys**, **Notifications**, **Appearance**, **Privacy & Security**, **Data & Storage**, **Relays**.
+- Main card: **Profile**, **Profile Keys**, **Notifications**, **Appearance**, **Privacy & Security**, **Data Usage**, **Relays**.
 - Support card: **Chat with support**, **Donate**, **Developer Tools**.
 - Final isolated destructive row: **Sign Out**.
 - Footer: **White Noise · VERSION (BUILD)**.
@@ -241,12 +241,30 @@ not require the source pages during normal work.
   [canEvaluatePolicy](https://developer.apple.com/documentation/localauthentication/lacontext/canevaluatepolicy(_:error:)),
   and [Preparing your UI to run in the background](https://developer.apple.com/documentation/uikit/preparing-your-ui-to-run-in-the-background).
 
-### Data & Storage
+### Data Usage
 
-- Media Quality: **Low**, **Standard**, **High**, **Original**.
-- Auto-download destinations for Photos, Audio, Videos, and Files.
+- **Auto-Download** is the first native Form section, with disclosure rows in
+  this order: **Photos**, **Videos**, **Audio**, and **Files**.
 - Each media type supports **Never**, **Wi-Fi**, and **Wi-Fi and Cellular**.
-- **Reset Auto-Download Settings**.
+- **Reset Auto-Download Settings** restores the local defaults and is disabled
+  when those defaults are already selected.
+- **Sent Media** contains one **Sent Media Quality** disclosure. Its native
+  single-selection destination has a **Photos and Videos** section with plain
+  **Standard** and **High** rows.
+- The quality selection footer reads **High sends uncompressed photos and
+  videos for better quality, but uses more data. Standard compresses media to
+  use less data.**
+- The main-page Sent Media footer reads **Choose the quality for photos and
+  videos you send.** There is no Calls section because calls are not part of
+  this prototype.
+- Signal's hierarchy was accepted as optional comparison evidence. The local
+  requirements above are complete and don't require continued access to
+  Signal or another project.
+- Governing Apple sources: [Settings](https://developer.apple.com/design/human-interface-guidelines/settings),
+  [Form](https://developer.apple.com/documentation/swiftui/form),
+  [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink),
+  [List](https://developer.apple.com/documentation/swiftui/list),
+  and [Button](https://developer.apple.com/documentation/swiftui/button).
 
 ### Relays
 

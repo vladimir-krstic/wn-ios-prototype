@@ -6,7 +6,7 @@ enum SettingsDestination: String, CaseIterable, Hashable {
     case notifications
     case appearance
     case privacyAndSecurity
-    case dataAndStorage
+    case dataUsage
     case relays
     case support
     case donate
@@ -25,8 +25,8 @@ enum SettingsDestination: String, CaseIterable, Hashable {
             "Appearance"
         case .privacyAndSecurity:
             "Privacy & Security"
-        case .dataAndStorage:
-            "Data & Storage"
+        case .dataUsage:
+            "Data Usage"
         case .relays:
             "Relays"
         case .support:
@@ -52,7 +52,7 @@ enum SettingsDestination: String, CaseIterable, Hashable {
             "circle.lefthalf.filled"
         case .privacyAndSecurity:
             "hand.raised"
-        case .dataAndStorage:
+        case .dataUsage:
             "externaldrive"
         case .relays:
             "antenna.radiowaves.left.and.right"
@@ -111,7 +111,7 @@ struct SettingsView: View {
                 .notifications,
                 .appearance,
                 .privacyAndSecurity,
-                .dataAndStorage,
+                .dataUsage,
                 .relays,
             ])
 
@@ -301,8 +301,8 @@ struct SettingsView: View {
             AppearanceSettingsPrototypeView(settings: $settings)
         case .privacyAndSecurity:
             PrivacySecurityPrototypeView(settings: $settings)
-        case .dataAndStorage:
-            DataStoragePrototypeView(settings: $settings)
+        case .dataUsage:
+            DataUsagePrototypeView(settings: $settings)
         case .relays:
             if let activeProfileBinding {
                 RelaysPrototypeView(
