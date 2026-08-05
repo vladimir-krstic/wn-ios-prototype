@@ -129,18 +129,38 @@ extension PrototypeProfile {
         chats: ChatListFixtures.empty
     )
 
-    static func signedUp(name: String) -> PrototypeProfile {
+    static let pebble = PrototypeProfile(
+        id: "pebble",
+        name: "Pebble",
+        publicKey: "npub1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7",
+        avatar: .asset("ProfileAvatarPebble"),
+        chats: ChatListFixtures.empty
+    )
+
+    static func initialSignUp(name: String) -> PrototypeProfile {
+        var profile = marmota
         let normalizedName = name.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
 
-        return PrototypeProfile(
-            id: "added-profile",
-            name: normalizedName.isEmpty ? "Pebble" : normalizedName,
-            publicKey: "npub1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7",
-            avatar: .asset("ProfileAvatarPebble"),
-            chats: ChatListFixtures.empty
+        if !normalizedName.isEmpty {
+            profile.name = normalizedName
+        }
+
+        return profile
+    }
+
+    static func addedSignUp(name: String) -> PrototypeProfile {
+        var profile = pebble
+        let normalizedName = name.trimmingCharacters(
+            in: .whitespacesAndNewlines
         )
+
+        if !normalizedName.isEmpty {
+            profile.name = normalizedName
+        }
+
+        return profile
     }
 
     static let initialProfiles: [PrototypeProfile] = [
@@ -160,7 +180,7 @@ extension PrototypeProfile {
     ] + showcasePseudonyms
 
     static let postAddProfileFixtures: [PrototypeProfile] = [
-        .signedUp(name: "Pebble"),
+        .pebble,
         .marmota,
     ] + showcasePseudonyms
 }

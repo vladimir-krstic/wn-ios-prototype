@@ -161,7 +161,7 @@ working style remains authoritative.
 
 - Privacy & Security uses separate native Form sections for **Hide Screen in
   App Switcher** and **Require Face ID**, allowing each preference to carry its
-  own concise explanation.
+  own concise explanation. **App Security** is their shared visible heading.
 - Require Face ID uses device-owner authentication: Face ID first with the
   iPhone passcode as the system fallback. White Noise does not add a separate
   PIN. If no iPhone passcode is configured, Require Face ID is unavailable
@@ -172,3 +172,171 @@ working style remains authoritative.
   LocalAuthentication or real snapshot replacement.
 - Anonymous Telemetry and Audit Logging are developer controls and live in
   Developer Tools rather than Privacy & Security.
+
+## WN-PROTOTYPE-0009 — Profile exit and local data removal
+
+- Date: 2026-08-04
+- Status: Approved
+
+- A profile’s stored local data and its active signed-in session are separate.
+  **Sign Out** ends the session but preserves the profile, chats, and settings
+  on this device for a later sign-in.
+- Settings exposes one neutral **Sign Out** action. It opens a native Form
+  sheet whose **Wipe Data From This Device** Toggle is off by default. The
+  sheet is the complete confirmation task; it doesn't stack a second alert or
+  wipe sheet.
+- With wiping off, the primary **Sign Out** action keeps local data. With
+  wiping on, the same action becomes destructive and requires exact
+  profile-name confirmation. Previous chats don't return after a later sign-in
+  on this or another device.
+- **Wipe All Profiles** uses a pushed review list followed by a native Form
+  sheet requiring a generated three-word lowercase confirmation phrase. It
+  removes every locally stored profile and returns to Welcome. Its neutral
+  navigation row lives in Privacy & Security under **Device Data**, not in the
+  Sign Out flow.
+- Sign Out and Wipe All entry rows remain neutral. The Sign Out sheet uses the
+  primary confirmation treatment whether local data is retained or wiped; the
+  selected Toggle, exact-name gate, consequence copy, and accessibility label
+  communicate the wipe. The final Wipe All confirmation remains red.
+- Typed profile and all-profile wipe confirmations remain disabled until their
+  required text matches.
+- After a single-profile exit, the app presents the profile switcher as the root
+  view when another signed-in profile remains and Welcome when none remain.
+  Selecting a profile from either switcher opens Settings for that profile.
+- The prototype models these outcomes deterministically in memory and performs
+  no real authentication, persistence, cryptography, or remote account
+  deletion.
+
+## WN-PROTOTYPE-0010 — Unified single-profile and all-profile sign out
+
+- Date: 2026-08-05
+- Status: Approved; supersedes WN-PROTOTYPE-0009 only for the placement and
+  presentation of device-wide sign out and wipe
+
+- Settings keeps session-management actions together in one native section.
+  **Sign Out** affects the active profile. **Sign Out All Profiles** appears as
+  a separate sibling row only when multiple profiles are signed in.
+- The two scopes are separate before presentation; no scope picker is embedded
+  inside a destructive task.
+- Sign Out All Profiles uses the same native Form-sheet model as single-profile
+  Sign Out. **Wipe Data From This Device** starts off, so signing out all
+  profiles preserves their local data and returns to Welcome.
+- Enabling the wipe choice requires the deterministic three-word lowercase
+  confirmation phrase. The final action uses the destructive role, removes
+  every stored profile and its local data, and returns to Welcome.
+- The previous **Wipe All Profiles** destination is removed from Privacy &
+  Security. Sign Out is the single owner of both session scopes and their
+  optional local-data removal.
+- Wipe-enabled completion actions use the destructive role. Data-preserving
+  sign-out actions use the primary role; all entry rows remain neutral.
+
+## WN-PROTOTYPE-0011 — Separate profile sign out from app data erasure
+
+- Date: 2026-08-05
+- Status: Approved; supersedes WN-PROTOTYPE-0010 and the device-wide
+  placement and presentation decisions in WN-PROTOTYPE-0009
+
+- Settings exposes only **Sign Out** for the active profile. Its native Form
+  sheet retains the optional **Wipe Data From This Device** choice and the
+  existing current-profile routing behavior.
+- Device-wide sign-out without erasure is unsupported. The app does not offer
+  **Sign Out All Profiles**.
+- Privacy & Security owns the uncommon, irreversible **Erase All App Data**
+  action under **Device Data**. Its footer states that every profile is signed
+  out and all local White Noise data is permanently removed from this iPhone.
+- The action opens a native Form sheet with concise consequences, the stable
+  three-word lowercase confirmation phrase, a **Confirmation phrase** field,
+  **Cancel**, and a destructive **Erase Data** action. The destructive action
+  remains disabled until the phrase matches exactly.
+- The erasure flow does not show a profile list or a keep-data choice. Success
+  removes every stored and signed-in profile, all profile-owned chats, media,
+  drafts, keys, settings, and transient app state, then returns to Welcome.
+- The entry and final action use the destructive role. **Erase Data** is not
+  presented as a black primary action.
+
+## WN-PROTOTYPE-0012 — Concise app data erasure warning
+
+- Date: 2026-08-05
+- Status: Approved; supersedes only the product label and consequence
+  presentation in WN-PROTOTYPE-0011
+
+- Privacy & Security and the confirmation sheet use **Erase App Data**. The
+  consequence copy still states explicitly that every profile and all local
+  White Noise data are removed.
+- The confirmation sheet presents the irreversible consequence as a native
+  warning callout with a semantic orange warning symbol, a primary **This
+  can’t be undone** title, and secondary detail. The final **Erase Data** action
+  remains destructive red and phrase-gated.
+
+## WN-PROTOTYPE-0013 — Prominent app data erasure action
+
+- Date: 2026-08-05
+- Status: Approved; supersedes only the final action label and treatment in
+  WN-PROTOTYPE-0011 and WN-PROTOTYPE-0012
+
+- The confirmation sheet's final action is **Erase**.
+- It uses the same native prominent red toolbar treatment as the wipe-enabled
+  Sign Out action and remains disabled until the confirmation phrase matches.
+
+## WN-PROTOTYPE-0014 — Stable destructive Sign Out treatment
+
+- Date: 2026-08-05
+- Status: Approved; supersedes the Sign Out default and action-color decisions
+  in WN-PROTOTYPE-0009 through WN-PROTOTYPE-0011
+
+- **Wipe Data From This Device** starts on in the Sign Out sheet.
+- The final **Sign Out** action uses the same native prominent red toolbar
+  treatment whether wiping is on or off. Changing the Toggle does not change
+  the button's color or prominence.
+- Wiping still requires the exact profile-name confirmation. Turning wiping
+  off preserves local data and removes the confirmation field.
+
+## WN-PROTOTYPE-0015 — Standard destructive toolbar actions
+
+- Date: 2026-08-05
+- Status: Approved; supersedes only the prominent visual treatment in
+  WN-PROTOTYPE-0013 and WN-PROTOTYPE-0014
+
+- **Sign Out** and **Erase** remain compact trailing toolbar actions. They are
+  not duplicated as large buttons inside their Form sheets.
+- Both actions use the native destructive role without a prominent button
+  style, manual tint, or manual font weight. The system owns their
+  regular-weight enabled-red and subdued disabled appearance.
+- **Sign Out** keeps the same destructive treatment whether wiping is on or
+  off. **Erase** and wipe-enabled **Sign Out** remain disabled until their
+  confirmation input matches.
+- A large in-sheet action was rejected because it would overemphasize an
+  irreversible outcome and compete with the confirmation content.
+
+## WN-PROTOTYPE-0016 — Full-width destructive sheet actions
+
+- Date: 2026-08-05
+- Status: Approved; supersedes WN-PROTOTYPE-0015 and only the final-action
+  placement and visual treatment in WN-PROTOTYPE-0013 and WN-PROTOTYPE-0014
+
+- **Sign Out** and **Erase** are full-width red destructive buttons at the
+  bottom of their Form sheets. They are not trailing toolbar actions.
+- Their labels use regular body weight rather than bold emphasis. Native
+  `borderedProminent` buttons own control geometry, pressed behavior,
+  accessibility, and disabled presentation.
+- **Cancel** remains the only toolbar action in both sheets.
+- Wipe-enabled **Sign Out** and **Erase** remain disabled until their required
+  confirmation input matches. **Sign Out** keeps the same red destructive
+  treatment when wiping is off.
+
+## WN-PROTOTYPE-0017 — Large confirmation sheets with Close controls
+
+- Date: 2026-08-05
+- Status: Approved; supersedes only sheet detents, dismissal controls, and
+  action-width details in WN-PROTOTYPE-0016
+
+- Sign Out and Erase App Data always use the large sheet detent. They don't
+  offer a compact medium presentation.
+- A native leading `xmark` button is each sheet's sole toolbar action. The
+  system toolbar supplies its Liquid Glass treatment; the app adds no custom
+  background or geometry.
+- Sign Out and Erase remove the standard Form row inset around their final
+  actions so each visible destructive button spans the complete grouped
+  content width.
+- Profile-name confirmation uses local TextField state and native focus. Its
+  enabled state updates directly as the person types the matching name.

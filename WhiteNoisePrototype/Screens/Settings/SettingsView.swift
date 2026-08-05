@@ -69,33 +69,39 @@ enum SettingsDestination: String, CaseIterable, Hashable {
 }
 
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-
     @Binding private var profiles: [PrototypeProfile]
     @Binding private var activeProfileID: String
+    @Binding private var signedInProfileIDs: Set<String>
     @Binding private var settings: PrototypeSettingsState
 
     private let onSignOut: (String) -> Void
-    private let onRemoveProfile: (String) -> Void
+    private let onWipeProfile: (String) -> Void
+    private let onEraseAllAppData: () -> Void
+    private let onAddProfile: () -> Void
 
     @State private var isShowingProfileSwitcher = false
-    @State private var isShowingAddProfile = false
+    @State private var isShowingSignOut = false
     @State private var showAddProfileAfterSwitcherCloses = false
     @State private var switchingProfileID: String?
-    @State private var switchTask: Task<Void, Never>?
 
     init(
         profiles: Binding<[PrototypeProfile]>,
         activeProfileID: Binding<String>,
+        signedInProfileIDs: Binding<Set<String>>,
         settings: Binding<PrototypeSettingsState>,
         onSignOut: @escaping (String) -> Void = { _ in },
-        onRemoveProfile: @escaping (String) -> Void = { _ in }
+        onWipeProfile: @escaping (String) -> Void = { _ in },
+        onEraseAllAppData: @escaping () -> Void = {},
+        onAddProfile: @escaping () -> Void = {}
     ) {
         _profiles = profiles
         _activeProfileID = activeProfileID
+        _signedInProfileIDs = signedInProfileIDs
         _settings = settings
         self.onSignOut = onSignOut
-        self.onRemoveProfile = onRemoveProfile
+        self.onWipeProfile = onWipeProfile
+        self.onEraseAllAppData = onEraseAllAppData
+        self.onAddProfile = onAddProfile
     }
 
     var body: some View {
@@ -122,17 +128,33 @@ struct SettingsView: View {
             ])
 
             Section {
-                destinationLink(.signOut)
+                Button {
+                    isShowingSignOut = true
+                } label: {
+                    SettingsDestinationLabel(destination: .signOut)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                }
+                .accessibilityIdentifier("settings.signOut")
             } footer: {
                 Text(appVersion)
                     .frame(maxWidth: .infinity)
             }
         }
+        .accessibilityIdentifier("settings.screen")
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isShowingAddProfile) {
-            AddProfileFlow { profile in
-                addOrActivate(profile)
+        .sheet(isPresented: $isShowingSignOut) {
+            if let activeProfile {
+                SignOutPrototypeView(
+                    profile: activeProfile,
+                    onSignOut: {
+                        onSignOut(activeProfile.id)
+                    },
+                    onWipeProfile: {
+                        onWipeProfile(activeProfile.id)
+                    }
+                )
             }
         }
         .sheet(
@@ -143,19 +165,16 @@ struct SettingsView: View {
                 }
 
                 showAddProfileAfterSwitcherCloses = false
-                isShowingAddProfile = true
+                onAddProfile()
             }
         ) {
             ProfileSwitcherSheet(
-                profiles: profiles,
+                profiles: signedInProfiles,
                 activeProfileID: activeProfileID,
                 switchingProfileID: switchingProfileID,
                 onSelectProfile: switchProfile,
                 onAddProfile: beginAddingProfile
             )
-        }
-        .onDisappear {
-            switchTask?.cancel()
         }
     }
 
@@ -198,7 +217,7 @@ struct SettingsView: View {
 
     private var addProfileButton: some View {
         Button {
-            isShowingAddProfile = true
+            onAddProfile()
         } label: {
             Label(
                 "Add Profile",
@@ -259,7 +278,7 @@ struct SettingsView: View {
             .contentShape(.rect)
         }
         .accessibilityLabel("Switch Profile")
-        .accessibilityValue("\(profiles.count) profiles")
+        .accessibilityValue("\(signedInProfiles.count) profiles")
     }
 
     private func destinationSection(
@@ -280,6 +299,7 @@ struct SettingsView: View {
         } label: {
             SettingsDestinationLabel(destination: destination)
         }
+        .accessibilityIdentifier("settings.\(destination.rawValue)")
     }
 
     @ViewBuilder
@@ -300,7 +320,11 @@ struct SettingsView: View {
         case .appearance:
             AppearanceSettingsPrototypeView(settings: $settings)
         case .privacyAndSecurity:
-            PrivacySecurityPrototypeView(settings: $settings)
+            PrivacySecurityPrototypeView(
+                settings: $settings,
+                profiles: profiles,
+                onEraseAllAppData: onEraseAllAppData
+            )
         case .dataUsage:
             DataUsagePrototypeView(settings: $settings)
         case .relays:
@@ -331,43 +355,23 @@ struct SettingsView: View {
                 )
             }
         case .signOut:
-            if let activeProfile {
-                SignOutPrototypeView(
-                    profile: activeProfile,
-                    onSignOut: {
-                        onSignOut(activeProfile.id)
-                    },
-                    onRemoveProfile: {
-                        onRemoveProfile(activeProfile.id)
-                    }
-                )
-            }
+            EmptyView()
         }
     }
 
     private func switchProfile(to profileID: String) {
         guard switchingProfileID == nil,
               profileID != activeProfileID,
+              signedInProfileIDs.contains(profileID),
               profiles.contains(where: { $0.id == profileID })
         else {
             return
         }
 
         switchingProfileID = profileID
-        switchTask?.cancel()
-        switchTask = Task {
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled,
-                  profiles.contains(where: { $0.id == profileID })
-            else {
-                return
-            }
-
-            activeProfileID = profileID
-            switchingProfileID = nil
-            isShowingProfileSwitcher = false
-            dismiss()
-        }
+        activeProfileID = profileID
+        switchingProfileID = nil
+        isShowingProfileSwitcher = false
     }
 
     private func beginAddingProfile() {
@@ -377,25 +381,6 @@ struct SettingsView: View {
 
         showAddProfileAfterSwitcherCloses = true
         isShowingProfileSwitcher = false
-    }
-
-    private func addOrActivate(_ profile: PrototypeProfile) {
-        if !profiles.contains(where: { $0.id == profile.id }) {
-            profiles.append(profile)
-        }
-
-        for pseudonym in PrototypeProfile.showcasePseudonyms
-        where !profiles.contains(where: { $0.id == pseudonym.id }) {
-            profiles.append(pseudonym)
-        }
-
-        activeProfileID = profile.id
-        isShowingAddProfile = false
-
-        Task {
-            await Task.yield()
-            dismiss()
-        }
     }
 
     private var activeProfile: PrototypeProfile? {
@@ -413,7 +398,13 @@ struct SettingsView: View {
     }
 
     private var inactiveProfiles: [PrototypeProfile] {
-        profiles.filter { $0.id != activeProfileID }
+        signedInProfiles.filter {
+            $0.id != activeProfileID
+        }
+    }
+
+    private var signedInProfiles: [PrototypeProfile] {
+        profiles.filter { signedInProfileIDs.contains($0.id) }
     }
 
     private var appVersion: String {
@@ -428,14 +419,15 @@ struct SettingsView: View {
     }
 }
 
-private struct ProfileSwitcherSheet: View {
+struct ProfileSwitcherSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let profiles: [PrototypeProfile]
-    let activeProfileID: String
+    let activeProfileID: String?
     let switchingProfileID: String?
+    var showsCloseButton = true
     let onSelectProfile: (String) -> Void
-    let onAddProfile: () -> Void
+    let onAddProfile: (() -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -459,35 +451,43 @@ private struct ProfileSwitcherSheet: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(switchingProfileID != nil)
+                        .accessibilityIdentifier(
+                            "profile-switcher.profile.\(profile.id)"
+                        )
                     }
                 }
             }
+            .accessibilityIdentifier("profile-switcher.list")
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color(uiColor: .systemGroupedBackground))
             .safeAreaBar(edge: .bottom) {
-                Button(action: onAddProfile) {
-                    Label(
-                        "Add Profile",
-                        systemImage: "person.crop.circle.badge.plus"
-                    )
-                    .frame(maxWidth: .infinity)
+                if let onAddProfile {
+                    Button(action: onAddProfile) {
+                        Label(
+                            "Add Profile",
+                            systemImage: "person.crop.circle.badge.plus"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.extraLarge)
+                    .disabled(switchingProfileID != nil)
+                    .padding()
                 }
-                .buttonStyle(.glassProminent)
-                .controlSize(.extraLarge)
-                .disabled(switchingProfileID != nil)
-                .padding()
             }
             .scrollEdgeEffectStyle(.soft, for: .bottom)
             .navigationTitle("Switch Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Label("Close", systemImage: "xmark")
-                            .labelStyle(.iconOnly)
+                if showsCloseButton {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Label("Close", systemImage: "xmark")
+                                .labelStyle(.iconOnly)
+                        }
                     }
                 }
             }
@@ -509,7 +509,8 @@ private struct ProfileSwitcherSheet: View {
             ProgressView()
                 .controlSize(.small)
                 .accessibilityLabel("Switching profile")
-        } else if profile.id == activeProfileID {
+        } else if let activeProfileID,
+                  profile.id == activeProfileID {
             Image(systemName: "checkmark")
                 .fontWeight(.semibold)
                 .accessibilityLabel("Current profile")
@@ -519,7 +520,11 @@ private struct ProfileSwitcherSheet: View {
     }
 
     private var orderedProfiles: [PrototypeProfile] {
-        profiles.filter { $0.id == activeProfileID }
+        guard let activeProfileID else {
+            return profiles
+        }
+
+        return profiles.filter { $0.id == activeProfileID }
             + profiles.filter { $0.id != activeProfileID }
     }
 }
@@ -529,9 +534,7 @@ private struct SettingsDestinationLabel: View {
 
     var body: some View {
         Label(destination.title, systemImage: destination.symbol)
-            .foregroundStyle(
-                destination == .signOut ? .red : .primary
-            )
+            .foregroundStyle(.primary)
     }
 }
 
@@ -599,6 +602,7 @@ private extension View {
 private struct SettingsPreviewHost: View {
     @State private var profiles: [PrototypeProfile]
     @State private var activeProfileID: String
+    @State private var signedInProfileIDs: Set<String>
     @State private var settings = PrototypeSettingsState()
 
     init(
@@ -607,6 +611,9 @@ private struct SettingsPreviewHost: View {
     ) {
         _profiles = State(initialValue: profiles)
         _activeProfileID = State(initialValue: activeProfileID)
+        _signedInProfileIDs = State(
+            initialValue: Set(profiles.map(\.id))
+        )
     }
 
     var body: some View {
@@ -614,6 +621,7 @@ private struct SettingsPreviewHost: View {
             SettingsView(
                 profiles: $profiles,
                 activeProfileID: $activeProfileID,
+                signedInProfileIDs: $signedInProfileIDs,
                 settings: $settings
             )
         }
@@ -633,23 +641,23 @@ private struct SettingsPreviewHost: View {
     SettingsPreviewHost(
         profiles: [
             .marmota,
-            .signedUp(name: "Pebble"),
+            .pebble,
         ],
-        activeProfileID: "added-profile"
+        activeProfileID: PrototypeProfile.pebble.id
     )
 }
 
 #Preview("Settings — Seven Profiles") {
     SettingsPreviewHost(
         profiles: PrototypeProfile.postAddProfileFixtures,
-        activeProfileID: "added-profile"
+        activeProfileID: PrototypeProfile.pebble.id
     )
 }
 
 #Preview("Profile Switcher") {
     ProfileSwitcherSheet(
         profiles: PrototypeProfile.postAddProfileFixtures,
-        activeProfileID: "added-profile",
+        activeProfileID: PrototypeProfile.pebble.id,
         switchingProfileID: nil,
         onSelectProfile: { _ in },
         onAddProfile: {}
@@ -660,7 +668,7 @@ private struct SettingsPreviewHost: View {
 #Preview("Profile Switcher — Switching") {
     ProfileSwitcherSheet(
         profiles: PrototypeProfile.postAddProfileFixtures,
-        activeProfileID: "added-profile",
+        activeProfileID: PrototypeProfile.pebble.id,
         switchingProfileID: PrototypeProfile.openQuill.id,
         onSelectProfile: { _ in },
         onAddProfile: {}
@@ -676,6 +684,9 @@ private struct SettingsAlternateProfilePreview: View {
     @State private var profiles =
         PrototypeProfile.multipleProfileFixtures
     @State private var activeProfileID = PrototypeProfile.openQuill.id
+    @State private var signedInProfileIDs = Set(
+        PrototypeProfile.multipleProfileFixtures.map(\.id)
+    )
     @State private var settings = PrototypeSettingsState()
 
     var body: some View {
@@ -683,6 +694,7 @@ private struct SettingsAlternateProfilePreview: View {
             SettingsView(
                 profiles: $profiles,
                 activeProfileID: $activeProfileID,
+                signedInProfileIDs: $signedInProfileIDs,
                 settings: $settings
             )
         }

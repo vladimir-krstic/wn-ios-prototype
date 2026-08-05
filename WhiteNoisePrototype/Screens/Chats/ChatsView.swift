@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ChatsView<SettingsContent: View>: View {
+struct ChatsView: View {
     enum ChatScope: String, CaseIterable, Identifiable {
         case all
         case unread
@@ -51,7 +51,7 @@ struct ChatsView<SettingsContent: View>: View {
     @FocusState private var isSearchFocused: Bool
 
     let profile: PrototypeProfile
-    let settingsDestination: SettingsContent
+    let onOpenSettings: () -> Void
     let onNewMessage: () -> Void
 
     init(
@@ -64,11 +64,11 @@ struct ChatsView<SettingsContent: View>: View {
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
         profile: PrototypeProfile = .marmota,
-        @ViewBuilder settingsDestination: () -> SettingsContent,
+        onOpenSettings: @escaping () -> Void = {},
         onNewMessage: @escaping () -> Void
     ) {
         self.profile = profile
-        self.settingsDestination = settingsDestination()
+        self.onOpenSettings = onOpenSettings
         self.onNewMessage = onNewMessage
         _chats = chats
         _supportMessages = supportMessages
@@ -193,9 +193,7 @@ struct ChatsView<SettingsContent: View>: View {
     }
 
     private var profileNavigationLink: some View {
-        NavigationLink {
-            settingsDestination
-        } label: {
+        Button(action: onOpenSettings) {
             ProfileAvatarView(
                 profile: profile,
                 size: 44
@@ -203,6 +201,7 @@ struct ChatsView<SettingsContent: View>: View {
         }
         .buttonStyle(ProfileAvatarNavigationStyle())
         .accessibilityLabel("Profile")
+        .accessibilityIdentifier("chats.profile")
     }
 
     private var newMessageAccessibilityHint: String {
@@ -424,7 +423,7 @@ private struct ProfileAvatarNavigationStyle: ButtonStyle {
     }
 }
 
-extension ChatsView where SettingsContent == EmptyView {
+extension ChatsView {
     init(
         chats: [ChatListItem],
         initialScope: ChatScope = .all,
@@ -438,9 +437,6 @@ extension ChatsView where SettingsContent == EmptyView {
             initialScope: initialScope,
             initialSearchText: initialSearchText,
             profile: profile,
-            settingsDestination: {
-                EmptyView()
-            },
             onNewMessage: onNewMessage
         )
     }

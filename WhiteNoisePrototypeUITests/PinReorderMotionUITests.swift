@@ -17,16 +17,16 @@ final class PinReorderMotionUITests: XCTestCase {
         XCTAssertTrue(createProfile.waitForExistence(timeout: 3))
         createProfile.tap()
 
-        let nora = app.cells["chat.nora-bennett"]
-        XCTAssertTrue(nora.waitForExistence(timeout: 5))
-        nora.swipeRight()
+        let hal = app.cells["chat.hal-finney"]
+        XCTAssertTrue(hal.waitForExistence(timeout: 5))
+        hal.swipeRight()
 
         let pin = app.buttons["Pin"].firstMatch
         XCTAssertTrue(pin.waitForExistence(timeout: 2))
         pin.tap()
 
-        let leo = app.cells["chat.leo-martins"]
-        XCTAssertTrue(leo.waitForExistence(timeout: 2))
-        XCTAssertLessThan(nora.frame.minY, leo.frame.minY)
+        let judith = app.cells["chat.judith-milhon"]
+        XCTAssertTrue(judith.waitForExistence(timeout: 2))
+        XCTAssertLessThan(hal.frame.minY, judith.frame.minY)
     }
 }

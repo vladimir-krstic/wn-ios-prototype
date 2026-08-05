@@ -1,0 +1,180 @@
+import XCTest
+
+@MainActor
+final class ProfileExitFlowUITests: XCTestCase {
+    func testSwitchingProfileReturnsToSettings() throws {
+        let app = XCUIApplication()
+        launchSignedInApp(app)
+        addSecondProfile(in: app)
+        openSettings(in: app)
+
+        let switchProfile = app.buttons["Switch Profile"]
+        XCTAssertTrue(switchProfile.waitForExistence(timeout: 3))
+        switchProfile.tap()
+
+        let marmota = app.buttons["profile-switcher.profile.marmota"]
+        XCTAssertTrue(marmota.waitForExistence(timeout: 3))
+        marmota.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["settings.screen"]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.navigationBars["Settings"].exists)
+        XCTAssertTrue(app.staticTexts["Marmota"].exists)
+    }
+
+    func testSignOutKeepsDataAndRoutesToProfileSwitcher() throws {
+        let app = XCUIApplication()
+        launchSignedInApp(app)
+        addSecondProfile(in: app)
+        openSettings(in: app)
+        openSignOut(in: app)
+
+        let signOut = app.buttons["sign-out.keep-data"]
+        XCTAssertTrue(signOut.waitForExistence(timeout: 3))
+        signOut.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["profile-switcher.list"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.navigationBars["Switch Profile"].exists)
+        XCTAssertFalse(app.buttons["welcome.sign-up"].exists)
+
+        let marmota = app.buttons["profile-switcher.profile.marmota"]
+        XCTAssertTrue(marmota.waitForExistence(timeout: 3))
+        marmota.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["settings.screen"]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.navigationBars["Settings"].exists)
+        XCTAssertTrue(app.staticTexts["Marmota"].exists)
+    }
+
+    func testSigningOutOnlyProfileRoutesToWelcome() throws {
+        let app = XCUIApplication()
+        launchSignedInApp(app)
+        openSettings(in: app)
+        openSignOut(in: app)
+
+        app.switches["sign-out.wipe-data-toggle"].tap()
+        app.buttons["sign-out.keep-data"].tap()
+
+        XCTAssertTrue(
+            app.buttons["welcome.sign-up"].waitForExistence(timeout: 5)
+        )
+        XCTAssertFalse(
+            app.descendants(matching: .any)["profile-switcher.list"].exists
+        )
+    }
+
+    func testWipingProfileWithAnotherSignedInProfileRoutesToSwitcher() throws {
+        let app = XCUIApplication()
+        launchSignedInApp(app)
+        addSecondProfile(in: app)
+        openSettings(in: app)
+        openSignOut(in: app)
+
+        confirmProfileWipe(named: "Pebble", in: app)
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["profile-switcher.list"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.navigationBars["Switch Profile"].exists)
+        XCTAssertFalse(app.buttons["welcome.sign-up"].exists)
+    }
+
+    func testWipingOnlyProfileRoutesToWelcome() throws {
+        let app = XCUIApplication()
+        launchSignedInApp(app)
+        openSettings(in: app)
+        openSignOut(in: app)
+
+        confirmProfileWipe(named: "Marmota", in: app)
+
+        XCTAssertTrue(
+            app.buttons["welcome.sign-up"].waitForExistence(timeout: 5)
+        )
+        XCTAssertFalse(
+            app.descendants(matching: .any)["profile-switcher.list"].exists
+        )
+    }
+
+    private func launchSignedInApp(_ app: XCUIApplication) {
+        app.launch()
+
+        let signUp = app.buttons["welcome.sign-up"]
+        XCTAssertTrue(signUp.waitForExistence(timeout: 3))
+        signUp.tap()
+
+        let createProfile = app.buttons["sign-up.create"]
+        XCTAssertTrue(createProfile.waitForExistence(timeout: 3))
+        createProfile.tap()
+
+        XCTAssertTrue(
+            app.buttons["chats.profile"].waitForExistence(timeout: 5)
+        )
+    }
+
+    private func addSecondProfile(in app: XCUIApplication) {
+        openSettings(in: app)
+
+        let addProfile = app.buttons["Add Profile"]
+        XCTAssertTrue(addProfile.waitForExistence(timeout: 3))
+        addProfile.tap()
+
+        let signUp = app.buttons["welcome.sign-up"]
+        XCTAssertTrue(signUp.waitForExistence(timeout: 3))
+        signUp.tap()
+
+        let createProfile = app.buttons["sign-up.create"]
+        XCTAssertTrue(createProfile.waitForExistence(timeout: 3))
+        createProfile.tap()
+        XCTAssertTrue(createProfile.waitForNonExistence(timeout: 5))
+
+        XCTAssertTrue(
+            app.navigationBars["Settings"].isHittable
+                || app.buttons["chats.profile"].waitForExistence(timeout: 5)
+        )
+    }
+
+    private func openSettings(in app: XCUIApplication) {
+        if app.navigationBars["Settings"].isHittable {
+            return
+        }
+
+        let profile = app.buttons["chats.profile"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 3))
+        profile.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 3))
+    }
+
+    private func openSignOut(in app: XCUIApplication) {
+        let signOut = app.descendants(matching: .any)["settings.signOut"]
+        for _ in 0..<6 where !signOut.isHittable {
+            app.swipeUp()
+        }
+
+        XCTAssertTrue(signOut.waitForExistence(timeout: 3))
+        signOut.tap()
+        XCTAssertTrue(app.navigationBars["Sign Out"].waitForExistence(timeout: 3))
+    }
+
+    private func confirmProfileWipe(
+        named profileName: String,
+        in app: XCUIApplication
+    ) {
+        let field = app.textFields["wipe-profile.confirmation-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.tap()
+        field.typeText(profileName)
+
+        let confirm = app.buttons["wipe-profile.confirm"]
+        XCTAssertTrue(confirm.isEnabled)
+        confirm.tap()
+    }
+}

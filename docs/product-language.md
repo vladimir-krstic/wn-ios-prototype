@@ -32,6 +32,19 @@ inventing translated strings.
 - Do not repeat a navigation title in the first line of body copy.
 - Label buttons with the result: **Sign In**, **Retry**, **Open Settings**,
   **Remove Profile**.
+- Use **Sign Out** for the session-ending action. In its confirmation sheet,
+  **Wipe Data From This Device** is selected by default; when it is selected,
+  state that the profile and local data are permanently removed and previous
+  chats won't return. Keep the final **Sign Out** role destructive whether
+  wiping is selected or not; present it as a full-width red in-sheet action
+  with a regular-weight label.
+- Use **Erase App Data** for the uncommon device-wide destructive action.
+  State that it signs out every profile and permanently removes all local White
+  Noise data. Use **Erase** for the final full-width red in-sheet action. Do
+  not offer or refer to a device-wide sign-out that retains local data.
+- Sign Out and Erase App Data are large confirmation sheets. Use the leading
+  Close icon for dismissal; don't add a trailing completion action or a text
+  **Cancel** button to these sheets.
 - Use **Cancel** for cancellation and the exact destructive action in a
   confirmation.
 - Avoid **OK**, **Submit**, **Proceed**, **Yes**, and **No** when a clearer action
@@ -51,7 +64,8 @@ inventing translated strings.
 
 - State what is absent in the current context and offer the most useful next
   action when one exists.
-- Use the action in progress: **Signing In…**, **Creating Profile…**.
+- Use the action in progress: **Signing In…**, **Creating Profile…**,
+  **Signing out…**, **Signing out and wiping data…**.
 - Keep progress labels stable and near the initiating action.
 - Confirm the result without *successfully*: **Profile Created**, **Copied**.
 - Do not add success copy when the resulting screen already makes the outcome

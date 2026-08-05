@@ -14,11 +14,13 @@ private struct PrototypeRootView: View {
     private enum RootDestination {
         case welcome
         case chats
+        case profileSwitcher
     }
 
     private enum OnboardingPresentation: String, Identifiable {
         case signIn
         case signUp
+        case addProfile
 
         var id: Self { self }
     }
@@ -27,11 +29,17 @@ private struct PrototypeRootView: View {
     @State private var onboardingPresentation: OnboardingPresentation?
     @State private var profiles = PrototypeProfile.initialProfiles
     @State private var activeProfileID = PrototypeProfile.marmota.id
+    @State private var signedInProfileIDs = Set(
+        PrototypeProfile.initialProfiles.map(\.id)
+    )
     @State private var settings = PrototypeSettingsState()
+    @State private var isShowingSettings = false
+    @State private var dismissesAddProfileAfterSettingsRemoval = false
 
     var body: some View {
         Group {
-            if rootDestination == .chats {
+            switch rootDestination {
+            case .chats:
                 NavigationStack {
                     ChatsView(
                         chats: activeChats,
@@ -41,20 +49,38 @@ private struct PrototypeRootView: View {
                         relayConfiguration:
                             activeProfileBinding.relayConfiguration,
                         profile: activeProfile,
-                        settingsDestination: {
-                            SettingsView(
-                                profiles: $profiles,
-                                activeProfileID: $activeProfileID,
-                                settings: $settings,
-                                onSignOut: signOut,
-                                onRemoveProfile: removeProfile
-                            )
+                        onOpenSettings: {
+                            isShowingSettings = true
                         },
                         onNewMessage: {}
                     )
-                    .id(activeProfile.id)
+                    .navigationDestination(
+                        isPresented: $isShowingSettings
+                    ) {
+                            SettingsView(
+                                profiles: $profiles,
+                                activeProfileID: $activeProfileID,
+                                signedInProfileIDs: $signedInProfileIDs,
+                                settings: $settings,
+                                onSignOut: signOut,
+                                onWipeProfile: wipeProfile,
+                                onEraseAllAppData: eraseAllAppData,
+                                onAddProfile: {
+                                    onboardingPresentation = .addProfile
+                                }
+                            )
+                    }
                 }
-            } else {
+            case .profileSwitcher:
+                ProfileSwitcherSheet(
+                    profiles: signedInProfiles,
+                    activeProfileID: nil,
+                    switchingProfileID: nil,
+                    showsCloseButton: false,
+                    onSelectProfile: activateProfile,
+                    onAddProfile: nil
+                )
+            case .welcome:
                 NavigationStack {
                     WelcomeView(
                         onLogin: {
@@ -78,6 +104,27 @@ private struct PrototypeRootView: View {
                 InitialSignUpSheet { name in
                     completeInitialSignUp(name: name)
                 }
+            case .addProfile:
+                AddProfileFlow { profile in
+                    completeAddedProfile(profile)
+                }
+            }
+        }
+        .onChange(of: isShowingSettings) { _, isShowingSettings in
+            guard !isShowingSettings,
+                  dismissesAddProfileAfterSettingsRemoval
+            else {
+                return
+            }
+
+            dismissesAddProfileAfterSettingsRemoval = false
+
+            Task { @MainActor in
+                await Task.yield()
+                guard onboardingPresentation == .addProfile else {
+                    return
+                }
+                onboardingPresentation = nil
             }
         }
     }
@@ -122,62 +169,108 @@ private struct PrototypeRootView: View {
     }
 
     private func completeInitialSignIn() {
-        if profiles.isEmpty {
-            profiles = [.marmota]
-            activeProfileID = PrototypeProfile.marmota.id
-        } else if !profiles.contains(where: { $0.id == activeProfileID }),
-                  let firstProfile = profiles.first {
-            activeProfileID = firstProfile.id
-        }
+        activateStoredOrNewProfile(.marmota)
 
         onboardingPresentation = nil
+        isShowingSettings = false
         rootDestination = .chats
     }
 
     private func completeInitialSignUp(name: String) {
-        if profiles.isEmpty {
-            let profile = PrototypeProfile.signedUp(name: name)
-            profiles = [profile]
-            activeProfileID = profile.id
-        } else {
-            updateInitialProfileName(name)
-        }
+        let profile = PrototypeProfile.initialSignUp(name: name)
+        activateStoredOrNewProfile(profile, updatesStoredName: true)
 
         onboardingPresentation = nil
+        isShowingSettings = false
         rootDestination = .chats
     }
 
-    private func updateInitialProfileName(_ name: String) {
-        let normalizedName = name.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        guard !normalizedName.isEmpty,
-              let index = profiles.firstIndex(
-                where: { $0.id == PrototypeProfile.marmota.id }
-              )
-        else {
+    private func signOut(_ profileID: String) {
+        signedInProfileIDs.remove(profileID)
+        finishProfileExit()
+    }
+
+    private func wipeProfile(_ profileID: String) {
+        signedInProfileIDs.remove(profileID)
+        profiles.removeAll { $0.id == profileID }
+        finishProfileExit()
+    }
+
+    private func eraseAllAppData() {
+        signedInProfileIDs.removeAll()
+        profiles.removeAll()
+        activeProfileID = PrototypeProfile.marmota.id
+        settings = PrototypeSettingsState()
+        onboardingPresentation = nil
+        isShowingSettings = false
+        rootDestination = .welcome
+    }
+
+    private func completeAddedProfile(_ profile: PrototypeProfile) {
+        activateStoredOrNewProfile(profile)
+
+        for pseudonym in PrototypeProfile.showcasePseudonyms {
+            if !profiles.contains(where: { $0.id == pseudonym.id }) {
+                profiles.append(pseudonym)
+            }
+            signedInProfileIDs.insert(pseudonym.id)
+        }
+
+        dismissesAddProfileAfterSettingsRemoval = true
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            rootDestination = .chats
+            isShowingSettings = false
+        }
+    }
+
+    private func activateStoredOrNewProfile(
+        _ profile: PrototypeProfile,
+        updatesStoredName: Bool = false
+    ) {
+        if let index = profiles.firstIndex(
+            where: { $0.id == profile.id }
+        ) {
+            if updatesStoredName {
+                profiles[index].name = profile.name
+            }
+        } else {
+            profiles.append(profile)
+        }
+
+        activeProfileID = profile.id
+        signedInProfileIDs.insert(profile.id)
+    }
+
+    private func finishProfileExit() {
+        isShowingSettings = false
+
+        switch ProfileExitRouting.destination(
+            remainingSignedInProfileIDs: signedInProfileIDs
+        ) {
+        case .profileSwitcher:
+            rootDestination = .profileSwitcher
+        case .welcome:
+            rootDestination = .welcome
+        }
+    }
+
+    private func activateProfile(_ profileID: String) {
+        guard profiles.contains(where: { $0.id == profileID }) else {
             return
         }
 
-        profiles[index].name = normalizedName
+        signedInProfileIDs.insert(profileID)
+        activeProfileID = profileID
+        rootDestination = .chats
+        isShowingSettings = true
     }
 
-    private func signOut(_ profileID: String) {
-        if let nextProfile = profiles.first(where: { $0.id != profileID }) {
-            activeProfileID = nextProfile.id
-        } else {
-            rootDestination = .welcome
-        }
-    }
-
-    private func removeProfile(_ profileID: String) {
-        profiles.removeAll { $0.id == profileID }
-
-        if let nextProfile = profiles.first {
-            activeProfileID = nextProfile.id
-        } else {
-            rootDestination = .welcome
-        }
+    private var signedInProfiles: [PrototypeProfile] {
+        profiles.filter { signedInProfileIDs.contains($0.id) }
     }
 }
 

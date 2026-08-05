@@ -3,6 +3,10 @@ import SwiftUI
 
 struct PrivacySecurityPrototypeView: View {
     @Binding var settings: PrototypeSettingsState
+    @State private var isShowingEraseAllAppData = false
+
+    let profiles: [PrototypeProfile]
+    let onEraseAllAppData: () -> Void
 
     var body: some View {
         Form {
@@ -11,6 +15,8 @@ struct PrivacySecurityPrototypeView: View {
                     "Hide Screen in App Switcher",
                     isOn: $settings.hideScreenInAppSwitcher
                 )
+            } header: {
+                Text("App Security")
             } footer: {
                 Text(
                     "Hides your conversations and profile details in the app switcher."
@@ -50,9 +56,29 @@ struct PrivacySecurityPrototypeView: View {
                     Text("Set an iPhone passcode to require Face ID.")
                 }
             }
+
+            Section {
+                Button("Erase App Data", role: .destructive) {
+                    isShowingEraseAllAppData = true
+                }
+                .accessibilityIdentifier("privacy.erase-all-app-data")
+            } header: {
+                Text("Device Data")
+            } footer: {
+                Text(
+                    "Signs out every profile and permanently removes all White Noise data from this iPhone."
+                )
+            }
+
         }
         .navigationTitle("Privacy & Security")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isShowingEraseAllAppData) {
+            EraseAllAppDataView(
+                profileIDs: profiles.map(\.id),
+                onErase: onEraseAllAppData
+            )
+        }
     }
 }
 
@@ -687,7 +713,11 @@ private struct AddRelaySheet: View {
     @Previewable @State var settings = PrototypeSettingsState()
 
     NavigationStack {
-        PrivacySecurityPrototypeView(settings: $settings)
+        PrivacySecurityPrototypeView(
+            settings: $settings,
+            profiles: PrototypeProfile.multipleProfileFixtures,
+            onEraseAllAppData: {}
+        )
     }
 }
 
@@ -697,7 +727,11 @@ private struct AddRelaySheet: View {
     )
 
     NavigationStack {
-        PrivacySecurityPrototypeView(settings: $settings)
+        PrivacySecurityPrototypeView(
+            settings: $settings,
+            profiles: PrototypeProfile.multipleProfileFixtures,
+            onEraseAllAppData: {}
+        )
     }
 }
 
@@ -707,7 +741,11 @@ private struct AddRelaySheet: View {
     )
 
     NavigationStack {
-        PrivacySecurityPrototypeView(settings: $settings)
+        PrivacySecurityPrototypeView(
+            settings: $settings,
+            profiles: PrototypeProfile.multipleProfileFixtures,
+            onEraseAllAppData: {}
+        )
     }
 }
 

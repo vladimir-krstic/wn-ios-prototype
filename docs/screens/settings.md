@@ -12,7 +12,7 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
 - The active profile row shows its 56-point avatar, name, shortened public key, QR symbol, and the native disclosure indicator. It pushes **Share & Connect** inside the existing Settings navigation stack.
 - The initial **Marmota** profile alone uses the bundled, user-supplied marmot photo. **Pebble** uses a distinct stone photograph, and Sign In creates **Open Circuit** with its own communications-history artwork.
 - A normal first Sign In or Sign Up session stores exactly one active profile. No inactive profile is preloaded.
-- Completing the first **Add Profile** flow also reveals the deterministic pseudonym set used to exercise multi-profile management. The newly added profile becomes active, and Settings immediately presents the compact three-avatar-plus-overflow switcher row.
+- Completing the first **Add Profile** flow also reveals the deterministic pseudonym set used to exercise multi-profile management. The newly added profile becomes active and the onboarding sheet dismisses directly to Chats. The next Settings visit presents the compact three-avatar-plus-overflow switcher row.
 - Profile management adapts to stored profile count:
   - One profile: **Add Profile**, which opens onboarding directly rather than presenting the switcher.
   - Two profiles: the newly added alternate profile identity.
@@ -217,8 +217,9 @@ not require the source pages during normal work.
 ### Privacy & Security
 
 - Privacy & Security uses two separate native Form sections so each independent
-  preference has its own explanation. There is no redundant section header,
-  and no icons or custom control styling are added.
+  preference has its own explanation. **App Security** appears above the first
+  section as the shared heading for **Hide Screen in App Switcher** and
+  **Require Face ID**. No icons or custom control styling are added.
 - **Hide Screen in App Switcher** replaces sensitive content before UIKit
   captures the app-switcher snapshot. Its footer reads **Hides your
   conversations and profile details in the app switcher.** It does not claim
@@ -231,6 +232,10 @@ not require the source pages during normal work.
   Require Face ID is disabled with **Set an iPhone passcode to require Face
   ID.**
 - Enabling Require Face ID reveals the native **Auto-Lock** picker.
+- **Device Data** contains one destructive **Erase App Data** action. Its
+  footer reads **Signs out every profile and permanently removes all White
+  Noise data from this iPhone.** The action opens the confirmation task
+  specified in [`sign-out.md`](sign-out.md).
 - The Signal App Security structure was accepted as optional comparison
   evidence. The local requirements above are complete and do not depend on
   Signal's repository or continued access to it.
@@ -485,9 +490,24 @@ and does not require these sites during normal work.
 
 ### Sign Out
 
-- **Sign Out** is reversible and preserves the in-memory profile for switching.
-- **Sign Out and Remove Data** is destructive and requires a separate named confirmation.
-- Both operations use stable progress before returning to another profile or Welcome.
+- The complete flow is governed by
+  [`docs/screens/sign-out.md`](sign-out.md).
+- The neutral **Sign Out** Settings row opens one native Form sheet rather than
+  pushing a destination.
+- **Wipe Data From This Device** starts on. With it off, **Sign Out** ends only
+  the active session and preserves local data. With it on, exact profile-name
+  confirmation is required. The final Sign Out action is a full-width red
+  destructive button inside the Form in both states. The large-only sheet uses
+  a leading native X as its sole toolbar action.
+- After a single-profile exit, remaining signed-in profiles appear in the
+  native switcher as the root view; with none remaining, the app returns to
+  Welcome. Selecting from either switcher opens Settings for the selected
+  profile.
+- Device-wide sign-out without erasure is not offered. **Erase App Data**
+  lives in Privacy & Security, requires the deterministic three-word
+  confirmation phrase, uses a full-width red destructive Erase button inside
+  the Form, and presents as a large-only sheet with a leading native X. It
+  resets all app-owned state and returns to Welcome.
 
 ## Native implementation rules
 
@@ -602,7 +622,7 @@ need to open them to implement or evaluate Settings.
 - The public key remains compact, copies in full, and keeps its final four
   characters visible.
 - After the first Sign In or Sign Up, Settings contains one profile and displays **Add Profile** instead of **Switch Profile**.
-- Completing Sign In or Sign Up from **Add Profile** appends or reactivates that profile, reveals the deterministic pseudonym set, makes the added profile active, and changes profile management to the multi-profile presentation.
+- Completing Sign In or Sign Up from **Add Profile** appends or reactivates that profile, reveals the deterministic pseudonym set, makes the added profile active, and dismisses the onboarding sheet directly onto Chats. Settings is removed beneath the still-opaque sheet without a visible Back or side-transition animation; the native sheet dismissal begins on the following render turn and reopening Settings shows the multi-profile presentation.
 - Profile editing, sharing, switching, adding, signing out, and removing update only deterministic in-memory state.
 - Every visible settings control works or presents a deterministic outcome without exposing prototype implementation language.
 - Relay configuration is independent per profile. The Relays overview stays

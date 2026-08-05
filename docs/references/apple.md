@@ -42,8 +42,9 @@ pattern in the screen brief.
 | --- | --- | --- | --- | --- |
 | [Writing for interfaces](https://developer.apple.com/videos/play/wwdc2022/10037/) | Purposeful, contextual, empathetic interface language | Writing titles, actions, help, empty states, or recovery | All product copy | 2026-07-31 |
 | [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) | Alert necessity, titles, messages, actions, and tone | Adding interruption, warning, or destructive confirmation | Settings, Chats, onboarding | 2026-08-03 |
+| [Managing accounts](https://developer.apple.com/design/human-interface-guidelines/managing-accounts) | Clear account exit and deletion consequences | Designing sign-out or removal flows | Sign Out, app-data erasure | 2026-08-05 |
 | [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback) | Proportional, accessible status and result feedback | Confirming progress, success, failure, or correction | Copy actions, sending, relay recovery | 2026-08-03 |
-| [systemOrange](https://developer.apple.com/documentation/uikit/uicolor/systemorange) | Adaptive system orange for recoverable warning states | Presenting aggregate relay-recovery guidance without fixed RGB values | Relays, Chats recovery, conversation recovery | 2026-08-03 |
+| [systemOrange](https://developer.apple.com/documentation/uikit/uicolor/systemorange) | Adaptive system orange for warning states | Presenting warning guidance without fixed RGB values | Relays, Chats recovery, conversation recovery, app-data erasure | 2026-08-05 |
 | [systemRed](https://developer.apple.com/documentation/uikit/uicolor/systemred) | Adaptive system red for errors, destructive actions, and critical status | Presenting the user-approved disconnected endpoint status and destructive relay actions without fixed RGB values | Relays | 2026-08-03 |
 | [Standard colors](https://developer.apple.com/documentation/uikit/standard-colors) | Adaptive semantic system colors across appearances and accessibility settings | Selecting a semantic system color instead of a fixed RGB value | Status and recovery feedback | 2026-08-03 |
 | [Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy) | Contextual permission requests, transparency, and recovery | Requesting camera, photos, files, or other protected access | QR scanning, profile media | 2026-07-31 |
@@ -61,7 +62,8 @@ pattern in the screen brief.
 | [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink) | Native disclosure and value-driven navigation | Making a row or control reveal a destination | Chats, Settings | 2026-08-03 |
 | [ToolbarItemPlacement.primaryAction](https://developer.apple.com/documentation/swiftui/toolbaritemplacement/primaryaction) | Primary toolbar action placement in a pushed destination | Placing Profile's Edit and Done actions without modal confirmation semantics | Profile editing | 2026-08-03 |
 | [navigationBarBackButtonHidden](https://developer.apple.com/documentation/swiftui/view/navigationbarbackbuttonhidden(_:)) | Replacing the system Back action during a bounded edit state | Temporarily providing Cancel instead of leaving with an active draft | Profile editing | 2026-08-03 |
-| [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) | Scoped modal tasks, dismissal, and button placement | Deciding whether work belongs in a sheet | Sign In, Sign Up, switcher | 2026-07-31 |
+| [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) | Scoped modal tasks, dismissal, and button placement | Deciding whether work belongs in a sheet | Sign In, Sign Up, switcher, destructive confirmation | 2026-08-05 |
+| [Modality](https://developer.apple.com/design/human-interface-guidelines/modality) | Focused modal tasks, explicit completion, and avoiding data loss | Designing confirmation tasks that need dedicated context | Sign Out and wiping | 2026-08-05 |
 | [presentationDetents](https://developer.apple.com/documentation/swiftui/view/presentationdetents(_:)) | Native medium and large sheet heights | Supporting content-appropriate sheet sizing | Onboarding, profile switcher | 2026-07-31 |
 | [PresentationContentInteraction](https://developer.apple.com/documentation/swiftui/presentationcontentinteraction) | Sheet resizing versus scrolling priority | Resolving nested sheet/content gestures | Onboarding, profile switcher | 2026-07-31 |
 | [Presentation modifiers](https://developer.apple.com/documentation/swiftui/view-presentation) | SwiftUI sheet, cover, detent, background, and interaction APIs | Selecting a presentation API or behavior | Modal flows | 2026-07-31 |
@@ -73,7 +75,7 @@ pattern in the screen brief.
 
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
-| [Settings](https://developer.apple.com/design/human-interface-guidelines/settings) | Settings hierarchy, restraint, and system preference respect | Adding or reorganizing a preference | Settings | 2026-08-03 |
+| [Settings](https://developer.apple.com/design/human-interface-guidelines/settings) | Settings hierarchy, restraint, and system preference respect | Adding or reorganizing a preference | Settings | 2026-08-05 |
 | [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) | Row hierarchy, selection, editing, disclosure, and scanning | Designing list content or row interactions | Chats, relays, profiles | 2026-08-03 |
 | [Form](https://developer.apple.com/documentation/swiftui/form) | Native grouped data entry and settings structure | Building editable fields or preference groups | Sign Up, Settings | 2026-08-03 |
 | [List](https://developer.apple.com/documentation/swiftui/list) | Native rows, scrolling, separators, selection, and deletion | Implementing standard single-column collections | Settings, switcher | 2026-07-31 |
@@ -111,13 +113,14 @@ system.
 
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
-| [Buttons HIG](https://developer.apple.com/design/human-interface-guidelines/buttons) | Button hierarchy, labels, roles, and prominence | Choosing or reviewing an action treatment | All screens | 2026-08-03 |
+| [Buttons HIG](https://developer.apple.com/design/human-interface-guidelines/buttons) | Button hierarchy, labels, roles, and prominence | Choosing or reviewing an action treatment | All screens | 2026-08-05 |
 | [Button](https://developer.apple.com/documentation/swiftui/button) | Native activation, feedback, focus, and accessibility | Adding any actionable control | All screens | 2026-07-31 |
 | [ButtonBorderShape](https://developer.apple.com/documentation/swiftui/buttonbordershape) | System-owned button geometry | Choosing a supported bordered shape | Onboarding actions | 2026-07-31 |
 | [Picker](https://developer.apple.com/documentation/swiftui/picker) | Native single-choice selection | Selecting a mode or preference | Settings, Share & Connect | 2026-07-31 |
 | [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette) | Compact mutually exclusive palette selection | Presenting closely related modes in a toolbar | Share & Connect | 2026-07-31 |
 | [Segmented controls](https://developer.apple.com/design/human-interface-guidelines/segmented-controls) | Appropriate use of mutually exclusive segments | Comparing segmented and palette patterns | Share & Connect | 2026-07-31 |
-| [Toggle](https://developer.apple.com/documentation/swiftui/toggle) | Native binary preferences and semantics | Adding an on/off setting | Settings | 2026-08-03 |
+| [Toggle](https://developer.apple.com/documentation/swiftui/toggle) | Native binary preferences and semantics | Adding an on/off setting | Settings | 2026-08-05 |
+| [Entering data](https://developer.apple.com/design/human-interface-guidelines/entering-data) | Clear, minimal, forgiving data-entry tasks | Designing typed confirmation or other consequential input | Sign Out, app-data erasure | 2026-08-05 |
 | [Text fields HIG](https://developer.apple.com/design/human-interface-guidelines/text-fields) | Field purpose, labels, affordances, and validation | Designing any text-entry experience | Onboarding, conversation, Settings | 2026-07-31 |
 | [TextField](https://developer.apple.com/documentation/swiftui/textfield) | Native editable text, focus, submission, and multiline entry | Adding ordinary text entry | Sign Up, conversation, Settings | 2026-07-31 |
 | [SecureField](https://developer.apple.com/documentation/swiftui/securefield) | Native obscured sensitive entry | Entering private keys or backup passwords | Sign In, Profile Keys | 2026-07-31 |

@@ -21,7 +21,8 @@ authority by itself.
 | Return-access protection | **Require Face ID** | Face ID Lock, PIN Lock | Uses system device-owner authentication: Face ID first with the iPhone passcode as fallback. There is no separate White Noise PIN. |
 | App-switcher privacy | **Hide Screen in App Switcher** | Block Screenshots, Hide During Screen Capture | This setting affects the app-switcher snapshot only. It doesn’t promise screenshot or recording prevention. |
 | Stop using active profile while retaining it | **Sign Out** | Logout, remove account | State that the profile remains on this device when the consequence matters. |
-| Remove active profile and local data | **Sign Out and Remove Data** | Delete account, wipe identity | Destructive; explain what is removed and what remains elsewhere. |
+| Remove active profile and local data | **Wipe Data From This Device** within **Sign Out** | Delete account, wipe identity | Selected by default in the Sign Out sheet; explain that all local data is removed and previous chats don’t return after a later sign-in. |
+| Remove every profile and all local White Noise data | **Erase App Data** | Device-wide sign-out, wipe all profiles, reset app | Privacy & Security device action. Always destructive, requires the generated three-word confirmation phrase, and returns to Welcome. |
 | Remove another stored profile | **Remove Profile** | Delete account, wipe identity | Use for an inactive locally stored profile. |
 
 ## Technical-only terms

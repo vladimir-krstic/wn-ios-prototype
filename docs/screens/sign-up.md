@@ -50,7 +50,10 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Photos and Files present their system interfaces. No camera or broad photo-library permission is requested.
 - Sign Up preserves its normal dimensions, replaces its visible title with a centered spinner, prevents repeat activation, and exposes **Signing Up** and **In progress** to assistive technologies before invoking its callback.
 - The deterministic prototype processing state lasts two seconds so the stable loading treatment remains inspectable without slowing the flow.
-- The primary action's post-sign-up destination is intentionally deferred until that destination is selected for implementation.
+- Initial Sign Up and Add Profile both finish on Chats. Add Profile removes the
+  underlying Settings destination without animation while its onboarding sheet
+  remains visible. The sheet dismissal begins only on the following render turn,
+  after the navigation state has committed, and reveals Chats directly.
 
 ## Accessibility
 
@@ -75,8 +78,13 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 
 - **Sign Up** on Welcome presents a native large sheet; Close or swipe-down returns to Welcome.
 - **Sign Up** from Add Profile remains in the existing large onboarding sheet and native Back returns to its Welcome step.
+- Completing Sign In or Sign Up from Add Profile shows only the native onboarding-sheet dismissal and reveals Chats directly; Settings never appears or slides away between them.
 - The default Sign Up avatar shows **M** for **Marmota** before completion.
 - After Sign In or Sign Up completes, Chats and Settings show the bundled Marmota photo as the active profile avatar.
+- Wiping the last profile or erasing app data never changes fixture identity:
+  fresh Sign In or Sign Up recreates Marmota with the Marmota avatar, while
+  Add Profile Sign Up creates the separate Pebble profile with the Pebble
+  avatar and stable ID.
 - The avatar action is visually compact and clearly separated from the avatar.
 - The avatar-to-action spacing remains unchanged before and after selecting a photo.
 - Sign Up uses the same white system canvas as Welcome.
