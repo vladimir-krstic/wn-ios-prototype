@@ -42,6 +42,7 @@ struct ChatsView: View {
     @Binding private var supportMessages: [SupportConversationMessage]
     @Binding private var settings: PrototypeSettingsState
     @Binding private var relayConfiguration: PrototypeRelayConfiguration
+    @Binding private var developerTools: PrototypeDeveloperToolsState
     @State private var scope = ChatScope.all
     @State private var searchText = ""
     @State private var isSearchMounted = false
@@ -61,6 +62,9 @@ struct ChatsView: View {
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
             .fixtures
         ),
+        developerTools: Binding<PrototypeDeveloperToolsState> = .constant(
+            .fixtures()
+        ),
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
         profile: PrototypeProfile = .marmota,
@@ -74,6 +78,7 @@ struct ChatsView: View {
         _supportMessages = supportMessages
         _settings = settings
         _relayConfiguration = relayConfiguration
+        _developerTools = developerTools
         _scope = State(initialValue: initialScope)
         _searchText = State(initialValue: initialSearchText)
     }
@@ -138,7 +143,8 @@ struct ChatsView: View {
         ) {
             FiatjafConversationView(
                 settings: $settings,
-                relayConfiguration: $relayConfiguration
+                relayConfiguration: $relayConfiguration,
+                developerTools: $developerTools
             )
         }
         .navigationDestination(
@@ -148,6 +154,7 @@ struct ChatsView: View {
                 messages: $supportMessages,
                 chats: $chats,
                 settings: $settings,
+                developerTools: $developerTools,
                 senderName: profile.name
             )
         }

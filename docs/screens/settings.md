@@ -480,13 +480,83 @@ and does not require these sites during normal work.
 
 ### Developer Tools
 
-- Runtime, local signing state, profile identifier, fictional local hex key, and MarmotKit status.
-- Developer Mode and Streaming Debug controls.
-- Anonymous Telemetry.
-- Audit Logging, local audit-file details, and destructive Delete All Audit
-  Logs confirmation.
-- Key Packages list with fictional publish/delete behavior.
-- Diagnostics with relay health, runtime facts, deterministic self-check progress, and recent events.
+- Developer Tools is a team-only Form destination. Its first native section
+  uses semantic orange and states **For development and testing only** with
+  the detail **These tools can expose technical information and change how
+  the app behaves.** It is informational warning feedback, not a custom card.
+- Every profile owns its own Developer Tools state. A master **Developer
+  Tools** Toggle starts off for each profile and must be enabled before the
+  technical sections appear. Switching profiles immediately displays that
+  profile's independent settings and files.
+- Turning the master Toggle off stops Debug Mode, Anonymous Telemetry, and
+  Audit Logging for that profile. It preserves existing sanitized audit files
+  and the current key package so disabling the tools is not a destructive
+  action.
+- **Debug Mode** is independent from telemetry and logging while Developer
+  Tools is enabled. It immediately
+  adds a native `ladybug` toolbar action to the implemented Fiatjaf and White
+  Noise Support conversations. The action opens a read-only **Conversation
+  Debug** Form containing deterministic local conversation, participant,
+  message, routing-relay, push-diagnostics, and recent-event information.
+  Technical events never appear inside the normal conversation timeline.
+- **Diagnostics** is a focused event console. One persistent, adaptive
+  system-background group with continuous rounded corners fills the available
+  page beneath an **Events** header. Its deterministic local
+  events scroll inside that group; when the list is empty, the same group
+  contains a native **No Events** unavailable view instead of disappearing.
+- The **Events** and **Live** header content shares the console rows' horizontal
+  content margins, following grouped-list alignment rather than aligning text
+  against the rounded container's outer edge.
+- A system-green animated **Live** symbol plus the visible **Live** label
+  communicates active collection without relying on color alone. A native
+  toolbar Menu owns **Test** and **Clear Events** so secondary commands do not
+  compete with the console. **Clear Events** is a normal command, not a
+  destructive action, and the system disables it when there is nothing to
+  clear.
+- Diagnostics does not repeat runtime, profile, or relay-health summaries.
+- **Streaming Debug** is intentionally omitted. It duplicates Diagnostics and
+  would mix technical events into ordinary conversation timelines.
+- **Key Packages** is an isolated navigation row. Its destination displays
+  exactly one current key package. The row shows its identifier, published
+  time, and size without a separate synchronization label. Its only action is
+  **Publish New Key Package**, using the system shipping-box-and-arrow symbol.
+  Publishing replaces the displayed package with its newly published state;
+  no list management, deletion, or multi-package state is exposed.
+- **Anonymous Telemetry** remains off by default and independent from Debug
+  Mode for the selected profile. Its copy states that it shares anonymous
+  reliability and performance data without messages or profile keys.
+- **Audit Logging** is independent from Debug Mode and telemetry. Audit files
+  belong to the selected profile and are always sanitized. When logging is on,
+  the files appear directly below the Toggle in the same native Form section,
+  without exposing sandbox paths. Turning logging off hides the file rows and
+  stops logging but preserves the files.
+- **Clear Audit Logs** appears below the visible files and requires a native
+  destructive alert. Clearing removes the recorded contents from every audit
+  file while preserving each file, its metadata, and the enabled Audit Logging
+  preference. The file rows remain visible with zero-byte sizes after clearing.
+- **About** is the final section. It shows the bundle version and build plus
+  **MarmotKit (790eb860)**. It does not show an SDK version or claim a live
+  MarmotKit connection.
+- Governing Apple sources for Diagnostics: [Menus](https://developer.apple.com/design/human-interface-guidelines/menus),
+  [Menu](https://developer.apple.com/documentation/swiftui/menu),
+  [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars),
+  [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview),
+  [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview),
+  and [symbolEffect](https://developer.apple.com/documentation/swiftui/view/symboleffect(_:options:isactive:)).
+- Acceptance: the master gate and all child settings are profile-scoped; the
+  locked state reveals no technical sections; Debug Mode adds and removes both
+  conversation inspection actions immediately; exactly one key package is
+  present; audit-file visibility follows Audit Logging; clearing updates every
+  visible size without removing a file; and every diagnostic value remains
+  deterministic and process-local.
+- Governing Apple sources: [Settings](https://developer.apple.com/design/human-interface-guidelines/settings),
+  [Form](https://developer.apple.com/documentation/swiftui/form),
+  [Toggle](https://developer.apple.com/documentation/swiftui/toggle),
+  [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink),
+  [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts),
+  [Disclosure controls](https://developer.apple.com/design/human-interface-guidelines/disclosure-controls),
+  [SF Symbols](https://developer.apple.com/design/human-interface-guidelines/sf-symbols),
+  and [symbol effects](https://developer.apple.com/documentation/swiftui/view/symboleffect(_:options:isactive:)).
 
 ### Sign Out
 

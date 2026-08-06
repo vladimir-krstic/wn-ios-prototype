@@ -8,6 +8,7 @@ struct WhiteNoiseSupportConversationView: View {
     @Binding private var messages: [SupportConversationMessage]
     @Binding private var chats: [ChatListItem]
     @Binding private var settings: PrototypeSettingsState
+    @Binding private var developerTools: PrototypeDeveloperToolsState
     private let senderName: String
     @State private var draft = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -19,11 +20,15 @@ struct WhiteNoiseSupportConversationView: View {
         messages: Binding<[SupportConversationMessage]> = .constant([]),
         chats: Binding<[ChatListItem]> = .constant([]),
         settings: Binding<PrototypeSettingsState>,
+        developerTools: Binding<PrototypeDeveloperToolsState> = .constant(
+            .fixtures()
+        ),
         senderName: String = "Marmota"
     ) {
         _messages = messages
         _chats = chats
         _settings = settings
+        _developerTools = developerTools
         self.senderName = senderName
     }
 
@@ -85,6 +90,17 @@ struct WhiteNoiseSupportConversationView: View {
                 }
                 .accessibilityElement(children: .combine)
             }
+
+            if developerTools.isConversationDebugEnabled {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ConversationDebugPrototypeView(info: debugInfo)
+                    } label: {
+                        Image(systemName: "ladybug")
+                    }
+                    .accessibilityLabel("Conversation Debug")
+                }
+            }
         }
         .fileImporter(
             isPresented: $isFileImporterPresented,
@@ -109,6 +125,15 @@ struct WhiteNoiseSupportConversationView: View {
             append(.photo(data))
             self.selectedPhotoItem = nil
         }
+    }
+
+    private var debugInfo: PrototypeConversationDebugInfo {
+        PrototypeConversationDebugInfo.support(
+            messageCount: messages.count + 1,
+            pushDiagnosticsStatus: settings.nativePushEnabled
+                ? "Enabled"
+                : "Disabled"
+        )
     }
 
     private var supportGuidance: some View {

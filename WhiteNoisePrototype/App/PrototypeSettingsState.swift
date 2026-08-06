@@ -1,4 +1,107 @@
+import Foundation
 import SwiftUI
+
+enum PrototypeBuildMetadata {
+    static let marmotKitName = "MarmotKit"
+    static let marmotKitRevision = "790eb860"
+
+    static var builtOn: String {
+        "\(marmotKitName) (\(marmotKitRevision))"
+    }
+}
+
+struct PrototypeAuditFile: Identifiable, Equatable {
+    let id: String
+    let filename: String
+    var byteCount: Int
+    let creationDate: Date
+    let profileName: String
+
+    static func fixtures(
+        profileID: String,
+        profileName: String
+    ) -> [PrototypeAuditFile] {
+        [
+            PrototypeAuditFile(
+                id: "audit-\(profileID)-01",
+                filename: "audit-\(profileID)-20260806-01.jsonl",
+                byteCount: 24_000,
+                creationDate: Date(timeIntervalSince1970: 1_786_022_820),
+                profileName: profileName
+            ),
+            PrototypeAuditFile(
+                id: "audit-\(profileID)-02",
+                filename: "audit-\(profileID)-20260805-01.jsonl",
+                byteCount: 8_000,
+                creationDate: Date(timeIntervalSince1970: 1_785_917_640),
+                profileName: profileName
+            ),
+        ]
+    }
+}
+
+struct PrototypeDeveloperToolsState: Equatable {
+    var isEnabled = false
+    var debugMode = false
+    var anonymousTelemetry = false
+    var auditLogging = false
+    var auditFiles: [PrototypeAuditFile] = []
+    var keyPackage = PrototypeKeyPackage.fixture
+
+    static func fixtures(
+        profileID: String = "marmota",
+        profileName: String = "Marmota"
+    ) -> PrototypeDeveloperToolsState {
+        PrototypeDeveloperToolsState(
+            auditFiles: PrototypeAuditFile.fixtures(
+                profileID: profileID,
+                profileName: profileName
+            )
+        )
+    }
+
+    var isConversationDebugEnabled: Bool {
+        isEnabled && debugMode
+    }
+
+    var auditFileCount: Int {
+        auditFiles.count
+    }
+
+    var auditLogTotalByteCount: Int {
+        auditFiles.reduce(0) { partialResult, file in
+            partialResult + file.byteCount
+        }
+    }
+
+    var auditLogsContainData: Bool {
+        auditFiles.contains { file in
+            file.byteCount > 0
+        }
+    }
+
+    mutating func setEnabled(_ isEnabled: Bool) {
+        self.isEnabled = isEnabled
+
+        guard !isEnabled else {
+            return
+        }
+
+        debugMode = false
+        anonymousTelemetry = false
+        auditLogging = false
+    }
+
+    mutating func clearAuditLogContents() {
+        for index in auditFiles.indices {
+            auditFiles[index].byteCount = 0
+        }
+    }
+
+    mutating func publishKeyPackage() {
+        keyPackage = .publishedFixture
+    }
+}
 
 struct PrototypeSettingsState {
     static let defaultAutoDownload: [
@@ -28,12 +131,6 @@ struct PrototypeSettingsState {
     var autoLock = PrototypeAutoLock.immediately
     var deviceAuthenticationAvailability =
         PrototypeDeviceAuthenticationAvailability.faceID
-    var anonymousTelemetry = false
-    var auditLogging = false
-
-    var developerMode = false
-    var streamingDebug = false
-    var keyPackages = PrototypeKeyPackage.fixtures
 }
 
 enum PrototypeAppearance: String, CaseIterable, Identifiable {
@@ -606,35 +703,19 @@ struct PrototypeRelay: Identifiable, Equatable {
 }
 
 struct PrototypeKeyPackage: Identifiable, Equatable {
-    enum Location: String {
-        case synced = "Synced"
-        case local = "Local Only"
-        case relay = "Relay Only"
-    }
-
     let id: String
     let published: String
     let size: String
-    let location: Location
 
-    static let fixtures = [
-        PrototypeKeyPackage(
-            id: "a17c2e93d8f4b1",
-            published: "Today",
-            size: "4 KB",
-            location: .synced
-        ),
-        PrototypeKeyPackage(
-            id: "73df9a128be640",
-            published: "Yesterday",
-            size: "4 KB",
-            location: .local
-        ),
-        PrototypeKeyPackage(
-            id: "c8904b7e1a26d5",
-            published: "Jul 18",
-            size: "4 KB",
-            location: .relay
-        ),
-    ]
+    static let fixture = PrototypeKeyPackage(
+        id: "a17c2e93d8f4b1",
+        published: "Today at 18:05",
+        size: "4 KB"
+    )
+
+    static let publishedFixture = PrototypeKeyPackage(
+        id: "d48e1a7c9b320f",
+        published: "Just now",
+        size: "4 KB"
+    )
 }

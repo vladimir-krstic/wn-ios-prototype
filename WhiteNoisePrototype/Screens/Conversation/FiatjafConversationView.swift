@@ -25,15 +25,20 @@ struct FiatjafConversationView: View {
 
     @Binding var settings: PrototypeSettingsState
     @Binding var relayConfiguration: PrototypeRelayConfiguration
+    @Binding var developerTools: PrototypeDeveloperToolsState
 
     init(
         settings: Binding<PrototypeSettingsState>,
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
             .fixtures
+        ),
+        developerTools: Binding<PrototypeDeveloperToolsState> = .constant(
+            .fixtures()
         )
     ) {
         _settings = settings
         _relayConfiguration = relayConfiguration
+        _developerTools = developerTools
     }
 
     var body: some View {
@@ -142,6 +147,16 @@ struct FiatjafConversationView: View {
                 .accessibilityElement(children: .combine)
             }
 
+            if developerTools.isConversationDebugEnabled {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ConversationDebugPrototypeView(info: debugInfo)
+                    } label: {
+                        Image(systemName: "ladybug")
+                    }
+                    .accessibilityLabel("Conversation Debug")
+                }
+            }
         }
         .fileImporter(
             isPresented: $isFileImporterPresented,
@@ -168,6 +183,15 @@ struct FiatjafConversationView: View {
             sentMessages.append(SentMessage(content: .photo(data)))
             self.selectedPhotoItem = nil
         }
+    }
+
+    private var debugInfo: PrototypeConversationDebugInfo {
+        PrototypeConversationDebugInfo.fiatjaf(
+            messageCount: 8 + sentMessages.count,
+            pushDiagnosticsStatus: settings.nativePushEnabled
+                ? "Enabled"
+                : "Disabled"
+        )
     }
 
     private var dayMarker: some View {

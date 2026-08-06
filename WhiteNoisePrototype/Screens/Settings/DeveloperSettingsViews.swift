@@ -1,207 +1,285 @@
+import Foundation
 import SwiftUI
-import UIKit
 
-struct DeveloperToolsPrototypeView: View {
-    @Binding var settings: PrototypeSettingsState
-    @State private var copied = false
-    @State private var copyResetTask: Task<Void, Never>?
-    @State private var isShowingDeleteLogsConfirmation = false
+struct PrototypeConversationDebugInfo: Equatable {
+    let identifier: String
+    let type: String
+    let participantCount: Int
+    let messageCount: Int
+    let routingRelaySummary: String
+    let pushDiagnosticsStatus: String
+    let recentEvents: [String]
 
-    let profile: PrototypeProfile
-    let profileCount: Int
+    static func fiatjaf(
+        messageCount: Int,
+        pushDiagnosticsStatus: String
+    ) -> PrototypeConversationDebugInfo {
+        PrototypeConversationDebugInfo(
+            identifier: "conversation-fiatjaf-001",
+            type: "Direct",
+            participantCount: 2,
+            messageCount: messageCount,
+            routingRelaySummary: "2 chat relays · 2 connected",
+            pushDiagnosticsStatus: pushDiagnosticsStatus,
+            recentEvents: [
+                "18:45:02  timeline projection ready",
+                "18:45:04  delivery state synchronized",
+                "18:45:06  attachment metadata indexed",
+            ]
+        )
+    }
+
+    static func support(
+        messageCount: Int,
+        pushDiagnosticsStatus: String
+    ) -> PrototypeConversationDebugInfo {
+        PrototypeConversationDebugInfo(
+            identifier: "conversation-support-001",
+            type: "Support",
+            participantCount: 2,
+            messageCount: messageCount,
+            routingRelaySummary: "2 chat relays · 2 connected",
+            pushDiagnosticsStatus: pushDiagnosticsStatus,
+            recentEvents: [
+                "15:02:10  support conversation opened",
+                "15:02:11  guidance event projected",
+                "15:02:12  composer state ready",
+            ]
+        )
+    }
+}
+
+struct ConversationDebugPrototypeView: View {
+    let info: PrototypeConversationDebugInfo
 
     var body: some View {
         Form {
-            Section("Runtime") {
-                LabeledContent("Status", value: "Active")
-                LabeledContent("Local Signing", value: "Available")
-                LabeledContent("Active Profile", value: profile.name)
-                LabeledContent("Runtime", value: "Prototype")
-                LabeledContent("MarmotKit", value: "Not connected")
+            Section("Conversation") {
+                LabeledContent("Identifier", value: info.identifier)
+                LabeledContent("Type", value: info.type)
+                LabeledContent(
+                    "Participants",
+                    value: info.participantCount.formatted()
+                )
+                LabeledContent(
+                    "Messages",
+                    value: info.messageCount.formatted()
+                )
             }
 
-            Section("Identity") {
-                Button {
-                    UIPasteboard.general.string = fictionalHexKey
-                    copied = true
-                    scheduleCopyReset()
-                } label: {
-                    LabeledContent {
-                        Label(
-                            copied ? "Copied" : "Copy",
-                            systemImage: copied
-                                ? "checkmark"
-                                : "doc.on.doc"
+            Section("Delivery") {
+                LabeledContent(
+                    "Routing Relays",
+                    value: info.routingRelaySummary
+                )
+                LabeledContent(
+                    "Push Diagnostics",
+                    value: info.pushDiagnosticsStatus
+                )
+            }
+
+            Section("Recent Events") {
+                ForEach(info.recentEvents, id: \.self) { event in
+                    Text(event)
+                        .font(.caption.monospaced())
+                }
+            }
+        }
+        .navigationTitle("Conversation Debug")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct DeveloperToolsPrototypeView: View {
+    @Binding var developerTools: PrototypeDeveloperToolsState
+    let profile: PrototypeProfile
+    @State private var isShowingClearLogsConfirmation = false
+
+    var body: some View {
+        Form {
+            Section {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("For development and testing only")
+                            .foregroundStyle(.primary)
+
+                        Text(
+                            "These tools can expose technical information "
+                                + "and change how the app behaves."
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section {
+                Toggle(
+                    "Developer Tools",
+                    isOn: developerToolsEnabled
+                )
+            } footer: {
+                Text("Enable technical tools for this profile.")
+            }
+
+            if developerTools.isEnabled {
+                Section {
+                    Toggle(
+                        "Debug Mode",
+                        isOn: $developerTools.debugMode
+                    )
+
+                    NavigationLink {
+                        DiagnosticsPrototypeView()
+                    } label: {
+                        Label("Diagnostics", systemImage: "stethoscope")
+                    }
+                } header: {
+                    Text("Debugging")
+                } footer: {
+                    Text(
+                        "Debug Mode adds technical conversation details "
+                            + "intended for development and testing."
+                    )
+                }
+
+                Section {
+                    NavigationLink {
+                        KeyPackagesPrototypeView(
+                            developerTools: $developerTools
                         )
                     } label: {
-                        Text(shortHexKey)
-                            .font(.body.monospaced())
-                            .foregroundStyle(.primary)
+                        Label("Key Packages", systemImage: "shippingbox")
                     }
                 }
-                .buttonStyle(.plain)
-            }
 
-            Section {
-                Toggle(
-                    "Developer Mode",
-                    isOn: $settings.developerMode
-                )
-
-                Toggle(
-                    "Streaming Debug",
-                    isOn: $settings.streamingDebug
-                )
-                .disabled(!settings.developerMode)
-
-                NavigationLink {
-                    KeyPackagesPrototypeView(settings: $settings)
-                } label: {
-                    Label("Key Packages", systemImage: "shippingbox")
+                Section {
+                    Toggle(
+                        "Anonymous Telemetry",
+                        isOn: $developerTools.anonymousTelemetry
+                    )
+                } header: {
+                    Text("Telemetry")
+                } footer: {
+                    Text(
+                        "Shares anonymous reliability and performance data. "
+                            + "It doesn’t include messages or profile keys."
+                    )
                 }
 
-                NavigationLink {
-                    DiagnosticsPrototypeView(
-                        relayConfiguration: profile.relayConfiguration,
-                        profileCount: profileCount
-                    )
-                } label: {
-                    Label("Diagnostics", systemImage: "stethoscope")
-                }
-            } footer: {
-                Text(
-                    "Developer tools can expose technical event and profile details on this device."
-                )
-            }
-
-            Section {
-                Toggle(
-                    "Anonymous Telemetry",
-                    isOn: $settings.anonymousTelemetry
-                )
-            } footer: {
-                Text(
-                    "Anonymous telemetry helps improve reliability and performance."
-                )
-            }
-
-            Section {
-                Toggle(
-                    "Audit Logging",
-                    isOn: $settings.auditLogging
-                )
-
-                if settings.auditLogging {
-                    LabeledContent(
-                        "white-noise-audit-01.jsonl",
-                        value: "24 KB"
-                    )
-                    LabeledContent(
-                        "white-noise-audit-02.jsonl",
-                        value: "8 KB"
+                Section {
+                    Toggle(
+                        "Audit Logging",
+                        isOn: $developerTools.auditLogging
                     )
 
-                    Button(
-                        "Delete All Audit Logs",
-                        role: .destructive
-                    ) {
-                        isShowingDeleteLogsConfirmation = true
+                    if developerTools.auditLogging {
+                        ForEach(developerTools.auditFiles) { file in
+                            auditFileRow(file)
+                        }
+
+                        Button(
+                            "Clear Audit Logs",
+                            role: .destructive
+                        ) {
+                            isShowingClearLogsConfirmation = true
+                        }
+                        .disabled(!developerTools.auditLogsContainData)
                     }
-                } else {
-                    Text("No audit logs on this device.")
-                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Audit Logging")
+                } footer: {
+                    Text(
+                        "Stores sanitized technical activity locally for "
+                            + "troubleshooting. Turning logging off hides "
+                            + "the files but keeps them. Clearing removes "
+                            + "their contents without deleting the files."
+                    )
                 }
-            } header: {
-                Text("Audit Logging")
-            } footer: {
-                Text(
-                    "Audit logs are stored locally for troubleshooting and forensic review."
-                )
             }
 
-            Section("Build") {
-                LabeledContent("Version", value: version)
-                LabeledContent("Build", value: build)
-                LabeledContent("SDK", value: "iOS 27")
+            Section("About") {
+                LabeledContent("Version", value: versionAndBuild)
+                LabeledContent(
+                    "Built on",
+                    value: PrototypeBuildMetadata.builtOn
+                )
             }
         }
         .navigationTitle("Developer Tools")
         .navigationBarTitleDisplayMode(.inline)
         .alert(
-            "Delete all audit logs?",
-            isPresented: $isShowingDeleteLogsConfirmation
+            "Clear all audit logs?",
+            isPresented: $isShowingClearLogsConfirmation
         ) {
-            Button("Delete All Audit Logs", role: .destructive) {
-                settings.auditLogging = false
+            Button("Clear Logs", role: .destructive) {
+                developerTools.clearAuditLogContents()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(
-                "This permanently removes every local audit log on this device."
+                "This removes all recorded activity from the audit log "
+                    + "files. The files remain and Audit Logging stays on."
             )
         }
-        .onDisappear {
-            copyResetTask?.cancel()
-        }
     }
 
-    private var fictionalHexKey: String {
-        "7a4c1e8d9f3206b5a7d4c8e1f9032b6a5d7c4e8f1a9b3d6c2e5f7081a4b9c3d6"
-    }
-
-    private var shortHexKey: String {
-        "\(fictionalHexKey.prefix(10))…\(fictionalHexKey.suffix(6))"
-    }
-
-    private var version: String {
-        Bundle.main.object(
+    private var versionAndBuild: String {
+        let version = Bundle.main.object(
             forInfoDictionaryKey: "CFBundleShortVersionString"
         ) as? String ?? "—"
-    }
-
-    private var build: String {
-        Bundle.main.object(
+        let build = Bundle.main.object(
             forInfoDictionaryKey: "CFBundleVersion"
         ) as? String ?? "—"
+        return "\(version) (\(build))"
     }
 
-    private func scheduleCopyReset() {
-        copyResetTask?.cancel()
-        copyResetTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else {
-                return
-            }
-
-            copied = false
-            copyResetTask = nil
+    private var developerToolsEnabled: Binding<Bool> {
+        Binding {
+            developerTools.isEnabled
+        } set: { isEnabled in
+            developerTools.setEnabled(isEnabled)
         }
+    }
+
+    private func auditFileRow(_ file: PrototypeAuditFile) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(file.filename)
+                .font(.body.monospaced())
+                .lineLimit(1)
+
+            Text(fileDetails(file))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func fileDetails(_ file: PrototypeAuditFile) -> String {
+        let size = ByteCountFormatter.string(
+            fromByteCount: Int64(file.byteCount),
+            countStyle: .file
+        )
+        let date = file.creationDate.formatted(
+            date: .abbreviated,
+            time: .shortened
+        )
+        return "\(size) · \(date) · \(file.profileName)"
     }
 }
 
 private struct KeyPackagesPrototypeView: View {
-    @Binding var settings: PrototypeSettingsState
+    @Binding var developerTools: PrototypeDeveloperToolsState
     @State private var isPublishing = false
 
     var body: some View {
         Form {
-            if settings.keyPackages.isEmpty {
-                Section {
-                    ContentUnavailableView(
-                        "No Key Packages",
-                        systemImage: "shippingbox"
-                    )
-                }
-                .listRowBackground(Color.clear)
-            } else {
-                Section("Published from This Device") {
-                    ForEach(settings.keyPackages) { package in
-                        keyPackageRow(package)
-                    }
-                    .onDelete { offsets in
-                        settings.keyPackages.remove(atOffsets: offsets)
-                    }
-                }
+            Section("Current Key Package") {
+                keyPackageRow(developerTools.keyPackage)
             }
 
             Section {
@@ -215,38 +293,30 @@ private struct KeyPackagesPrototypeView: View {
                     } else {
                         Label(
                             "Publish New Key Package",
-                            systemImage: "plus.square.on.square"
+                            systemImage: "shippingbox.and.arrow.backward"
                         )
                     }
                 }
                 .disabled(isPublishing)
             } footer: {
                 Text(
-                    "Key packages let another profile invite this profile to a group."
+                    "Publishes a new key package so this profile can "
+                        + "receive group invitations."
                 )
             }
         }
         .navigationTitle("Key Packages")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            EditButton()
-        }
     }
 
     private func keyPackageRow(
         _ package: PrototypeKeyPackage
     ) -> some View {
         VStack(alignment: .leading) {
-            HStack {
-                Text(package.id)
-                    .font(.body.monospaced())
-                Spacer()
-                Text(package.location.rawValue)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Text(package.id)
+                .font(.body.monospaced())
 
-            Text("\(package.published) · \(package.size)")
+            Text("Published \(package.published) · \(package.size)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -260,149 +330,145 @@ private struct KeyPackagesPrototypeView: View {
         isPublishing = true
         Task {
             try? await Task.sleep(for: .seconds(1.5))
-            settings.keyPackages.insert(
-                PrototypeKeyPackage(
-                    id: "d48e1a7c9b320f",
-                    published: "Just now",
-                    size: "4 KB",
-                    location: .synced
-                ),
-                at: 0
-            )
+            developerTools.publishKeyPackage()
             isPublishing = false
         }
     }
 }
 
 private struct DiagnosticsPrototypeView: View {
-    @State private var isRefreshing = false
-    @State private var isRunningSelfCheck = false
-    @State private var selfCheckPassed = false
+    private let consoleContentInset: CGFloat = 20
 
-    let relayConfiguration: PrototypeRelayConfiguration
-    let profileCount: Int
+    @State private var isTesting = false
+    @State private var recentEvents = [
+        "18:42:10  runtime started",
+        "18:42:11  relay connected",
+        "18:42:12  profile projection ready",
+    ]
 
     var body: some View {
-        Form {
-            Section("Relay Health") {
-                LabeledContent(
-                    "Total",
-                    value: relayConfiguration.relays.count.formatted()
-                )
-                LabeledContent(
-                    "Connected",
-                    value: relayCount(for: .connected).formatted()
-                )
-                LabeledContent(
-                    "Connecting",
-                    value: relayCount(for: .reconnecting).formatted()
-                )
-                LabeledContent(
-                    "Disconnected",
-                    value: relayCount(for: .disconnected).formatted()
-                )
-                LabeledContent("Connection Attempts", value: "6")
-                LabeledContent("Successful Connections", value: "5")
+        VStack(alignment: .leading) {
+            HStack {
+                Text("Events")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
 
-                Button(action: refresh) {
-                    if isRefreshing {
-                        HStack {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("Refreshing…")
-                        }
-                    } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                }
-                .disabled(isRefreshing)
-            }
+                Spacer()
 
-            Section("Runtime") {
-                LabeledContent("Active Profiles", value: "1")
-                LabeledContent(
-                    "Stored Profiles",
-                    value: profileCount.formatted()
-                )
-                LabeledContent("Bootstrap Relays", value: "2")
-            }
-
-            Section("Self Check") {
-                Button(action: runSelfCheck) {
-                    if isRunningSelfCheck {
-                        HStack {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("Running…")
-                        }
-                    } else {
-                        Label(
-                            selfCheckPassed
-                                ? "Run Again"
-                                : "Run Self Check",
-                            systemImage: selfCheckPassed
-                                ? "checkmark.circle"
-                                : "paperplane"
+                HStack(spacing: 6) {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .foregroundStyle(Color(uiColor: .systemGreen))
+                        .symbolEffect(
+                            .variableColor.iterative,
+                            options: .repeating
                         )
-                    }
-                }
-                .disabled(isRunningSelfCheck)
+                        .accessibilityHidden(true)
 
-                if selfCheckPassed {
-                    Label(
-                        "Self check passed.",
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .foregroundStyle(.green)
+                    Text("Live")
+                        .foregroundStyle(.secondary)
                 }
+                .font(.caption)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Live event stream")
             }
+            .padding(.horizontal, consoleContentInset)
 
-            Section("Recent Events") {
-                Text("18:42:10  runtime started")
-                Text("18:42:11  relay connected")
-                Text("18:42:12  profile projection ready")
+            ZStack {
+                Color(uiColor: .systemBackground)
+
+                eventContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, consoleContentInset)
+                    .padding(.vertical, 8)
             }
-            .font(.caption.monospaced())
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: 24,
+                    style: .continuous
+                )
+            )
         }
+        .padding()
+        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
-    }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button(action: test) {
+                        Label(
+                            isTesting ? "Testing…" : "Test",
+                            systemImage: "checkmark.circle"
+                        )
+                    }
+                    .disabled(isTesting)
 
-    private func refresh() {
-        isRefreshing = true
-        Task {
-            try? await Task.sleep(for: .seconds(1))
-            isRefreshing = false
+                    Button {
+                        recentEvents.removeAll()
+                    } label: {
+                        Label("Clear Events", systemImage: "trash")
+                    }
+                    .disabled(recentEvents.isEmpty)
+                } label: {
+                    Label("Event Actions", systemImage: "ellipsis")
+                        .labelStyle(.iconOnly)
+                }
+            }
         }
     }
 
-    private func runSelfCheck() {
-        isRunningSelfCheck = true
-        selfCheckPassed = false
+    @ViewBuilder
+    private var eventContent: some View {
+        if recentEvents.isEmpty {
+            ContentUnavailableView(
+                "No Events",
+                systemImage: "waveform.path.ecg"
+            )
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(recentEvents.indices, id: \.self) { index in
+                        Text(recentEvents[index])
+                            .font(.caption.monospaced())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical)
+
+                        if index < recentEvents.index(before: recentEvents.endIndex) {
+                            Divider()
+                        }
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+
+    private func test() {
+        guard !isTesting else {
+            return
+        }
+
+        isTesting = true
         Task {
             try? await Task.sleep(for: .seconds(1.5))
-            isRunningSelfCheck = false
-            selfCheckPassed = true
-        }
-    }
-
-    private func relayCount(
-        for state: PrototypeRelayConnectionState
-    ) -> Int {
-        relayConfiguration.relays.count {
-            $0.connectionState == state
+            recentEvents.append("18:42:15  diagnostic test passed")
+            isTesting = false
         }
     }
 }
 
 #Preview("Developer Tools") {
-    @Previewable @State var settings = PrototypeSettingsState()
+    @Previewable @State var developerTools = {
+        var state = PrototypeDeveloperToolsState.fixtures()
+        state.isEnabled = true
+        return state
+    }()
 
     NavigationStack {
         DeveloperToolsPrototypeView(
-            settings: $settings,
-            profile: .marmota,
-            profileCount: 7
+            developerTools: $developerTools,
+            profile: .marmota
         )
     }
 }

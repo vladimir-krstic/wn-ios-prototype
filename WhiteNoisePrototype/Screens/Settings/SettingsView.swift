@@ -342,16 +342,18 @@ struct SettingsView: View {
                 relayConfiguration:
                     activeProfileBinding?.relayConfiguration
                         ?? .constant(.fixtures),
+                developerTools:
+                    activeProfileBinding?.developerTools
+                        ?? .constant(.fixtures()),
                 profileName: activeProfile?.name ?? "Profile"
             )
         case .donate:
             DonatePrototypeView()
         case .developerTools:
-            if let activeProfile {
+            if let activeProfileBinding {
                 DeveloperToolsPrototypeView(
-                    settings: $settings,
-                    profile: activeProfile,
-                    profileCount: profiles.count
+                    developerTools: activeProfileBinding.developerTools,
+                    profile: activeProfileBinding.wrappedValue
                 )
             }
         case .signOut:

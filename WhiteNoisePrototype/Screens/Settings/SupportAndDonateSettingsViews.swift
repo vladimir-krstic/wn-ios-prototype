@@ -7,6 +7,7 @@ struct SupportPrototypeView: View {
     @Binding private var supportMessages: [SupportConversationMessage]
     @Binding private var settings: PrototypeSettingsState
     @Binding private var relayConfiguration: PrototypeRelayConfiguration
+    @Binding private var developerTools: PrototypeDeveloperToolsState
     private let profileName: String
 
     init(
@@ -18,12 +19,16 @@ struct SupportPrototypeView: View {
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
             .fixtures
         ),
+        developerTools: Binding<PrototypeDeveloperToolsState> = .constant(
+            .fixtures()
+        ),
         profileName: String = "Marmota"
     ) {
         _chats = chats
         _supportMessages = supportMessages
         _settings = settings
         _relayConfiguration = relayConfiguration
+        _developerTools = developerTools
         self.profileName = profileName
     }
 
@@ -75,6 +80,7 @@ struct SupportPrototypeView: View {
                 messages: $supportMessages,
                 chats: $chats,
                 settings: $settings,
+                developerTools: $developerTools,
                 senderName: profileName
             )
         }

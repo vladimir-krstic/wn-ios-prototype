@@ -48,6 +48,8 @@ private struct PrototypeRootView: View {
                         settings: $settings,
                         relayConfiguration:
                             activeProfileBinding.relayConfiguration,
+                        developerTools:
+                            activeProfileBinding.developerTools,
                         profile: activeProfile,
                         onOpenSettings: {
                             isShowingSettings = true

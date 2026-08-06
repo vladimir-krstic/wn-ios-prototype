@@ -340,3 +340,101 @@ working style remains authoritative.
   content width.
 - Profile-name confirmation uses local TextField state and native focus. Its
   enabled state updates directly as the person types the matching name.
+
+## WN-PROTOTYPE-0018 — Developer tools ownership and sanitized diagnostics
+
+- Date: 2026-08-06
+- Status: Approved
+
+- Developer Tools is an always-visible team surface in this prototype and
+  begins with an explicit development-and-testing warning.
+- **Debug Mode** owns optional conversation-level inspection. It exposes a
+  native `ladybug` action in implemented conversations and never inserts raw
+  events into a normal conversation timeline.
+- **Diagnostics** separately owns live local technical events, runtime facts,
+  aggregate relay health, and the deterministic self check. **Streaming
+  Debug** is intentionally omitted because it duplicates Diagnostics and
+  pollutes product timelines with developer information.
+- Anonymous Telemetry, Audit Logging, and Debug Mode are independent settings.
+  Audit files are sanitized, remain available after logging is turned off,
+  and can be deleted without changing the logging preference. Sensitive-data
+  logging is not offered.
+- Audit Logs owns file inventory and destructive cleanup. Profile Keys remains
+  the owner of key information; Developer Tools does not repeat profile keys
+  or a fictional MarmotKit connection state.
+- The About section reads the app version and build from the bundle and records
+  the prototype integration baseline as **MarmotKit (790eb860)** on **iOS 27**.
+
+## WN-PROTOTYPE-0019 — Profile-scoped Developer Tools gate
+
+- Date: 2026-08-06
+- Status: Approved; supersedes the ownership, visibility, About placement, and
+  Key Packages details in WN-PROTOTYPE-0018
+
+- Each profile owns an independent Developer Tools state. Entering the page
+  first presents a master **Developer Tools** Toggle; technical sections remain
+  hidden until it is enabled for the active profile.
+- Disabling the master Toggle stops Debug Mode, Anonymous Telemetry, and Audit
+  Logging for that profile. Existing sanitized audit files and the current key
+  package remain intact because disabling tools is not deletion.
+- Diagnostics describes only the active profile and no longer reports how many
+  other profiles are stored on the device.
+- Key Packages is a separate Developer Tools destination with exactly one
+  current package and one available operation: **Publish Key Package**.
+- About is the final section and contains only the bundle version/build and
+  **MarmotKit (790eb860)**. The Developer Tools UI does not show an iOS SDK
+  version.
+
+## WN-PROTOTYPE-0020 — Inline audit files and content clearing
+
+- Date: 2026-08-06
+- Status: Approved; supersedes the Audit Logs destination and file-deletion
+  details in WN-PROTOTYPE-0018 and WN-PROTOTYPE-0019
+
+- Audit files appear inline in the profile's **Audit Logging** Form section
+  only while Audit Logging is enabled. Turning logging off hides the file rows
+  and stops new logging without removing existing files.
+- **Clear Audit Logs** clears the recorded contents of every audit file but
+  preserves the file records, filenames, dates, profile ownership, and Audit
+  Logging preference. The files remain visible with zero-byte sizes after the
+  operation.
+- Clearing uses a native destructive confirmation because recorded diagnostic
+  history cannot be recovered. There is no separate Audit Logs destination and
+  no Delete Audit Log Files operation.
+
+## WN-PROTOTYPE-0021 — Focused diagnostics and key-package status
+
+- Date: 2026-08-06
+- Status: Approved; supersedes the Diagnostics and Key Packages presentation
+  details in WN-PROTOTYPE-0018 and WN-PROTOTYPE-0019
+
+- Diagnostics is an event-only console. It presents deterministic local
+  events with an animated system **Live** indicator plus **Test** and
+  **Clear Events** actions. Runtime, relay-health, and self-check summary
+  sections are intentionally omitted.
+- **Test** appends one deterministic passing event to the same list rather
+  than creating a separate result card. **Clear Events** empties the list.
+- Key Packages continues to expose exactly one current package. Its row shows
+  the package identifier, published time, and size; it does not show a
+  separate **Synced** or location value.
+- The sole package action is **Publish New Key Package**, represented with
+  Apple’s shipping-box-and-arrow SF Symbol. Publishing replaces the existing
+  package and updates its published time.
+
+## WN-PROTOTYPE-0022 — Persistent diagnostics console and toolbar commands
+
+- Date: 2026-08-06
+- Status: Approved; refines the Diagnostics presentation in
+  WN-PROTOTYPE-0021
+
+- Diagnostics dedicates its available body to one persistent adaptive
+  system-background event group with continuous rounded corners. Events scroll
+  within that group. When no events exist, the same group remains visible and
+  contains the native **No Events** presentation.
+- The **Events** and **Live** header aligns with the event rows' content margins,
+  not the rounded group's outer edges.
+- A native toolbar Menu owns **Test** and **Clear Events**. Clearing ephemeral
+  console output is a normal command, not a destructive action, and is disabled
+  using the system state when the console is already empty.
+- The animated **Live** symbol uses semantic system green while the visible
+  label and VoiceOver description continue to communicate state without color.

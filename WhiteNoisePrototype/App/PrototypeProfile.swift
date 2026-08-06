@@ -17,6 +17,7 @@ struct PrototypeProfile: Identifiable, Equatable {
     var chats: [ChatListItem]
     var supportMessages: [SupportConversationMessage]
     var relayConfiguration: PrototypeRelayConfiguration
+    var developerTools: PrototypeDeveloperToolsState
 
     init(
         id: String,
@@ -28,7 +29,8 @@ struct PrototypeProfile: Identifiable, Equatable {
         avatar: PrototypeAvatar = .monogram,
         chats: [ChatListItem],
         supportMessages: [SupportConversationMessage] = [],
-        relayConfiguration: PrototypeRelayConfiguration = .fixtures
+        relayConfiguration: PrototypeRelayConfiguration = .fixtures,
+        developerTools: PrototypeDeveloperToolsState? = nil
     ) {
         self.id = id
         self.name = name
@@ -40,6 +42,10 @@ struct PrototypeProfile: Identifiable, Equatable {
         self.chats = chats
         self.supportMessages = supportMessages
         self.relayConfiguration = relayConfiguration
+        self.developerTools = developerTools ?? .fixtures(
+            profileID: id,
+            profileName: name
+        )
     }
 
     var shortPublicKey: String {
@@ -145,6 +151,10 @@ extension PrototypeProfile {
 
         if !normalizedName.isEmpty {
             profile.name = normalizedName
+            profile.developerTools = .fixtures(
+                profileID: profile.id,
+                profileName: normalizedName
+            )
         }
 
         return profile
@@ -158,6 +168,10 @@ extension PrototypeProfile {
 
         if !normalizedName.isEmpty {
             profile.name = normalizedName
+            profile.developerTools = .fixtures(
+                profileID: profile.id,
+                profileName: normalizedName
+            )
         }
 
         return profile

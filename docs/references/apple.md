@@ -1,6 +1,7 @@
 # Official Apple reference index
 
-Last full verification: **2026-07-31**.
+Last full verification: **2026-07-31**. Developer Tools sources were
+reverified on **2026-08-06**.
 
 This is the routing index for material platform decisions. Open the relevant
 live Apple source before choosing or recreating a component, interaction,
@@ -41,7 +42,7 @@ pattern in the screen brief.
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
 | [Writing for interfaces](https://developer.apple.com/videos/play/wwdc2022/10037/) | Purposeful, contextual, empathetic interface language | Writing titles, actions, help, empty states, or recovery | All product copy | 2026-07-31 |
-| [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) | Alert necessity, titles, messages, actions, and tone | Adding interruption, warning, or destructive confirmation | Settings, Chats, onboarding | 2026-08-03 |
+| [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) | Alert necessity, titles, messages, actions, and tone | Adding interruption, warning, or destructive confirmation | Settings, Chats, onboarding, Developer Tools | 2026-08-06 |
 | [Managing accounts](https://developer.apple.com/design/human-interface-guidelines/managing-accounts) | Clear account exit and deletion consequences | Designing sign-out or removal flows | Sign Out, app-data erasure | 2026-08-05 |
 | [Feedback](https://developer.apple.com/design/human-interface-guidelines/feedback) | Proportional, accessible status and result feedback | Confirming progress, success, failure, or correction | Copy actions, sending, relay recovery | 2026-08-03 |
 | [systemOrange](https://developer.apple.com/documentation/uikit/uicolor/systemorange) | Adaptive system orange for warning states | Presenting warning guidance without fixed RGB values | Relays, Chats recovery, conversation recovery, app-data erasure | 2026-08-05 |
@@ -59,7 +60,7 @@ pattern in the screen brief.
 | --- | --- | --- | --- | --- |
 | [Navigation and search](https://developer.apple.com/design/human-interface-guidelines/navigation-and-search) | Hierarchy, context preservation, predictable movement, and search | Choosing push, modal, search, or top-level structure | All flows | 2026-07-31 |
 | [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack) | SwiftUI stack navigation and route ownership | Implementing hierarchical destinations | Chats, conversation, Settings | 2026-07-31 |
-| [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink) | Native disclosure and value-driven navigation | Making a row or control reveal a destination | Chats, Settings | 2026-08-03 |
+| [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink) | Native disclosure and value-driven navigation | Making a row or control reveal a destination | Chats, Settings, Developer Tools | 2026-08-06 |
 | [ToolbarItemPlacement.primaryAction](https://developer.apple.com/documentation/swiftui/toolbaritemplacement/primaryaction) | Primary toolbar action placement in a pushed destination | Placing Profile's Edit and Done actions without modal confirmation semantics | Profile editing | 2026-08-03 |
 | [navigationBarBackButtonHidden](https://developer.apple.com/documentation/swiftui/view/navigationbarbackbuttonhidden(_:)) | Replacing the system Back action during a bounded edit state | Temporarily providing Cancel instead of leaving with an active draft | Profile editing | 2026-08-03 |
 | [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) | Scoped modal tasks, dismissal, and button placement | Deciding whether work belongs in a sheet | Sign In, Sign Up, switcher, destructive confirmation | 2026-08-05 |
@@ -75,16 +76,18 @@ pattern in the screen brief.
 
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
-| [Settings](https://developer.apple.com/design/human-interface-guidelines/settings) | Settings hierarchy, restraint, and system preference respect | Adding or reorganizing a preference | Settings | 2026-08-05 |
+| [Settings](https://developer.apple.com/design/human-interface-guidelines/settings) | Settings hierarchy, restraint, and system preference respect | Adding or reorganizing a preference | Settings, Developer Tools | 2026-08-06 |
 | [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) | Row hierarchy, selection, editing, disclosure, and scanning | Designing list content or row interactions | Chats, relays, profiles | 2026-08-03 |
-| [Form](https://developer.apple.com/documentation/swiftui/form) | Native grouped data entry and settings structure | Building editable fields or preference groups | Sign Up, Settings | 2026-08-03 |
+| [Form](https://developer.apple.com/documentation/swiftui/form) | Native grouped data entry and settings structure | Building editable fields or preference groups | Sign Up, Settings, Developer Tools | 2026-08-06 |
+| [Disclosure controls](https://developer.apple.com/design/human-interface-guidelines/disclosure-controls) | Progressive disclosure, labels, and revealed detail | Deciding whether technical detail belongs inline or in a destination | Developer Tools | 2026-08-06 |
 | [List](https://developer.apple.com/documentation/swiftui/list) | Native rows, scrolling, separators, selection, and deletion | Implementing standard single-column collections | Settings, switcher | 2026-07-31 |
 | [Displaying data in lists](https://developer.apple.com/documentation/swiftui/displaying-data-in-lists) | SwiftUI identity, hierarchy, and list composition | Structuring dynamic or hierarchical data | Settings, relay lists | 2026-07-31 |
 | [Search modifiers](https://developer.apple.com/documentation/swiftui/view-search) | Native search presentation and activation | Adding searchable content | Chats | 2026-07-31 |
 | [Adding a search interface](https://developer.apple.com/documentation/swiftui/adding-a-search-interface-to-your-app) | Search placement, suggestions, scopes, and programmatic state | Implementing a complete SwiftUI search experience | Chats | 2026-07-31 |
 | [Design intuitive search experiences](https://developer.apple.com/videos/play/wwdc2026/292/) | Search entry, result hierarchy, scope, and recovery | Evaluating search behavior beyond API mechanics | Chats and future people search | 2026-07-31 |
-| [Menus HIG](https://developer.apple.com/design/human-interface-guidelines/menus) | Menu purpose, organization, labels, and destructive roles | Deciding whether secondary commands belong in a menu | Chats, onboarding | 2026-07-31 |
-| [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands) | Native compact command and option groups | Exposing secondary actions or filters | Chats, profile actions | 2026-07-31 |
+| [Menus HIG](https://developer.apple.com/design/human-interface-guidelines/menus) | Menu purpose, organization, labels, and destructive roles | Deciding whether secondary commands belong in a menu | Chats, onboarding, Developer Tools | 2026-08-06 |
+| [Menu](https://developer.apple.com/documentation/swiftui/menu) | Native disclosure of a compact group of commands | Moving secondary page commands into one toolbar action | Developer Tools | 2026-08-06 |
+| [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands) | Native compact command and option groups | Exposing secondary actions or filters | Chats, profile actions, Developer Tools | 2026-08-06 |
 | [Populating SwiftUI menus with adaptive controls](https://developer.apple.com/documentation/SwiftUI/Populating-SwiftUI-menus-with-adaptive-controls) | Labels, symbols, selection, and destructive menu roles | Building nontrivial menus | Chats filters, avatar actions | 2026-07-31 |
 | [EditButton](https://developer.apple.com/documentation/swiftui/editbutton) | Native entry and exit for edit mode | Allowing list deletion or reordering | Relays | 2026-07-31 |
 | [LabeledContent](https://developer.apple.com/documentation/swiftui/labeledcontent) | Semantic label/value alignment | Presenting settings values or compact statuses | Settings, relays | 2026-07-31 |
@@ -119,7 +122,7 @@ system.
 | [Picker](https://developer.apple.com/documentation/swiftui/picker) | Native single-choice selection | Selecting a mode or preference | Settings, Share & Connect | 2026-07-31 |
 | [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette) | Compact mutually exclusive palette selection | Presenting closely related modes in a toolbar | Share & Connect | 2026-07-31 |
 | [Segmented controls](https://developer.apple.com/design/human-interface-guidelines/segmented-controls) | Appropriate use of mutually exclusive segments | Comparing segmented and palette patterns | Share & Connect | 2026-07-31 |
-| [Toggle](https://developer.apple.com/documentation/swiftui/toggle) | Native binary preferences and semantics | Adding an on/off setting | Settings | 2026-08-05 |
+| [Toggle](https://developer.apple.com/documentation/swiftui/toggle) | Native binary preferences and semantics | Adding an on/off setting | Settings, Developer Tools | 2026-08-06 |
 | [Entering data](https://developer.apple.com/design/human-interface-guidelines/entering-data) | Clear, minimal, forgiving data-entry tasks | Designing typed confirmation or other consequential input | Sign Out, app-data erasure | 2026-08-05 |
 | [Text fields HIG](https://developer.apple.com/design/human-interface-guidelines/text-fields) | Field purpose, labels, affordances, and validation | Designing any text-entry experience | Onboarding, conversation, Settings | 2026-07-31 |
 | [TextField](https://developer.apple.com/documentation/swiftui/textfield) | Native editable text, focus, submission, and multiline entry | Adding ordinary text entry | Sign Up, conversation, Settings | 2026-07-31 |
@@ -132,7 +135,7 @@ system.
 | [Capsule](https://developer.apple.com/documentation/swiftui/capsule) | SwiftUI capsule geometry | Implementing a user-approved capsule with semantic fills | Sign In, Share & Connect | 2026-07-31 |
 | [secondarySystemFill](https://developer.apple.com/documentation/uikit/uicolor/secondarysystemfill) | Adaptive subordinate fill color | Toning down a local utility control without custom material | Share & Connect | 2026-07-31 |
 | [ControlSize](https://developer.apple.com/documentation/swiftui/controlsize) | Semantic system control sizing | Choosing among system-provided size variants | Toolbars and actions | 2026-07-31 |
-| [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview) | Native empty, unavailable, and no-results presentation | Showing absent content or capability recovery | Chats, QR scanning | 2026-07-31 |
+| [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview) | Native empty, unavailable, and no-results presentation | Showing absent content or capability recovery | Chats, QR scanning, Developer Tools | 2026-08-06 |
 | [ProgressView](https://developer.apple.com/documentation/swiftui/progressview) | Native determinate and indeterminate progress | Representing work that is not immediate | Onboarding, relays, support | 2026-07-31 |
 | [tint(_:)](https://developer.apple.com/documentation/swiftui/view/tint(_:)) | System tint for controls and indicators | Adding an adaptive semantic color to a standard control | Profile Keys | 2026-08-03 |
 | [Progress indicators](https://developer.apple.com/design/human-interface-guidelines/progress-indicators) | Appropriate progress feedback and waiting behavior | Choosing between indeterminate, determinate, and no progress UI | Onboarding, relays | 2026-07-31 |
@@ -144,7 +147,7 @@ system.
 
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
-| [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars) | SwiftUI toolbar placement, content, and customization | Adding or reorganizing navigation and action controls | Chats, conversation, Share & Connect | 2026-07-31 |
+| [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars) | SwiftUI toolbar placement, content, and customization | Adding or reorganizing navigation and action controls | Chats, conversation, Share & Connect, Developer Tools | 2026-08-06 |
 | [Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) | System-first adoption of Apple’s current visual design | Adding or reviewing glass, bars, or controls | Toolbars, onboarding, composer | 2026-07-31 |
 | [Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views) | Custom glass only when native components do not fit | Implementing an approved custom glass exception | Conversation composer | 2026-07-31 |
 | [GlassButtonStyle](https://developer.apple.com/documentation/swiftui/glassbuttonstyle) | Native secondary glass buttons | Styling an approved secondary action | Onboarding, scanner recovery | 2026-07-31 |
@@ -155,13 +158,14 @@ system.
 | [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:)) | Stationary actions beside scrolling content | Installing a system-owned bottom action bar | Chats | 2026-07-31 |
 | [safeAreaInset](https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:)) | Content inset by a view at a safe-area edge | Placing persistent content without covering a scroll view | Conversation | 2026-08-03 |
 | [ignoresSafeArea](https://developer.apple.com/documentation/swiftui/view/ignoressafearea(_:edges:)) | Intentional extension beyond safe areas | Making an approved background or camera preview full-bleed | Chats, QR scanning | 2026-07-31 |
-| [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview) | Native scroll container behavior and indicators | Building a custom scrolling timeline | Conversation | 2026-07-31 |
+| [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview) | Native scroll container behavior and indicators | Building custom scrolling content within a bounded surface | Conversation, Developer Tools | 2026-08-06 |
 | [LazyVStack](https://developer.apple.com/documentation/swiftui/lazyvstack) | Lazy vertical layout in a scroll view | Rendering a prototype message timeline | Conversation | 2026-07-31 |
 | [ScrollEdgeEffectStyle](https://developer.apple.com/documentation/swiftui/scrolledgeffectstyle) | Native transitions between scrolling content and controls | Choosing hard, soft, or automatic scroll-edge behavior | Chats, conversation | 2026-07-31 |
 | [Motion](https://developer.apple.com/design/human-interface-guidelines/motion) | Purposeful, comfortable, system-consistent motion | Adding or reviewing animation or transition behavior | All animated flows | 2026-07-31 |
 | [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback) | Semantic system haptic feedback | Confirming a meaningful result or threshold | Copy, selection, success | 2026-07-31 |
 | [SF Symbols HIG](https://developer.apple.com/design/human-interface-guidelines/sf-symbols) | Symbol selection, variants, rendering, localization, and effects | Choosing an interface icon | All screens | 2026-07-31 |
 | [SF Symbols](https://developer.apple.com/sf-symbols/) | Current symbol browser and availability resources | Verifying a symbol and platform support | All screens | 2026-07-31 |
+| [symbolEffect](https://developer.apple.com/documentation/swiftui/view/symboleffect(_:options:isactive:)) | System-owned animated SF Symbol effects and Reduce Motion adaptation | Indicating an active live process without custom animation | Developer Tools | 2026-08-06 |
 
 ## 7. Photos, files, sharing, camera, and permissions
 
