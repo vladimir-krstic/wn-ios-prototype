@@ -10,8 +10,10 @@ struct ProfileSettingsView: View {
     @State private var about: String
     @State private var avatar: PrototypeAvatar
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedWebChoice: AvatarWebImageChoice?
     @State private var isPhotosPickerPresented = false
     @State private var isFileImporterPresented = false
+    @State private var isWebImagePickerPresented = false
     @State private var photoError: String?
     @State private var isEditing = false
 
@@ -22,6 +24,9 @@ struct ProfileSettingsView: View {
         _name = State(initialValue: profile.wrappedValue.name)
         _about = State(initialValue: profile.wrappedValue.about)
         _avatar = State(initialValue: profile.wrappedValue.avatar)
+        _selectedWebChoice = State(
+            initialValue: Self.webChoice(for: profile.wrappedValue.avatar)
+        )
     }
 
     private enum Field {
@@ -86,6 +91,14 @@ struct ProfileSettingsView: View {
             selection: $selectedPhotoItem,
             matching: .images
         )
+        .sheet(isPresented: $isWebImagePickerPresented) {
+            AvatarWebImagePickerView(
+                currentChoice: selectedWebChoice,
+                onUseImage: useWebImage
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .onChange(of: selectedPhotoItem) {
             loadSelectedPhoto()
         }
@@ -173,6 +186,12 @@ struct ProfileSettingsView: View {
                 Label("Choose from Files", systemImage: "folder")
             }
 
+            Button {
+                isWebImagePickerPresented = true
+            } label: {
+                Label("Find Image on Web", systemImage: "globe")
+            }
+
             if avatar != .monogram {
                 Divider()
 
@@ -196,6 +215,8 @@ struct ProfileSettingsView: View {
         switch avatar {
         case let .asset(name):
             UIImage(named: name)
+        case let .webImage(assetName, _):
+            UIImage(named: assetName)
         case let .imageData(data):
             UIImage(data: data)
         case .monogram:
@@ -207,6 +228,16 @@ struct ProfileSettingsView: View {
         UIImage(systemName: "trash")?
             .withTintColor(.systemRed, renderingMode: .alwaysOriginal)
             ?? UIImage()
+    }
+
+    private static func webChoice(
+        for avatar: PrototypeAvatar
+    ) -> AvatarWebImageChoice? {
+        guard case let .webImage(_, choiceID) = avatar else {
+            return nil
+        }
+
+        return AvatarWebImageCatalog.choice(forID: choiceID)
     }
 
     private var canFinishEditing: Bool {
@@ -229,6 +260,7 @@ struct ProfileSettingsView: View {
         name = profile.name
         about = profile.about
         avatar = profile.avatar
+        selectedWebChoice = Self.webChoice(for: profile.avatar)
         photoError = nil
         isEditing = true
     }
@@ -239,6 +271,7 @@ struct ProfileSettingsView: View {
         about = profile.about
         avatar = profile.avatar
         selectedPhotoItem = nil
+        selectedWebChoice = Self.webChoice(for: profile.avatar)
         photoError = nil
         isEditing = false
     }
@@ -284,6 +317,7 @@ struct ProfileSettingsView: View {
                 }
 
                 avatar = .imageData(preparedData)
+                selectedWebChoice = nil
             } catch {
                 showPhotoError()
             }
@@ -309,6 +343,7 @@ struct ProfileSettingsView: View {
                 }
 
                 avatar = .imageData(preparedData)
+                selectedWebChoice = nil
                 selectedPhotoItem = nil
                 photoError = nil
             } catch {
@@ -321,6 +356,22 @@ struct ProfileSettingsView: View {
 
     private func removePhoto() {
         avatar = .monogram
+        selectedWebChoice = nil
+        selectedPhotoItem = nil
+        photoError = nil
+    }
+
+    private func useWebImage(_ choice: AvatarWebImageChoice) {
+        guard UIImage(named: choice.assetName) != nil else {
+            showPhotoError()
+            return
+        }
+
+        avatar = .webImage(
+            assetName: choice.assetName,
+            choiceID: choice.id
+        )
+        selectedWebChoice = choice
         selectedPhotoItem = nil
         photoError = nil
     }

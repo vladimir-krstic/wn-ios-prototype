@@ -291,7 +291,10 @@ struct SignUpView: View {
         }
 
         avatarImage = image
-        selectedAvatar = .asset(choice.assetName)
+        selectedAvatar = .webImage(
+            assetName: choice.assetName,
+            choiceID: choice.id
+        )
         selectedWebChoice = choice
         selectedPhotoItem = nil
         photoError = nil

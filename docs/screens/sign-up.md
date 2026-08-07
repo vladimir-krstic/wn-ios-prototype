@@ -21,9 +21,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - URL privacy title: **Image privacy**
 - URL privacy detail: **The image provider can see your IP address when the
   preview loads.**
-- URL helper: **Enter an image URL.**
+- URL helper: **Enter an image URL to preview it below.**
 - Invalid URL: **Enter a valid web address.**
-- Valid URL helper: **Preview shown below.**
 - Web-image confirmation: **Done**
 - Selected-image removal: **Remove Photo**
 - Field labels: **Name**, **About**
@@ -43,14 +42,24 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - One native large sheet for finding an image on the web, with Close, Done, and
   a system palette `Picker` in the principal toolbar position for **Search** and
   **URL**.
-- Native `searchable` interface and a three-column SwiftUI `LazyVGrid` of
-  edge-to-edge 1:1 square image Buttons for one-of-21 selection. A single
-  bottom-trailing selection badge uses the app's adaptive accent fill with a
-  white outline and checkmark to communicate the active selection.
+- A native UIKit `UISearchBar` hosted in a SwiftUI system `safeAreaBar`, and a
+  three-column SwiftUI `LazyVGrid` of edge-to-edge 1:1 square image Buttons for
+  one-of-21 selection. The search field's system clear control appears while
+  it contains text. The field retains UIKit's minimal search style so it never
+  draws a separate bar background. At rest it uses standard safe-area padding;
+  focus expands it toward the screen edges, matching the native Chats search
+  geometry. A separate circular system glass `xmark` appears only while the
+  field has focus and dismisses only the keyboard. A single bottom-trailing
+  selection badge uses the app's adaptive accent fill with a white outline and
+  checkmark to communicate the active selection.
+- The bottom search bar leaves the sheet toolbar independent, so Close,
+  Search/URL, and Done remain available while search is active.
 - A quiet, neutral privacy disclosure precedes Search results and URL entry.
-  It uses `hand.raised`, semantic primary and secondary text, and no warning
-  color, modal confirmation, or custom material.
-- Native grouped `Form` for entering a URL and previewing its selected image in
+  Search and URL both place it in a native grouped Form section, giving each
+  mode the same system top inset and white rounded container. Both use
+  `hand.raised`, semantic primary and secondary text, and no warning color,
+  modal confirmation, or custom material.
+- Native grouped `Form` for entering a URL and previewing its image in
   the same sheet.
 - Native grouped `Form` with its scroll background hidden so the canvas matches Welcome.
 - Plain native `TextField` controls inside separate grouped Name and About cards.
@@ -69,26 +78,69 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - A selected photo replaces the monogram and remains in memory only.
 - **Find Image on Web** opens one sheet in Search mode. The person can switch
   between Search and URL without leaving the sheet.
-- Search presents 21 varied, locally bundled example images as a regular
-  three-column square thumbnail grid with minimal gutters and aspect-fill
-  cropping. Typing any query immediately reorders the deterministic catalog;
-  the prototype deterministically represents the production web-search
+- Search starts with a native empty state. Typing a nonempty query immediately
+  presents 21 varied,
+  locally bundled example images as a regular three-column square thumbnail
+  grid with minimal gutters and aspect-fill cropping. Each query deterministically
+  reorders the catalog; the prototype represents the production web-search
   experience without making a runtime request or identifying its fixture
   source in product UI. Production-facing privacy copy describes the real
   Search and URL data flow that this interaction represents.
-- Search shows its privacy disclosure before the first result row, where it
-  remains contextual and scrolls away with the grid. URL shows its equivalent
-  disclosure before the field so the consequence is visible before entry.
+- The results surface is constrained to the available width and scrolls only
+  vertically; it does not pan horizontally or move freely in two dimensions.
+- Search uses one grouped Form as its strictly vertical scroller. Its privacy
+  section uses the same system top spacing as URL, while the result grid is a
+  transparent edge-to-edge Form row. Results use Apple's soft bottom
+  scroll-edge effect near the system search field while remaining clipped to
+  the keyboard-adjusted scroll viewport, so thumbnails never show through the
+  system keyboard. URL shows its equivalent disclosure before the field so the
+  consequence is visible before entry.
+- The web-image sheet places an opaque semantic grouped backing above the
+  results and directly beneath the system keyboard. UIKit's system-managed
+  keyboard layout guide owns its complete docked region, including the bottom
+  safe area. This is a user-approved exception to the default translucent
+  substrate: the keyboard remains system-owned, but image results never
+  visually participate in its material. When the keyboard leaves, the backing
+  collapses completely rather than retaining the guide's resting bottom-safe-
+  area height.
 - The grid permits exactly one selection. **Done** applies the selected image
   to the Sign Up avatar and the resulting profile.
+- Selecting a search result removes focus from the search field, dismisses the
+  keyboard, and hides the separate large `xmark`. The entered query, the
+  search field's system clear control, and the selected badge remain visible.
+  The clear control empties the query and results without undoing the image
+  selection; the now-enabled top-right **Done** action is the explicit
+  confirmation.
+- SwiftUI's default search cancel action clears the query as it dismisses
+  search, which conflicts with the approved interaction. The bounded UIKit
+  search-field bridge is the user-approved native exception: its built-in
+  clear control clears only text, while the separately labeled **Dismiss
+  Keyboard** button changes only focus and disappears whenever the field is no
+  longer focused.
+- The bridge follows the system search hierarchy rather than one fixed layout:
+  the inactive field stays compact, while the focused field uses reduced outer
+  margins and the native circular keyboard-dismiss control. The focused
+  geometry matches Chats and Apple's Messages search reference without
+  changing the inactive state or introducing a second bar background.
 - URL accepts any syntactically valid HTTP or HTTPS image address and updates
-  a square deterministic bundled preview immediately while typing. **Done**
-  applies that preview. This keeps the prototype functional without runtime
+  a square deterministic bundled preview immediately while typing. The preview
+  has no selection badge because it is the direct result of the entered URL;
+  **Done** applies it. This keeps the prototype functional without runtime
   networking.
+- Every web-image choice has a deterministic `example.com` display URL. A
+  Search selection immediately seeds that URL, so switching to URL shows the
+  same image and its preview. After **Done**, reopening Find Image on Web with
+  an existing web image seeds the same display URL and preview regardless of
+  whether the image was originally chosen through Search or URL. The initial
+  URL view remains empty when no web image has been chosen. The resulting
+  profile retains this web provenance; bundled and device-selected avatars do
+  not infer a URL from a matching catalog asset.
 - **Change Photo** reopens the same source menu; **Remove Photo** restores the monogram.
 - **Remove Photo** uses SwiftUI's destructive button role. Its complete native `Label` also receives the semantic red style so the title and standard trash symbol match Apple's destructive-menu example despite the current iOS 27 beta rendering the role on the title only.
 - The avatar action uses the regular native control size with one stable semantic system spacing step below the avatar. Changing between the monogram and selected image does not alter this spacing.
-- The white system canvas maintains visual continuity with Welcome and distinguishes onboarding from Settings.
+- The main Sign Up screen keeps the white system canvas used by Welcome. The
+  web-image task uses the system grouped canvas so its privacy group, empty
+  state, result grid, and URL Form share one coherent sheet background.
 - Native Form sections own the field-card shape, padding, spacing, and focus behavior; no rounded rectangle is drawn by the app.
 - The avatar remains visually floating in a transparent Form row above the fields.
 - Photos and Files present their system interfaces. No camera or broad photo-library permission is requested.
@@ -123,9 +175,12 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette)
 - [Search fields](https://developer.apple.com/design/human-interface-guidelines/search-fields)
 - [Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy)
-- [Search modifiers](https://developer.apple.com/documentation/swiftui/view-search)
-- [Adding a search interface](https://developer.apple.com/documentation/swiftui/adding-a-search-interface-to-your-app)
+- [UISearchBar](https://developer.apple.com/documentation/uikit/uisearchbar)
+- [UISearchBarDelegate](https://developer.apple.com/documentation/uikit/uisearchbardelegate)
+- [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:))
 - [LazyVGrid](https://developer.apple.com/documentation/swiftui/lazyvgrid)
+- [Scroll edge effect style](https://developer.apple.com/documentation/swiftui/view/scrolledgeeffectstyle(_:for:))
+- [Adjusting layout with the keyboard layout guide](https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide)
 - [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
 - [Populating SwiftUI menus with adaptive controls](https://developer.apple.com/documentation/SwiftUI/Populating-SwiftUI-menus-with-adaptive-controls)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
@@ -153,19 +208,44 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
   Web** choice.
 - **Find Image on Web** opens one large sheet with a native Search/URL selector
   in its top toolbar.
-- Search initially shows all 21 varied example images in a regular 1:1 square
-  three-column grid. Every thumbnail uses aspect-fill cropping, minimal equal
-  gutters, and no masonry sizing. Typing a query updates their deterministic
-  order without removing results.
-- Search presents the approved neutral privacy disclosure above the first
-  result row. URL presents its corresponding disclosure before the URL field.
-  Neither treatment uses warning color or interrupts the task.
+- Search initially shows **Search Images** and **Enter a search to find an
+  image.** with no results. Entering a nonempty query immediately shows all 21 varied
+  example images in a regular 1:1 square three-column grid. Every thumbnail
+  uses aspect-fill cropping, minimal equal gutters, and no masonry sizing.
+  Results scroll vertically without horizontal panning.
+- Search and URL present their approved neutral privacy disclosures in matching
+  native grouped Form sections with the same system top inset and container
+  geometry. Search keeps its section above the first result row; URL keeps its
+  section before the URL field. Neither treatment uses warning color or
+  interrupts the task.
+- Search results remain in one vertical scroller and transition through a soft
+  system scroll edge near the native bottom search field. When the keyboard is
+  visible, the result grid remains clipped to its adjusted viewport and does
+  not remain visually exposed beneath the keyboard. An opaque semantic grouped
+  backing covers the complete keyboard and bottom safe-area region, so
+  thumbnails don't show through its material.
 - The web-image grid supports one selected item, communicates selection without
   relying on color alone through a white-outlined accent badge and white
   checkmark, and applies only after Done.
+- Close, Search/URL, and Done remain visible during active search. While the
+  search field is focused, it expands to the same edge margins as the native
+  Chats search without drawing an opaque bar behind the field. A separate
+  large circular `xmark` is visible and dismisses only the keyboard without
+  changing the query.
+  Selecting a result performs that same keyboard-only dismissal, restores the
+  compact field, preserves the visible query and selection, keeps the in-field
+  clear control available, enables Done, hides the large `xmark`, and leaves
+  the complete native bottom search field unobscured. Clearing the query with
+  the in-field control returns to the Search Images empty state without
+  undoing the selection.
 - A valid HTTP or HTTPS URL immediately produces a square deterministic preview
-  while typing and can be applied; a malformed URL keeps **Done** disabled in
-  URL mode.
+  without a selection checkmark and can be applied; a malformed URL keeps
+  **Done** disabled in URL mode. The helper reads **Enter an image URL to
+  preview it below.** before entry and after a valid preview appears.
+- Selecting an image through Search and then opening URL, or reopening Find
+  Image on Web after applying an image through either mode, shows a stable
+  `example.com` image URL and the same image preview. URL does not return to an
+  empty field while a current web image exists.
 - Choosing a supported image previews it; removing it restores the current name initial.
 - The destructive Remove Photo menu item displays both its title and trash symbol with the system destructive treatment.
 - The bottom **Sign Up** action remains visible above the safe area and keyboard.

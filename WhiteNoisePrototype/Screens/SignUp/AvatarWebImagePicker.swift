@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AvatarWebImageChoice: Identifiable, Equatable {
     let id: String
@@ -150,6 +151,14 @@ enum AvatarWebImageCatalog {
         return Array(choices[offset...]) + Array(choices[..<offset])
     }
 
+    static func displayURL(for choice: AvatarWebImageChoice) -> String {
+        "https://example.com/images/\(choice.id).jpg"
+    }
+
+    static func choice(forID id: String) -> AvatarWebImageChoice? {
+        choices.first { $0.id == id }
+    }
+
     private static func deterministicOffset(for value: String) -> Int {
         value.unicodeScalars.reduce(0) {
             ($0 + Int($1.value)) % choices.count
@@ -178,6 +187,7 @@ struct AvatarWebImagePickerView: View {
     @State private var query = ""
     @State private var imageURL = ""
     @State private var selectedChoice: AvatarWebImageChoice?
+    @State private var isSearchFocused = false
 
     let onUseImage: (AvatarWebImageChoice) -> Void
 
@@ -187,6 +197,10 @@ struct AvatarWebImagePickerView: View {
     ) {
         self.onUseImage = onUseImage
         _selectedChoice = State(initialValue: currentChoice)
+        _imageURL = State(
+            initialValue: currentChoice.map(AvatarWebImageCatalog.displayURL)
+                ?? ""
+        )
     }
 
     var body: some View {
@@ -229,8 +243,22 @@ struct AvatarWebImagePickerView: View {
                     }
                 }
                 .onChange(of: mode) {
+                    isSearchFocused = false
+                    if mode == .url,
+                       imageURL.isEmpty,
+                       let selectedChoice {
+                        imageURL = AvatarWebImageCatalog.displayURL(
+                            for: selectedChoice
+                        )
+                    }
                     isURLFocused = mode == .url
                 }
+        }
+        .overlay {
+            KeyboardOcclusionBackdrop()
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
     }
 
@@ -239,35 +267,69 @@ struct AvatarWebImagePickerView: View {
         switch mode {
         case .search:
             searchContent
-                .searchable(
-                    text: $query,
-                    placement: .automatic,
-                    prompt: "Search Images"
-                )
         case .url:
             urlContent
         }
     }
 
     private var searchContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
+        Form {
+            Section {
                 privacyDisclosure(
                     title: "Search privacy",
                     detail: "Your search is sent to DuckDuckGo. Image providers can see your IP address when results load."
                 )
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(uiColor: .secondarySystemBackground))
+            }
 
-                LazyVGrid(columns: columns, spacing: 1) {
-                    ForEach(AvatarWebImageCatalog.results(for: query)) { choice in
-                        choiceButton(choice)
+            Section {
+                if normalizedQuery.isEmpty {
+                    ContentUnavailableView(
+                        "Search Images",
+                        systemImage: "photo.on.rectangle.angled",
+                        description: Text("Enter a search to find an image.")
+                    )
+                    .frame(maxWidth: .infinity)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 1) {
+                        ForEach(
+                            AvatarWebImageCatalog.results(for: normalizedQuery)
+                        ) { choice in
+                            choiceButton(choice)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
                 }
             }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
         }
+        .formStyle(.grouped)
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaBar(edge: .bottom) {
+            HStack(spacing: isSearchFocused ? 4 : nil) {
+                AvatarImageSearchBar(
+                    text: $query,
+                    isFocused: $isSearchFocused
+                )
+                .frame(maxWidth: .infinity)
+
+                if isSearchFocused {
+                    Button {
+                        isSearchFocused = false
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .controlSize(.extraLarge)
+                    .accessibilityLabel("Dismiss Keyboard")
+                }
+            }
+            .safeAreaPadding(.leading, isSearchFocused ? 0 : nil)
+            .safeAreaPadding(.trailing, isSearchFocused ? 8 : nil)
+        }
     }
 
     private var urlContent: some View {
@@ -297,11 +359,9 @@ struct AvatarWebImagePickerView: View {
 
             if let urlChoice {
                 Section("Preview") {
-                    imageTile(urlChoice, showsSelection: true)
+                    imageTile(urlChoice, showsSelection: false)
                         .listRowInsets(EdgeInsets())
                         .accessibilityLabel(urlChoice.accessibilityLabel)
-                        .accessibilityValue("Selected")
-                        .accessibilityAddTraits(.isSelected)
                 }
             }
         }
@@ -341,6 +401,10 @@ struct AvatarWebImagePickerView: View {
         AvatarWebImageCatalog.choice(matching: imageURL)
     }
 
+    private var normalizedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var activeChoice: AvatarWebImageChoice? {
         switch mode {
         case .search: selectedChoice
@@ -349,18 +413,18 @@ struct AvatarWebImagePickerView: View {
     }
 
     private var urlHelpText: String {
-        guard !imageURL.isEmpty else {
-            return "Enter an image URL."
+        guard imageURL.isEmpty || urlChoice != nil else {
+            return "Enter a valid web address."
         }
 
-        return urlChoice == nil
-            ? "Enter a valid web address."
-            : "Preview shown below."
+        return "Enter an image URL to preview it below."
     }
 
     private func choiceButton(_ choice: AvatarWebImageChoice) -> some View {
         Button {
             selectedChoice = choice
+            imageURL = AvatarWebImageCatalog.displayURL(for: choice)
+            isSearchFocused = false
         } label: {
             imageTile(
                 choice,
@@ -405,6 +469,117 @@ struct AvatarWebImagePickerView: View {
                     .padding(6)
                 }
             }
+    }
+}
+
+private struct AvatarImageSearchBar: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let searchBar = UISearchBar()
+        searchBar.delegate = context.coordinator
+        searchBar.searchBarStyle = .minimal
+        searchBar.placeholder = "Search Images"
+        searchBar.showsCancelButton = false
+        searchBar.searchTextField.clearButtonMode = .never
+        searchBar.searchTextField.returnKeyType = .search
+        return searchBar
+    }
+
+    func updateUIView(_ uiView: UISearchBar, context: Context) {
+        context.coordinator.parent = self
+
+        if uiView.text != text {
+            uiView.text = text
+        }
+        uiView.searchTextField.clearButtonMode = text.isEmpty ? .never : .always
+
+        if isFocused, !uiView.searchTextField.isFirstResponder {
+            uiView.searchTextField.becomeFirstResponder()
+        } else if !isFocused, uiView.searchTextField.isFirstResponder {
+            uiView.searchTextField.resignFirstResponder()
+        }
+    }
+
+    final class Coordinator: NSObject, UISearchBarDelegate {
+        var parent: AvatarImageSearchBar
+
+        init(parent: AvatarImageSearchBar) {
+            self.parent = parent
+        }
+
+        func searchBar(
+            _ searchBar: UISearchBar,
+            textDidChange searchText: String
+        ) {
+            parent.text = searchText
+        }
+
+        func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+            parent.isFocused = true
+        }
+
+        func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+            parent.isFocused = false
+        }
+
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            parent.isFocused = false
+            searchBar.searchTextField.resignFirstResponder()
+        }
+    }
+}
+
+private struct KeyboardOcclusionBackdrop: UIViewRepresentable {
+    func makeUIView(context: Context) -> KeyboardOcclusionBackdropView {
+        KeyboardOcclusionBackdropView()
+    }
+
+    func updateUIView(
+        _ uiView: KeyboardOcclusionBackdropView,
+        context: Context
+    ) {}
+}
+
+private final class KeyboardOcclusionBackdropView: UIView {
+    private let backdropView = UIView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+
+        backdropView.translatesAutoresizingMaskIntoConstraints = false
+        backdropView.backgroundColor = .systemGroupedBackground
+        backdropView.isUserInteractionEnabled = false
+        addSubview(backdropView)
+
+        NSLayoutConstraint.activate([
+            backdropView.topAnchor.constraint(
+                equalTo: keyboardLayoutGuide.topAnchor
+            ),
+            backdropView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            backdropView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            backdropView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        let keyboardIsVisible = keyboardLayoutGuide.layoutFrame.minY
+            < safeAreaLayoutGuide.layoutFrame.maxY
+        backdropView.isHidden = !keyboardIsVisible
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }
 

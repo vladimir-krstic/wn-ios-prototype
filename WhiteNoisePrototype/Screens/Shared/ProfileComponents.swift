@@ -20,6 +20,10 @@ struct ProfileAvatarView: View {
             Image(name)
                 .resizable()
                 .scaledToFill()
+        case let .webImage(assetName, _):
+            Image(assetName)
+                .resizable()
+                .scaledToFill()
         case let .imageData(data):
             if let image = UIImage(data: data) {
                 Image(uiImage: image)

@@ -2,6 +2,7 @@ import Foundation
 
 enum PrototypeAvatar: Equatable {
     case asset(String)
+    case webImage(assetName: String, choiceID: String)
     case imageData(Data)
     case monogram
 }

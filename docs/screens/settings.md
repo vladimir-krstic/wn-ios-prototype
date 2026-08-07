@@ -129,10 +129,18 @@ not require the source pages during normal work.
   and native Form structure as Sign Up.
 - The photo action appears only while editing and reads **Add Photo** or
   **Change Photo**. Its native menu provides **Choose from Photos**, **Choose
-  from Files**, and **Remove Photo** when applicable.
+  from Files**, **Find Image on Web**, and **Remove Photo** when applicable.
 - `PhotosPicker` and `fileImporter` retain their system presentation. Selected
   photos are normalized to a maximum 512-pixel dimension before being held in
   memory.
+- **Find Image on Web** reuses the Sign Up web-image sheet, including its
+  Search/URL modes, privacy disclosure, result selection, keyboard behavior,
+  URL preview, and deterministic preview address. Only an image explicitly
+  chosen through this sheet retains web provenance and is restored with its
+  preview URL. Bundled profile avatars such as Marmota and the other local
+  accounts open with an empty URL. Choosing Photos or Files, removing the
+  photo, or cancelling Profile editing clears or restores that draft source
+  consistently with the stored avatar.
 - Name and About are read-only until Edit is chosen. While editing, they use
   separate native grouped Form cards with the same prompts, semantic fill,
   focus order, multiline behavior, and Dynamic Type behavior as Sign Up.
@@ -630,6 +638,14 @@ need to open them to implement or evaluate Settings.
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app)
 - [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:))
+- [Search fields](https://developer.apple.com/design/human-interface-guidelines/search-fields)
+- [Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy)
+- [UISearchBar](https://developer.apple.com/documentation/uikit/uisearchbar)
+- [UISearchBarDelegate](https://developer.apple.com/documentation/uikit/uisearchbardelegate)
+- [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:))
+- [LazyVGrid](https://developer.apple.com/documentation/swiftui/lazyvgrid)
+- [Scroll edge effect style](https://developer.apple.com/documentation/swiftui/view/scrolledgeeffectstyle(_:for:))
+- [Adjusting layout with the keyboard layout guide](https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide)
 - [fileExporter](https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:))
 - [FileDocument](https://developer.apple.com/documentation/swiftui/filedocument)
 - [File management](https://developer.apple.com/design/human-interface-guidelines/file-management)
@@ -663,6 +679,11 @@ need to open them to implement or evaluate Settings.
   trailing **Done**, and replaces Back with the leading **Cancel** action.
 - Cancel restores the stored avatar, Name, and About even when the draft has
   changes, and exits editing without navigating away.
+- Profile's photo menu includes **Find Image on Web** and presents the same
+  Search/URL flow as Sign Up. A chosen web image immediately updates the draft,
+  reopens with its preview URL intact, is discarded by Cancel, and is committed
+  by Done. A bundled or device-selected avatar never produces a URL merely
+  because the same image also exists in the web catalog.
 - Done exits edit mode even when nothing changed. For a changed valid draft it
   commits the avatar, Name, and About without dismissing Profile. It remains
   disabled only while Name is empty and never exposes a dice action or
