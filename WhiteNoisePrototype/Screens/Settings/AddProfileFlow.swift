@@ -41,8 +41,10 @@ struct AddProfileFlow: View {
                 )
             }
             .navigationDestination(isPresented: $isShowingSignUp) {
-                SignUpView(initialName: "Pebble") { name in
-                    onCompletion(.addedSignUp(name: name))
+                SignUpView(initialName: "Pebble") { name, avatar in
+                    onCompletion(
+                        .addedSignUp(name: name, avatar: avatar)
+                    )
                 }
             }
         }

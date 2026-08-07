@@ -143,7 +143,10 @@ extension PrototypeProfile {
         chats: ChatListFixtures.empty
     )
 
-    static func initialSignUp(name: String) -> PrototypeProfile {
+    static func initialSignUp(
+        name: String,
+        avatar: PrototypeAvatar? = nil
+    ) -> PrototypeProfile {
         var profile = marmota
         let normalizedName = name.trimmingCharacters(
             in: .whitespacesAndNewlines
@@ -157,10 +160,17 @@ extension PrototypeProfile {
             )
         }
 
+        if let avatar {
+            profile.avatar = avatar
+        }
+
         return profile
     }
 
-    static func addedSignUp(name: String) -> PrototypeProfile {
+    static func addedSignUp(
+        name: String,
+        avatar: PrototypeAvatar? = nil
+    ) -> PrototypeProfile {
         var profile = pebble
         let normalizedName = name.trimmingCharacters(
             in: .whitespacesAndNewlines
@@ -172,6 +182,10 @@ extension PrototypeProfile {
                 profileID: profile.id,
                 profileName: normalizedName
             )
+        }
+
+        if let avatar {
+            profile.avatar = avatar
         }
 
         return profile

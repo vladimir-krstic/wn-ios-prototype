@@ -103,8 +103,8 @@ private struct PrototypeRootView: View {
                     completeInitialSignIn()
                 }
             case .signUp:
-                InitialSignUpSheet { name in
-                    completeInitialSignUp(name: name)
+                InitialSignUpSheet { name, avatar in
+                    completeInitialSignUp(name: name, avatar: avatar)
                 }
             case .addProfile:
                 AddProfileFlow { profile in
@@ -178,8 +178,14 @@ private struct PrototypeRootView: View {
         rootDestination = .chats
     }
 
-    private func completeInitialSignUp(name: String) {
-        let profile = PrototypeProfile.initialSignUp(name: name)
+    private func completeInitialSignUp(
+        name: String,
+        avatar: PrototypeAvatar?
+    ) {
+        let profile = PrototypeProfile.initialSignUp(
+            name: name,
+            avatar: avatar
+        )
         activateStoredOrNewProfile(profile, updatesStoredName: true)
 
         onboardingPresentation = nil
@@ -316,7 +322,7 @@ private struct InitialSignInSheet: View {
 private struct InitialSignUpSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    let onSignUp: (String) -> Void
+    let onSignUp: (String, PrototypeAvatar?) -> Void
 
     var body: some View {
         NavigationStack {

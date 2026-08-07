@@ -10,7 +10,21 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Initial dummy name: **Marmota**
 - Avatar action before selection: **Add Photo**
 - Avatar action after selection: **Change Photo**
-- Image-source menu: **Choose from Photos**, **Choose from Files**
+- Image-source menu: **Choose from Photos**, **Choose from Files**, **Find Image on Web**
+- Web-image modes: **Search**, **URL**
+- Search prompt: **Search Images**
+- Search privacy title: **Search privacy**
+- Search privacy detail: **Your search is sent to DuckDuckGo. Image providers
+  can see your IP address when results load.**
+- URL field label: **Image URL**
+- URL prompt: **https://example.com/image.jpg**
+- URL privacy title: **Image privacy**
+- URL privacy detail: **The image provider can see your IP address when the
+  preview loads.**
+- URL helper: **Enter an image URL.**
+- Invalid URL: **Enter a valid web address.**
+- Valid URL helper: **Preview shown below.**
+- Web-image confirmation: **Done**
 - Selected-image removal: **Remove Photo**
 - Field labels: **Name**, **About**
 - About prompt: **A little about you**
@@ -26,6 +40,18 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Native `Menu` for the compact source choice.
 - `PhotosPicker` limited to images.
 - SwiftUI `fileImporter` limited to image files.
+- One native large sheet for finding an image on the web, with Close, Done, and
+  a system palette `Picker` in the principal toolbar position for **Search** and
+  **URL**.
+- Native `searchable` interface and a three-column SwiftUI `LazyVGrid` of
+  edge-to-edge 1:1 square image Buttons for one-of-21 selection. A single
+  bottom-trailing selection badge uses the app's adaptive accent fill with a
+  white outline and checkmark to communicate the active selection.
+- A quiet, neutral privacy disclosure precedes Search results and URL entry.
+  It uses `hand.raised`, semantic primary and secondary text, and no warning
+  color, modal confirmation, or custom material.
+- Native grouped `Form` for entering a URL and previewing its selected image in
+  the same sheet.
 - Native grouped `Form` with its scroll background hidden so the canvas matches Welcome.
 - Plain native `TextField` controls inside separate grouped Name and About cards.
 - Semantic system fill distinguishes the grouped cards from the white canvas while native Form geometry owns their shape and insets.
@@ -41,6 +67,24 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - The avatar remains a white circle with a black initial in Dark Mode.
 - Editing Name immediately updates the monogram to the first non-whitespace character.
 - A selected photo replaces the monogram and remains in memory only.
+- **Find Image on Web** opens one sheet in Search mode. The person can switch
+  between Search and URL without leaving the sheet.
+- Search presents 21 varied, locally bundled example images as a regular
+  three-column square thumbnail grid with minimal gutters and aspect-fill
+  cropping. Typing any query immediately reorders the deterministic catalog;
+  the prototype deterministically represents the production web-search
+  experience without making a runtime request or identifying its fixture
+  source in product UI. Production-facing privacy copy describes the real
+  Search and URL data flow that this interaction represents.
+- Search shows its privacy disclosure before the first result row, where it
+  remains contextual and scrolls away with the grid. URL shows its equivalent
+  disclosure before the field so the consequence is visible before entry.
+- The grid permits exactly one selection. **Done** applies the selected image
+  to the Sign Up avatar and the resulting profile.
+- URL accepts any syntactically valid HTTP or HTTPS image address and updates
+  a square deterministic bundled preview immediately while typing. **Done**
+  applies that preview. This keeps the prototype functional without runtime
+  networking.
 - **Change Photo** reopens the same source menu; **Remove Photo** restores the monogram.
 - **Remove Photo** uses SwiftUI's destructive button role. Its complete native `Label` also receives the semantic red style so the title and standard trash symbol match Apple's destructive-menu example despite the current iOS 27 beta rendering the role on the title only.
 - The avatar action uses the regular native control size with one stable semantic system spacing step below the avatar. Changing between the monogram and selected image does not alter this spacing.
@@ -48,6 +92,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Native Form sections own the field-card shape, padding, spacing, and focus behavior; no rounded rectangle is drawn by the app.
 - The avatar remains visually floating in a transparent Form row above the fields.
 - Photos and Files present their system interfaces. No camera or broad photo-library permission is requested.
+- The combined Search/URL sheet uses a native Close action and supports swipe
+  dismissal.
 - Sign Up preserves its normal dimensions, replaces its visible title with a centered spinner, prevents repeat activation, and exposes **Signing Up** and **In progress** to assistive technologies before invoking its callback.
 - The deterministic prototype processing state lasts two seconds so the stable loading treatment remains inspectable without slowing the flow.
 - Initial Sign Up and Add Profile both finish on Chats. Add Profile removes the
@@ -61,6 +107,11 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - A selected image is announced as **Profile photo**.
 - Persistent labels identify Name and About after their prompts disappear.
 - Native controls retain system traits, focus, hit targets, Dynamic Type, menu behavior, keyboard behavior, and motion.
+- Every web result is an individual Button announced by its visible subject;
+  the active result also has the selected trait and a checkmark, so selection
+  never depends on green alone.
+- The URL field uses the URL keyboard, disables autocorrection and automatic
+  capitalization, and focuses when its sheet opens.
 - The screen scrolls and dismisses the keyboard interactively.
 
 ## Apple references
@@ -68,6 +119,14 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - [Text fields](https://developer.apple.com/design/human-interface-guidelines/text-fields)
 - [Form](https://developer.apple.com/documentation/swiftui/form)
 - [Menus](https://developer.apple.com/design/human-interface-guidelines/menus)
+- [Picker](https://developer.apple.com/documentation/swiftui/picker)
+- [Palette picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/palette)
+- [Search fields](https://developer.apple.com/design/human-interface-guidelines/search-fields)
+- [Privacy](https://developer.apple.com/design/human-interface-guidelines/privacy)
+- [Search modifiers](https://developer.apple.com/documentation/swiftui/view-search)
+- [Adding a search interface](https://developer.apple.com/documentation/swiftui/adding-a-search-interface-to-your-app)
+- [LazyVGrid](https://developer.apple.com/documentation/swiftui/lazyvgrid)
+- [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
 - [Populating SwiftUI menus with adaptive controls](https://developer.apple.com/documentation/SwiftUI/Populating-SwiftUI-menus-with-adaptive-controls)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app)
@@ -90,10 +149,47 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Sign Up uses the same white system canvas as Welcome.
 - Name and About use separate native grouped Form cards with a subtle semantic system fill.
 - Form owns field-card corner geometry, insets, and spacing; the app does not supply numeric border or corner-radius recipes.
-- **Add Photo** opens a menu with working Photos and Files choices.
+- **Add Photo** opens a menu with working Photos, Files, and one **Find Image on
+  Web** choice.
+- **Find Image on Web** opens one large sheet with a native Search/URL selector
+  in its top toolbar.
+- Search initially shows all 21 varied example images in a regular 1:1 square
+  three-column grid. Every thumbnail uses aspect-fill cropping, minimal equal
+  gutters, and no masonry sizing. Typing a query updates their deterministic
+  order without removing results.
+- Search presents the approved neutral privacy disclosure above the first
+  result row. URL presents its corresponding disclosure before the URL field.
+  Neither treatment uses warning color or interrupts the task.
+- The web-image grid supports one selected item, communicates selection without
+  relying on color alone through a white-outlined accent badge and white
+  checkmark, and applies only after Done.
+- A valid HTTP or HTTPS URL immediately produces a square deterministic preview
+  while typing and can be applied; a malformed URL keeps **Done** disabled in
+  URL mode.
 - Choosing a supported image previews it; removing it restores the current name initial.
 - The destructive Remove Photo menu item displays both its title and trash symbol with the system destructive treatment.
 - The bottom **Sign Up** action remains visible above the safe area and keyboard.
 - Sign Up shows a centered native spinner for two seconds without changing button dimensions or losing contrast.
 - In Light Mode the prominent action has white content on black; in Dark Mode it has black content on white, including normal and loading states.
 - The layout remains usable in Light and Dark appearances and at accessibility text sizes.
+
+## Bundled web-image provenance (team only)
+
+The picker contains exactly 21 local example images: 14 existing fictional-
+universe fixtures and seven newly bundled web examples. Product UI never names
+the image source, and the app never fetches an image at runtime. Search renders
+square aspect-fill thumbnails; only the resulting profile avatar applies the
+shared circular avatar crop.
+
+Newly bundled source links are retained only for internal provenance. License:
+[source license](https://unsplash.com/license).
+
+| Asset | Creator | Source | Retrieved |
+| --- | --- | --- | --- |
+| AvatarWebAionyHaust | Aiony Haust | [3TLl_97HNJo](https://unsplash.com/photos/3TLl_97HNJo) | 2026-08-07 |
+| AvatarWebChristopherCampbell | Christopher Campbell | [rDEOVtE7vOs](https://unsplash.com/photos/rDEOVtE7vOs) | 2026-08-07 |
+| AvatarWebIanDooley | Ian Dooley | [d1UPkiFd04A](https://unsplash.com/photos/d1UPkiFd04A) | 2026-08-07 |
+| AvatarWebSergioDePaula | Sergio de Paula | [c_GmwfHBDzk](https://unsplash.com/photos/c_GmwfHBDzk) | 2026-08-07 |
+| AvatarWebAyoOgunseinde | Ayo Ogunseinde | [sibVwORYqs0](https://unsplash.com/photos/sibVwORYqs0) | 2026-08-07 |
+| AvatarWebVinceFleming | Vince Fleming | [j3lf-Jn6deo](https://unsplash.com/photos/j3lf-Jn6deo) | 2026-08-07 |
+| AvatarWebPhilipMartin | Philip Martin | [5aGUyCW_PJw](https://unsplash.com/photos/5aGUyCW_PJw) | 2026-08-07 |

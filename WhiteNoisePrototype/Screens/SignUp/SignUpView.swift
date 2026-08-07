@@ -8,18 +8,29 @@ struct SignUpView: View {
     @State private var about = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var avatarImage: UIImage?
+    @State private var selectedAvatar: PrototypeAvatar?
+    @State private var selectedWebChoice: AvatarWebImageChoice?
     @State private var isPhotosPickerPresented = false
     @State private var isFileImporterPresented = false
+    @State private var isWebImagePickerPresented = false
     @State private var photoError: String?
     @State private var isSigningUp = false
 
     @FocusState private var focusedField: Field?
 
-    let onSignUp: (String) -> Void
+    let onSignUp: (String, PrototypeAvatar?) -> Void
 
     init(
         initialName: String = "Marmota",
         onSignUp: @escaping (String) -> Void
+    ) {
+        _name = State(initialValue: initialName)
+        self.onSignUp = { name, _ in onSignUp(name) }
+    }
+
+    init(
+        initialName: String = "Marmota",
+        onSignUp: @escaping (String, PrototypeAvatar?) -> Void
     ) {
         _name = State(initialValue: initialName)
         self.onSignUp = onSignUp
@@ -96,6 +107,14 @@ struct SignUpView: View {
         .onChange(of: selectedPhotoItem) {
             loadSelectedPhoto()
         }
+        .sheet(isPresented: $isWebImagePickerPresented) {
+            AvatarWebImagePickerView(
+                currentChoice: selectedWebChoice,
+                onUseImage: useWebImage
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .background(.background)
     }
 
@@ -123,6 +142,12 @@ struct SignUpView: View {
                     isFileImporterPresented = true
                 } label: {
                     Label("Choose from Files", systemImage: "folder")
+                }
+
+                Button {
+                    isWebImagePickerPresented = true
+                } label: {
+                    Label("Find Image on Web", systemImage: "globe")
                 }
 
                 if avatarImage != nil {
@@ -187,6 +212,8 @@ struct SignUpView: View {
                 }
 
                 avatarImage = image
+                selectedAvatar = .imageData(data)
+                selectedWebChoice = nil
             } catch {
                 showPhotoError()
             }
@@ -211,6 +238,8 @@ struct SignUpView: View {
                 }
 
                 avatarImage = image
+                selectedAvatar = .imageData(data)
+                selectedWebChoice = nil
                 selectedPhotoItem = nil
                 photoError = nil
             } catch {
@@ -223,12 +252,16 @@ struct SignUpView: View {
 
     private func removePhoto() {
         avatarImage = nil
+        selectedAvatar = nil
+        selectedWebChoice = nil
         selectedPhotoItem = nil
         photoError = nil
     }
 
     private func showPhotoError() {
         avatarImage = nil
+        selectedAvatar = nil
+        selectedWebChoice = nil
         selectedPhotoItem = nil
         photoError = "Couldn't use that photo. Choose another image and try again."
     }
@@ -245,9 +278,23 @@ struct SignUpView: View {
             try? await Task.sleep(for: .seconds(2))
             isSigningUp = false
             onSignUp(
-                name.trimmingCharacters(in: .whitespacesAndNewlines)
+                name.trimmingCharacters(in: .whitespacesAndNewlines),
+                selectedAvatar
             )
         }
+    }
+
+    private func useWebImage(_ choice: AvatarWebImageChoice) {
+        guard let image = UIImage(named: choice.assetName) else {
+            showPhotoError()
+            return
+        }
+
+        avatarImage = image
+        selectedAvatar = .asset(choice.assetName)
+        selectedWebChoice = choice
+        selectedPhotoItem = nil
+        photoError = nil
     }
 }
 
