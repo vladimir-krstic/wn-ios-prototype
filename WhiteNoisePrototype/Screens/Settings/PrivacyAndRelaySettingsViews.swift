@@ -358,6 +358,15 @@ private struct RelayDetailView: View {
                 "remove-\(relayID)"
             }
         }
+
+        var title: String {
+            switch self {
+            case .confirmDisableUsage(let usage):
+                "Turn off \(usage.rawValue)?"
+            case .confirmRemoval(_, let relayName, _):
+                "Remove \(relayName)?"
+            }
+        }
     }
 
     @Binding var configuration: PrototypeRelayConfiguration
@@ -450,38 +459,37 @@ private struct RelayDetailView: View {
         }
         .navigationTitle("Relay")
         .navigationBarTitleDisplayMode(.inline)
-        .alert(item: $relayAlert) { alert in
+        .alert(
+            relayAlert?.title ?? "",
+            item: $relayAlert
+        ) { alert in
             switch alert {
             case .confirmDisableUsage(let usage):
-                Alert(
-                    title: Text("Turn off \(usage.rawValue)?"),
-                    message: Text(relayFinalRoleMessage(for: usage)),
-                    primaryButton: .destructive(Text("Turn Off")) {
-                        disableUsage(usage)
-                    },
-                    secondaryButton: .cancel()
-                )
+                Button("Turn Off", role: .destructive) {
+                    disableUsage(usage)
+                }
+
+                Button("Cancel", role: .cancel) {}
 
             case .confirmRemoval(
                 let relayID,
-                let relayName,
-                let impact
+                _,
+                _
             ):
-                Alert(
-                    title: Text("Remove \(relayName)?"),
-                    message: Text(relayRemovalMessage(for: impact)),
-                    primaryButton: .destructive(Text("Remove Relay")) {
-                        pendingRemovalID = relayID
-                        relayAlert = nil
+                Button("Remove Relay", role: .destructive) {
+                    pendingRemovalID = relayID
+                    relayAlert = nil
 
-                        Task { @MainActor in
-                            await Task.yield()
-                            dismiss()
-                        }
-                    },
-                    secondaryButton: .cancel()
-                )
+                    Task { @MainActor in
+                        await Task.yield()
+                        dismiss()
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {}
             }
+        } message: { alert in
+            Text(relayAlertMessage(for: alert))
         }
         .onDisappear {
             guard let pendingRemovalID else {
@@ -522,6 +530,17 @@ private struct RelayDetailView: View {
             "Reconnecting"
         case .disconnected:
             "Disconnected"
+        }
+    }
+
+    private func relayAlertMessage(
+        for alert: RelayDetailAlert
+    ) -> String {
+        switch alert {
+        case .confirmDisableUsage(let usage):
+            relayFinalRoleMessage(for: usage)
+        case .confirmRemoval(_, _, let impact):
+            relayRemovalMessage(for: impact)
         }
     }
 

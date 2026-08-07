@@ -23,12 +23,33 @@ struct SupportChatTests {
         ChatListFixtures.ensureSupportChat(in: &chats)
 
         let fiatjafIndex = chats.firstIndex { chat in
-            chat.id == "fiatjaf"
+            chat.id == ChatListFixtures.fiatjafChatID
         }
         let supportIndex = chats.firstIndex { chat in
             chat.id == ChatListFixtures.supportChatID
         }
 
         #expect(supportIndex == fiatjafIndex.map { $0 + 1 })
+    }
+
+    @Test("Appending a profile-owned message updates its chat preview")
+    func appendedMessageUpdatesPreview() throws {
+        var messages: [PrototypeConversationMessage] = []
+        var chats = ChatListFixtures.populated
+
+        PrototypeConversationState.append(
+            .text("Still here after Back."),
+            to: &messages,
+            chats: &chats,
+            chatID: ChatListFixtures.fiatjafChatID
+        )
+
+        let chat = try #require(
+            chats.first { $0.id == ChatListFixtures.fiatjafChatID }
+        )
+        #expect(messages.map(\.content) == [.text("Still here after Back.")])
+        #expect(chat.previewAuthor == "You")
+        #expect(chat.preview == "Still here after Back.")
+        #expect(chat.timestamp == "Now")
     }
 }

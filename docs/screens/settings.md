@@ -22,7 +22,7 @@ All data and outcomes are fictional, deterministic, and process-local. The proto
 - Final isolated destructive row: **Sign Out**.
 - Footer: **White Noise · VERSION (BUILD)**.
 
-The switcher is a native medium/large sheet with an inset-grouped `List`, active checkmark, unread badges, row-scoped switching progress, system drag indicator, and a prominent **Add Profile** action. Medium content gestures expand the sheet; the large sheet scrolls when required.
+The switcher is a native medium/large sheet with an inset-grouped `List`, active checkmark, unread badges, system drag indicator, and a prominent **Add Profile** action. Profile switching is immediate, so the sheet does not invent a progress interval. Medium content gestures expand the sheet; the large sheet scrolls when required.
 
 The screenshot-ready pseudonym set is **Open Quill**, **Cipher Wheel**, **Free Signal**, **Public Voice**, and **Liberty Relay**. Their names and avatars connect each identity to publishing, privacy, free expression, or open communications without presenting unrelated real people as the profile owner.
 
@@ -131,8 +131,9 @@ not require the source pages during normal work.
   **Change Photo**. Its native menu provides **Choose from Photos**, **Choose
   from Files**, **Find Image on Web**, and **Remove Photo** when applicable.
 - `PhotosPicker` and `fileImporter` retain their system presentation. Selected
-  photos are normalized to a maximum 512-pixel dimension before being held in
-  memory.
+  photos are normalized off the main actor to a maximum 512-pixel JPEG before
+  being held in memory. Pending photo preparation is cancelled by **Cancel**
+  and cannot modify the restored read-only profile afterward.
 - **Find Image on Web** reuses the Sign Up web-image sheet, including its
   Search/URL modes, privacy disclosure, result selection, keyboard behavior,
   URL preview, and deterministic preview address. Only an image explicitly
@@ -732,6 +733,6 @@ need to open them to implement or evaluate Settings.
   actions. The eight complete/degraded fixtures cover every role combination.
 - Relay Details uses the native consequence-aware removal confirmation. The
   main list has no Edit mode or swipe deletion.
-- Appearance, message colors, and Return-key behavior update the implemented product surfaces immediately; notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
+- Appearance updates the implemented product surfaces immediately. Message colors and Return-key behavior remain fixed internal defaults rather than visible Appearance preferences. Notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
 - Destructive and secret-related actions use distinct native confirmations and exact safety language.
 - The complete app builds with Xcode 27 beta and contains no third-party runtime dependency or network/persistence implementation.

@@ -3,21 +3,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct FiatjafConversationView: View {
-    private struct SentMessage: Identifiable {
-        enum Content {
-            case text(String)
-            case photo(Data)
-            case file(String)
-        }
-
-        let id = UUID()
-        let content: Content
-    }
-
     private let bottomID = "fiatjaf-conversation-bottom"
 
+    @Binding private var sentMessages: [FiatjafConversationMessage]
+    @Binding private var chats: [ChatListItem]
     @State private var draft = ""
-    @State private var sentMessages: [SentMessage] = []
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isFileImporterPresented = false
     @State private var isVoiceRecording = false
@@ -28,6 +18,8 @@ struct FiatjafConversationView: View {
     @Binding var developerTools: PrototypeDeveloperToolsState
 
     init(
+        messages: Binding<[FiatjafConversationMessage]> = .constant([]),
+        chats: Binding<[ChatListItem]> = .constant([]),
         settings: Binding<PrototypeSettingsState>,
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
             .fixtures
@@ -36,6 +28,8 @@ struct FiatjafConversationView: View {
             .fixtures()
         )
     ) {
+        _sentMessages = messages
+        _chats = chats
         _settings = settings
         _relayConfiguration = relayConfiguration
         _developerTools = developerTools
@@ -158,6 +152,11 @@ struct FiatjafConversationView: View {
                 }
             }
         }
+        .onChange(of: isComposerFocused) {
+            if isComposerFocused {
+                isVoiceRecording = false
+            }
+        }
         .fileImporter(
             isPresented: $isFileImporterPresented,
             allowedContentTypes: [.item]
@@ -166,21 +165,22 @@ struct FiatjafConversationView: View {
                 return
             }
 
-            sentMessages.append(
-                SentMessage(content: .file(url.lastPathComponent))
-            )
+            append(.file(url.lastPathComponent))
         }
         .task(id: selectedPhotoItem) {
             guard
                 let selectedPhotoItem,
-                let data = try? await selectedPhotoItem.loadTransferable(
+                let sourceData = try? await selectedPhotoItem.loadTransferable(
                     type: Data.self
-                )
+                ),
+                let preparedData = await ConversationImageProcessor
+                    .preparedDataAsync(from: sourceData),
+                !Task.isCancelled
             else {
                 return
             }
 
-            sentMessages.append(SentMessage(content: .photo(data)))
+            append(.photo(preparedData))
             self.selectedPhotoItem = nil
         }
     }
@@ -365,6 +365,9 @@ struct FiatjafConversationView: View {
                         if !canSend {
                             Button {
                                 isVoiceRecording.toggle()
+                                if isVoiceRecording {
+                                    isComposerFocused = false
+                                }
                             } label: {
                                 Image(
                                     systemName: isVoiceRecording
@@ -469,14 +472,23 @@ struct FiatjafConversationView: View {
             return
         }
 
-        sentMessages.append(
-            SentMessage(content: .text(trimmedDraft))
-        )
+        append(.text(trimmedDraft))
         draft = ""
     }
 
+    private func append(_ content: FiatjafConversationMessage.Content) {
+        PrototypeConversationState.append(
+            content,
+            to: &sentMessages,
+            chats: &chats,
+            chatID: ChatListFixtures.fiatjafChatID
+        )
+    }
+
     @ViewBuilder
-    private func sentMessageView(_ message: SentMessage) -> some View {
+    private func sentMessageView(
+        _ message: FiatjafConversationMessage
+    ) -> some View {
         switch message.content {
         case let .text(text):
             outgoingTextMessage(

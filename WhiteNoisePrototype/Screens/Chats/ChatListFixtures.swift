@@ -1,4 +1,5 @@
 enum ChatListFixtures {
+    static let fiatjafChatID = "fiatjaf"
     static let supportChatID = "white-noise-support"
 
     static let supportChat = ChatListItem(
@@ -141,7 +142,7 @@ enum ChatListFixtures {
             deliveryState: .none
         ),
         ChatListItem(
-            id: "fiatjaf",
+            id: fiatjafChatID,
             title: "Fiatjaf",
             avatar: .asset("AvatarFiatjaf"),
             preview: "Portable identity for the win.",

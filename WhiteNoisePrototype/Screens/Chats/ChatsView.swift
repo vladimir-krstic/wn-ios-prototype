@@ -39,6 +39,7 @@ struct ChatsView: View {
     }
 
     @Binding private var chats: [ChatListItem]
+    @Binding private var fiatjafMessages: [FiatjafConversationMessage]
     @Binding private var supportMessages: [SupportConversationMessage]
     @Binding private var settings: PrototypeSettingsState
     @Binding private var relayConfiguration: PrototypeRelayConfiguration
@@ -57,6 +58,7 @@ struct ChatsView: View {
 
     init(
         chats: Binding<[ChatListItem]>,
+        fiatjafMessages: Binding<[FiatjafConversationMessage]> = .constant([]),
         supportMessages: Binding<[SupportConversationMessage]> = .constant([]),
         settings: Binding<PrototypeSettingsState>,
         relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
@@ -75,6 +77,7 @@ struct ChatsView: View {
         self.onOpenSettings = onOpenSettings
         self.onNewMessage = onNewMessage
         _chats = chats
+        _fiatjafMessages = fiatjafMessages
         _supportMessages = supportMessages
         _settings = settings
         _relayConfiguration = relayConfiguration
@@ -123,7 +126,7 @@ struct ChatsView: View {
                         )
                         .labelStyle(.iconOnly)
                     }
-                    .accessibilityHint(newMessageAccessibilityHint)
+                    .accessibilityHint("Creates a new chat.")
                 } else {
                     RelayWarningLink(
                         configuration: $relayConfiguration
@@ -142,6 +145,8 @@ struct ChatsView: View {
             isPresented: $isShowingFiatjafConversation
         ) {
             FiatjafConversationView(
+                messages: $fiatjafMessages,
+                chats: $chats,
                 settings: $settings,
                 relayConfiguration: $relayConfiguration,
                 developerTools: $developerTools
@@ -209,14 +214,6 @@ struct ChatsView: View {
         .buttonStyle(ProfileAvatarNavigationStyle())
         .accessibilityLabel("Profile")
         .accessibilityIdentifier("chats.profile")
-    }
-
-    private var newMessageAccessibilityHint: String {
-        if relayConfiguration.isAvailable(for: .chatMessages) {
-            return "Creates a new chat."
-        }
-
-        return "Check your profile relays to create a new chat."
     }
 
     private func markChatRead(_ id: String) {

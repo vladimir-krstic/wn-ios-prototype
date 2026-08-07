@@ -43,6 +43,8 @@ private struct PrototypeRootView: View {
                 NavigationStack {
                     ChatsView(
                         chats: activeChats,
+                        fiatjafMessages:
+                            activeProfileBinding.fiatjafMessages,
                         supportMessages:
                             activeProfileBinding.supportMessages,
                         settings: $settings,
@@ -77,7 +79,6 @@ private struct PrototypeRootView: View {
                 ProfileSwitcherSheet(
                     profiles: signedInProfiles,
                     activeProfileID: nil,
-                    switchingProfileID: nil,
                     showsCloseButton: false,
                     onSelectProfile: activateProfile,
                     onAddProfile: nil
@@ -103,12 +104,19 @@ private struct PrototypeRootView: View {
                     completeInitialSignIn()
                 }
             case .signUp:
-                InitialSignUpSheet { name, avatar in
-                    completeInitialSignUp(name: name, avatar: avatar)
+                InitialSignUpSheet { name, about, avatar in
+                    completeInitialSignUp(
+                        name: name,
+                        about: about,
+                        avatar: avatar
+                    )
                 }
             case .addProfile:
-                AddProfileFlow { profile in
-                    completeAddedProfile(profile)
+                AddProfileFlow { profile, updatesStoredProfile in
+                    completeAddedProfile(
+                        profile,
+                        updatesStoredProfile: updatesStoredProfile
+                    )
                 }
             }
         }
@@ -180,13 +188,15 @@ private struct PrototypeRootView: View {
 
     private func completeInitialSignUp(
         name: String,
+        about: String,
         avatar: PrototypeAvatar?
     ) {
         let profile = PrototypeProfile.initialSignUp(
             name: name,
+            about: about,
             avatar: avatar
         )
-        activateStoredOrNewProfile(profile, updatesStoredName: true)
+        activateStoredOrNewProfile(profile, updatesStoredProfile: true)
 
         onboardingPresentation = nil
         isShowingSettings = false
@@ -214,8 +224,14 @@ private struct PrototypeRootView: View {
         rootDestination = .welcome
     }
 
-    private func completeAddedProfile(_ profile: PrototypeProfile) {
-        activateStoredOrNewProfile(profile)
+    private func completeAddedProfile(
+        _ profile: PrototypeProfile,
+        updatesStoredProfile: Bool
+    ) {
+        activateStoredOrNewProfile(
+            profile,
+            updatesStoredProfile: updatesStoredProfile
+        )
 
         for pseudonym in PrototypeProfile.showcasePseudonyms {
             if !profiles.contains(where: { $0.id == pseudonym.id }) {
@@ -237,13 +253,13 @@ private struct PrototypeRootView: View {
 
     private func activateStoredOrNewProfile(
         _ profile: PrototypeProfile,
-        updatesStoredName: Bool = false
+        updatesStoredProfile: Bool = false
     ) {
         if let index = profiles.firstIndex(
             where: { $0.id == profile.id }
         ) {
-            if updatesStoredName {
-                profiles[index].name = profile.name
+            if updatesStoredProfile {
+                profiles[index].updateEditableValues(from: profile)
             }
         } else {
             profiles.append(profile)
@@ -322,7 +338,7 @@ private struct InitialSignInSheet: View {
 private struct InitialSignUpSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    let onSignUp: (String, PrototypeAvatar?) -> Void
+    let onSignUp: (String, String, PrototypeAvatar?) -> Void
 
     var body: some View {
         NavigationStack {

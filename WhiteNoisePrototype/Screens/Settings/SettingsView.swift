@@ -82,7 +82,6 @@ struct SettingsView: View {
     @State private var isShowingProfileSwitcher = false
     @State private var isShowingSignOut = false
     @State private var showAddProfileAfterSwitcherCloses = false
-    @State private var switchingProfileID: String?
 
     init(
         profiles: Binding<[PrototypeProfile]>,
@@ -171,7 +170,6 @@ struct SettingsView: View {
             ProfileSwitcherSheet(
                 profiles: signedInProfiles,
                 activeProfileID: activeProfileID,
-                switchingProfileID: switchingProfileID,
                 onSelectProfile: switchProfile,
                 onAddProfile: beginAddingProfile
             )
@@ -362,25 +360,18 @@ struct SettingsView: View {
     }
 
     private func switchProfile(to profileID: String) {
-        guard switchingProfileID == nil,
-              profileID != activeProfileID,
+        guard profileID != activeProfileID,
               signedInProfileIDs.contains(profileID),
               profiles.contains(where: { $0.id == profileID })
         else {
             return
         }
 
-        switchingProfileID = profileID
         activeProfileID = profileID
-        switchingProfileID = nil
         isShowingProfileSwitcher = false
     }
 
     private func beginAddingProfile() {
-        guard switchingProfileID == nil else {
-            return
-        }
-
         showAddProfileAfterSwitcherCloses = true
         isShowingProfileSwitcher = false
     }
@@ -426,7 +417,6 @@ struct ProfileSwitcherSheet: View {
 
     let profiles: [PrototypeProfile]
     let activeProfileID: String?
-    let switchingProfileID: String?
     var showsCloseButton = true
     let onSelectProfile: (String) -> Void
     let onAddProfile: (() -> Void)?
@@ -452,7 +442,6 @@ struct ProfileSwitcherSheet: View {
                             .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
-                        .disabled(switchingProfileID != nil)
                         .accessibilityIdentifier(
                             "profile-switcher.profile.\(profile.id)"
                         )
@@ -474,7 +463,6 @@ struct ProfileSwitcherSheet: View {
                     }
                     .buttonStyle(.glassProminent)
                     .controlSize(.extraLarge)
-                    .disabled(switchingProfileID != nil)
                     .padding()
                 }
             }
@@ -507,12 +495,8 @@ struct ProfileSwitcherSheet: View {
     private func trailingState(
         for profile: PrototypeProfile
     ) -> some View {
-        if switchingProfileID == profile.id {
-            ProgressView()
-                .controlSize(.small)
-                .accessibilityLabel("Switching profile")
-        } else if let activeProfileID,
-                  profile.id == activeProfileID {
+        if let activeProfileID,
+           profile.id == activeProfileID {
             Image(systemName: "checkmark")
                 .fontWeight(.semibold)
                 .accessibilityLabel("Current profile")
@@ -660,18 +644,6 @@ private struct SettingsPreviewHost: View {
     ProfileSwitcherSheet(
         profiles: PrototypeProfile.postAddProfileFixtures,
         activeProfileID: PrototypeProfile.pebble.id,
-        switchingProfileID: nil,
-        onSelectProfile: { _ in },
-        onAddProfile: {}
-    )
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Profile Switcher — Switching") {
-    ProfileSwitcherSheet(
-        profiles: PrototypeProfile.postAddProfileFixtures,
-        activeProfileID: PrototypeProfile.pebble.id,
-        switchingProfileID: PrototypeProfile.openQuill.id,
         onSelectProfile: { _ in },
         onAddProfile: {}
     )

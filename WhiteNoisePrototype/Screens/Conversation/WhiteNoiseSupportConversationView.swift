@@ -102,6 +102,11 @@ struct WhiteNoiseSupportConversationView: View {
                 }
             }
         }
+        .onChange(of: isComposerFocused) {
+            if isComposerFocused {
+                isVoiceRecording = false
+            }
+        }
         .fileImporter(
             isPresented: $isFileImporterPresented,
             allowedContentTypes: [.item]
@@ -115,14 +120,17 @@ struct WhiteNoiseSupportConversationView: View {
         .task(id: selectedPhotoItem) {
             guard
                 let selectedPhotoItem,
-                let data = try? await selectedPhotoItem.loadTransferable(
+                let sourceData = try? await selectedPhotoItem.loadTransferable(
                     type: Data.self
-                )
+                ),
+                let preparedData = await ConversationImageProcessor
+                    .preparedDataAsync(from: sourceData),
+                !Task.isCancelled
             else {
                 return
             }
 
-            append(.photo(data))
+            append(.photo(preparedData))
             self.selectedPhotoItem = nil
         }
     }
@@ -187,6 +195,9 @@ struct WhiteNoiseSupportConversationView: View {
                     if !canSend {
                         Button {
                             isVoiceRecording.toggle()
+                            if isVoiceRecording {
+                                isComposerFocused = false
+                            }
                         } label: {
                             Image(
                                 systemName: isVoiceRecording
@@ -264,37 +275,12 @@ struct WhiteNoiseSupportConversationView: View {
     }
 
     private func append(_ content: SupportConversationMessage.Content) {
-        let message = SupportConversationMessage(
-            id: (messages.last?.id ?? -1) + 1,
-            content: content
+        PrototypeConversationState.append(
+            content,
+            to: &messages,
+            chats: &chats,
+            chatID: ChatListFixtures.supportChatID
         )
-        messages.append(message)
-        updateChatPreview(with: content)
-    }
-
-    private func updateChatPreview(
-        with content: SupportConversationMessage.Content
-    ) {
-        guard let index = chats.firstIndex(where: { chat in
-            chat.id == ChatListFixtures.supportChatID
-        }) else {
-            return
-        }
-
-        chats[index].previewAuthor = "You"
-        chats[index].timestamp = "Now"
-
-        switch content {
-        case let .text(text):
-            chats[index].preview = text
-            chats[index].attachmentPreview = nil
-        case .photo:
-            chats[index].preview = ""
-            chats[index].attachmentPreview = .photo
-        case let .file(name):
-            chats[index].preview = ""
-            chats[index].attachmentPreview = .file(name)
-        }
     }
 
     @ViewBuilder

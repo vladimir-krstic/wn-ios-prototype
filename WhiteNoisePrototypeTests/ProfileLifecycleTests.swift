@@ -23,6 +23,52 @@ struct ProfileLifecycleTests {
         #expect(addedProfile.avatar == .asset("ProfileAvatarPebble"))
     }
 
+    @Test("Sign Up carries About and an explicit avatar into the profile")
+    func signUpCarriesEditableProfileValues() {
+        let avatar = PrototypeAvatar.webImage(
+            assetName: "AvatarWebAionyHaust",
+            choiceID: "3TLl_97HNJo"
+        )
+        let profile = PrototypeProfile.initialSignUp(
+            name: "  River  ",
+            about: "Available for quiet conversations.",
+            avatar: avatar
+        )
+
+        #expect(profile.name == "River")
+        #expect(profile.about == "Available for quiet conversations.")
+        #expect(profile.avatar == avatar)
+    }
+
+    @Test("Re-onboarding updates editable values without replacing local data")
+    func reactivationUpdatesOnlyEditableProfileValues() {
+        var stored = PrototypeProfile.marmota
+        stored.supportMessages = [
+            SupportConversationMessage(id: 1, content: .text("Saved locally")),
+        ]
+        stored.developerTools.setEnabled(true)
+        stored.developerTools.debugMode = true
+        let relayConfiguration = stored.relayConfiguration
+        let avatar = PrototypeAvatar.webImage(
+            assetName: "AvatarWebAionyHaust",
+            choiceID: "3TLl_97HNJo"
+        )
+        let reactivated = PrototypeProfile.initialSignUp(
+            name: "River",
+            about: "A refreshed profile.",
+            avatar: avatar
+        )
+
+        stored.updateEditableValues(from: reactivated)
+
+        #expect(stored.name == "River")
+        #expect(stored.about == "A refreshed profile.")
+        #expect(stored.avatar == avatar)
+        #expect(stored.supportMessages.count == 1)
+        #expect(stored.relayConfiguration == relayConfiguration)
+        #expect(stored.developerTools.isConversationDebugEnabled)
+    }
+
     @Test("Wiping then recreating and adding preserves both canonical profiles")
     func wipeRecreateAndAddPreservesProfiles() {
         var profiles = [PrototypeProfile.marmota]

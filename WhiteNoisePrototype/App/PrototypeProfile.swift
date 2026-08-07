@@ -16,6 +16,7 @@ struct PrototypeProfile: Identifiable, Equatable {
     var lightningAddress: String
     var avatar: PrototypeAvatar
     var chats: [ChatListItem]
+    var fiatjafMessages: [FiatjafConversationMessage]
     var supportMessages: [SupportConversationMessage]
     var relayConfiguration: PrototypeRelayConfiguration
     var developerTools: PrototypeDeveloperToolsState
@@ -29,6 +30,7 @@ struct PrototypeProfile: Identifiable, Equatable {
         lightningAddress: String = "",
         avatar: PrototypeAvatar = .monogram,
         chats: [ChatListItem],
+        fiatjafMessages: [FiatjafConversationMessage] = [],
         supportMessages: [SupportConversationMessage] = [],
         relayConfiguration: PrototypeRelayConfiguration = .fixtures,
         developerTools: PrototypeDeveloperToolsState? = nil
@@ -41,6 +43,7 @@ struct PrototypeProfile: Identifiable, Equatable {
         self.lightningAddress = lightningAddress
         self.avatar = avatar
         self.chats = chats
+        self.fiatjafMessages = fiatjafMessages
         self.supportMessages = supportMessages
         self.relayConfiguration = relayConfiguration
         self.developerTools = developerTools ?? .fixtures(
@@ -73,6 +76,16 @@ struct PrototypeProfile: Identifiable, Equatable {
 
             count += max(chat.unreadCount, 1)
         }
+    }
+
+    mutating func updateEditableValues(from profile: PrototypeProfile) {
+        guard id == profile.id else {
+            return
+        }
+
+        name = profile.name
+        about = profile.about
+        avatar = profile.avatar
     }
 }
 
@@ -146,6 +159,7 @@ extension PrototypeProfile {
 
     static func initialSignUp(
         name: String,
+        about: String = "",
         avatar: PrototypeAvatar? = nil
     ) -> PrototypeProfile {
         var profile = marmota
@@ -161,6 +175,8 @@ extension PrototypeProfile {
             )
         }
 
+        profile.about = about
+
         if let avatar {
             profile.avatar = avatar
         }
@@ -170,6 +186,7 @@ extension PrototypeProfile {
 
     static func addedSignUp(
         name: String,
+        about: String = "",
         avatar: PrototypeAvatar? = nil
     ) -> PrototypeProfile {
         var profile = pebble
@@ -184,6 +201,8 @@ extension PrototypeProfile {
                 profileName: normalizedName
             )
         }
+
+        profile.about = about
 
         if let avatar {
             profile.avatar = avatar

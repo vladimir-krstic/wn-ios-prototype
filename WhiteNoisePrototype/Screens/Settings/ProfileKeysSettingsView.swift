@@ -199,7 +199,7 @@ struct ProfileKeysSettingsView: View {
     }
 
     private var hiddenPrivateKey: String {
-        String(repeating: "•", count: 24)
+        String(repeating: "•", count: rawPrivateKey.count)
     }
 
     private func copyButton(for key: KeyKind) -> some View {

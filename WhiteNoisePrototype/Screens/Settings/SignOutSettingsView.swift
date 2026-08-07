@@ -335,7 +335,7 @@ enum WipeConfirmationPhrase {
     }
 
     static func matches(_ input: String, expected phrase: String) -> Bool {
-        input == phrase
+        input.trimmingCharacters(in: .whitespacesAndNewlines) == phrase
     }
 }
 

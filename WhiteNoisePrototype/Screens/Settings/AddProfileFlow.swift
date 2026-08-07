@@ -6,7 +6,7 @@ struct AddProfileFlow: View {
     @State private var isShowingSignUp = false
     @State private var selectedDetent = PresentationDetent.large
 
-    let onCompletion: (PrototypeProfile) -> Void
+    let onCompletion: (PrototypeProfile, Bool) -> Void
 
     var body: some View {
         NavigationStack {
@@ -36,14 +36,19 @@ struct AddProfileFlow: View {
                         selectedDetent = isFocused ? .large : .medium
                     },
                     onSignIn: {
-                        onCompletion(.openCircuit)
+                        onCompletion(.openCircuit, false)
                     }
                 )
             }
             .navigationDestination(isPresented: $isShowingSignUp) {
-                SignUpView(initialName: "Pebble") { name, avatar in
+                SignUpView(initialName: "Pebble") { name, about, avatar in
                     onCompletion(
-                        .addedSignUp(name: name, avatar: avatar)
+                        .addedSignUp(
+                            name: name,
+                            about: about,
+                            avatar: avatar
+                        ),
+                        true
                     )
                 }
             }

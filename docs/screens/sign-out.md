@@ -61,7 +61,9 @@ network operation.
   drafts, keys, and settings will be removed from this iPhone.**
 - A deterministic three-word lowercase phrase is displayed above a
   **Confirmation phrase** field.
-- Helper: **Enter the three words exactly to continue.**
+- Helper: **Enter the three words exactly to continue.** Leading and trailing
+  whitespace from text entry is ignored; case and spacing between the words
+  must still match.
 - A native leading X remains in the toolbar. A full-width red destructive
   **Erase** button appears at the bottom of the Form and remains disabled until
   the phrase matches exactly.
@@ -116,7 +118,8 @@ list](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt).
 - Both confirmation tasks always open at the large sheet detent.
 - The profile-name field accepts typing normally and enables Sign Out as soon
   as the name matches.
-- Erase remains disabled until the exact three-word phrase is entered.
+- Erase remains disabled until the three-word phrase is entered with the exact
+  case and word spacing; surrounding whitespace is ignored.
 - Successful erasure removes every profile and all local app state, then opens
   Welcome.
 - Fresh onboarding after either last-profile wipe or app-data erasure

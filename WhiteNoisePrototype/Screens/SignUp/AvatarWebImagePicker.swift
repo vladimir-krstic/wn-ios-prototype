@@ -17,7 +17,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "3TLl_97HNJo",
             assetName: "AvatarWebAionyHaust",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Portrait, blue lighting"
         ),
         AvatarWebImageChoice(
             id: "open-circuit",
@@ -32,7 +32,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "rDEOVtE7vOs",
             assetName: "AvatarWebChristopherCampbell",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Portrait, red hair by a lake"
         ),
         AvatarWebImageChoice(
             id: "cipher-wheel",
@@ -47,7 +47,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "d1UPkiFd04A",
             assetName: "AvatarWebIanDooley",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Portrait, black hat"
         ),
         AvatarWebImageChoice(
             id: "pebble",
@@ -62,7 +62,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "c_GmwfHBDzk",
             assetName: "AvatarWebSergioDePaula",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Black-and-white portrait, striped shirt"
         ),
         AvatarWebImageChoice(
             id: "open-quill",
@@ -77,7 +77,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "sibVwORYqs0",
             assetName: "AvatarWebAyoOgunseinde",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Portrait, colorful mural"
         ),
         AvatarWebImageChoice(
             id: "free-signal",
@@ -92,7 +92,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "j3lf-Jn6deo",
             assetName: "AvatarWebVinceFleming",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Portrait, patterned shirt"
         ),
         AvatarWebImageChoice(
             id: "liberty-relay",
@@ -107,7 +107,7 @@ enum AvatarWebImageCatalog {
         AvatarWebImageChoice(
             id: "5aGUyCW_PJw",
             assetName: "AvatarWebPhilipMartin",
-            accessibilityLabel: "Portrait"
+            accessibilityLabel: "Portrait, red beanie on a rooftop"
         ),
         AvatarWebImageChoice(
             id: "marmota",
@@ -129,10 +129,17 @@ enum AvatarWebImageCatalog {
             return nil
         }
 
-        if let exactChoice = choices.first(where: { choice in
+        let pathChoiceID = url
+            .deletingPathExtension()
+            .lastPathComponent
+        if let exactChoice = choice(forID: pathChoiceID) {
+            return exactChoice
+        }
+
+        if let containedChoice = choices.first(where: { choice in
             normalizedInput.localizedCaseInsensitiveContains(choice.id)
         }) {
-            return exactChoice
+            return containedChoice
         }
 
         return choices[deterministicOffset(for: normalizedInput)]

@@ -30,6 +30,7 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - Image error: **Couldn't use that photo. Choose another image and try again.**
 - Primary action: **Sign Up**
 - Progress accessibility label: **Signing Up**
+- Photo preparation progress: **Preparing Photo**
 
 ## Native components
 
@@ -72,10 +73,10 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 ## Important behavior
 
 - The form starts with the deterministic pet name **Marmota** and an **M** monogram.
-- Completing either initial Sign In or Sign Up uses the bundled, user-supplied marmot photo as the active profile avatar.
+- Completing initial Sign In uses the bundled, user-supplied marmot photo. Sign Up uses that photo only when no replacement photo was chosen; an explicitly chosen Photos, Files, or web image becomes the active profile avatar.
 - The avatar remains a white circle with a black initial in Dark Mode.
 - Editing Name immediately updates the monogram to the first non-whitespace character.
-- A selected photo replaces the monogram and remains in memory only.
+- A selected photo replaces the monogram, is normalized off the main actor to a maximum 512-pixel JPEG, and remains in memory only.
 - **Find Image on Web** opens one sheet in Search mode. The person can switch
   between Search and URL without leaving the sheet.
 - Search starts with a native empty state. Typing a nonempty query immediately
@@ -148,6 +149,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
   dismissal.
 - Sign Up preserves its normal dimensions, replaces its visible title with a centered spinner, prevents repeat activation, and exposes **Signing Up** and **In progress** to assistive technologies before invoking its callback.
 - The deterministic prototype processing state lasts two seconds so the stable loading treatment remains inspectable without slowing the flow.
+- Name, About, and the complete avatar choice are committed together. Leaving the Sign Up or Sign In presentation before processing completes cancels that pending completion and never changes the root destination afterward.
+- Photo preparation is cancelable. Sign Up remains unavailable while a chosen photo is being prepared, and a failed replacement keeps the last valid draft image while presenting the approved error.
 - Initial Sign Up and Add Profile both finish on Chats. Add Profile removes the
   underlying Settings destination without animation while its onboarding sheet
   remains visible. The sheet dismissal begins only on the following render turn,
@@ -194,11 +197,12 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - **Sign Up** from Add Profile remains in the existing large onboarding sheet and native Back returns to its Welcome step.
 - Completing Sign In or Sign Up from Add Profile shows only the native onboarding-sheet dismissal and reveals Chats directly; Settings never appears or slides away between them.
 - The default Sign Up avatar shows **M** for **Marmota** before completion.
-- After Sign In or Sign Up completes, Chats and Settings show the bundled Marmota photo as the active profile avatar.
+- After Sign In completes, Chats and Settings show the bundled Marmota photo. After Sign Up, they show the selected photo, or the bundled Marmota photo when no replacement was chosen.
 - Wiping the last profile or erasing app data never changes fixture identity:
-  fresh Sign In or Sign Up recreates Marmota with the Marmota avatar, while
-  Add Profile Sign Up creates the separate Pebble profile with the Pebble
-  avatar and stable ID.
+  fresh Sign In or Sign Up recreates Marmota with the stable Marmota identity,
+  while Add Profile Sign Up creates the separate Pebble identity with its
+  stable ID. Sign Up applies an explicitly selected avatar; otherwise each
+  identity keeps its bundled avatar.
 - The avatar action is visually compact and clearly separated from the avatar.
 - The avatar-to-action spacing remains unchanged before and after selecting a photo.
 - Sign Up uses the same white system canvas as Welcome.
@@ -247,6 +251,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
   `example.com` image URL and the same image preview. URL does not return to an
   empty field while a current web image exists.
 - Choosing a supported image previews it; removing it restores the current name initial.
+- Name, About, and the selected avatar all appear on the resulting profile after Sign Up. Re-entering Sign Up for a locally stored signed-out profile updates those three editable profile values together without removing its retained chats or profile-owned settings.
+- Photos and Files selections are prepared to a maximum 512-pixel dimension before being retained. A failed replacement preserves the previous valid draft image.
 - The destructive Remove Photo menu item displays both its title and trash symbol with the system destructive treatment.
 - The bottom **Sign Up** action remains visible above the safe area and keyboard.
 - Sign Up shows a centered native spinner for two seconds without changing button dimensions or losing contrast.

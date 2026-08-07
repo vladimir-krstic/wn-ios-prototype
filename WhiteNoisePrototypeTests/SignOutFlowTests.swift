@@ -37,7 +37,7 @@ struct SignOutFlowTests {
         #expect(first.allSatisfy { $0.isLowercase || $0 == " " })
     }
 
-    @Test("App-data erasure requires the exact confirmation phrase")
+    @Test("App-data erasure ignores surrounding whitespace only")
     func confirmationPhraseRequiresExactMatch() {
         let phrase = WipeConfirmationPhrase.make(
             profileIDs: ["marmota", "open-quill"]
@@ -50,9 +50,10 @@ struct SignOutFlowTests {
                 expected: phrase
             )
         )
+        #expect(WipeConfirmationPhrase.matches(" \(phrase)\n", expected: phrase))
         #expect(
             !WipeConfirmationPhrase.matches(
-                "\(phrase) ",
+                phrase.replacingOccurrences(of: " ", with: "  "),
                 expected: phrase
             )
         )

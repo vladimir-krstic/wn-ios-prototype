@@ -33,7 +33,8 @@ contain more than one support conversation.
   external timestamps, native scrolling, soft bottom scroll-edge treatment,
   and Liquid Glass composer structure from `conversation-fiatjaf.md`.
 - The composer provides text sending, PhotosPicker, file importing, and the
-  existing deterministic voice-recording control.
+  existing deterministic voice-recording control. Starting it dismisses text
+  focus, and returning focus to the text field stops the recording state.
 - Governing Apple sources:
   [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink),
   [Button](https://developer.apple.com/documentation/swiftui/button),
@@ -56,6 +57,8 @@ contain more than one support conversation.
   profile's in-memory support conversation for the process lifetime. The Chats
   preview updates to the latest sent content. No support backend, ticket
   system, or network operation exists.
+- Selected photos are downsampled off the main actor before storage so timeline
+  rendering never repeatedly decodes the original full-resolution source.
 
 ## Accessibility
 

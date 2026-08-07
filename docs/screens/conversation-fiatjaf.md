@@ -42,8 +42,8 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - The composer is pinned with `safeAreaInset`; the timeline uses the native soft bottom scroll-edge effect instead of a hard bar boundary. A native multiline `TextField` owns keyboard, focus, selection, and text entry inside a system Liquid Glass capsule. Its resting single line is vertically centered at the native minimum interaction height, while multiline content can grow and keep the trailing control at the lower edge. A trailing native waveform control provides the voice-message affordance inside the field; native glass buttons own attachment and send feedback.
 - The timeline keeps system spacing between its final message and the stationary composer when first opened and after sending.
 - Message metadata shows time only. Timestamps sit outside the bubble: beneath the inward edge of outgoing and incoming messages. Delivery checkmarks aren’t part of the White Noise conversation design.
-- Sending nonempty text appends a deterministic outgoing bubble labeled **Now**, clears the composer, and keeps the new message visible.
-- The attachment button presents native `PhotosPicker` and file-importer choices. A selected photo or file is appended as a deterministic in-memory outgoing message and is discarded when the process ends.
+- Sending nonempty text appends a deterministic outgoing bubble labeled **Now**, clears the composer, keeps the new message visible, and updates the Fiatjaf row preview.
+- The attachment button presents native `PhotosPicker` and file-importer choices. A selected photo or file is appended to the active profile's deterministic in-memory Fiatjaf messages and is discarded when the process ends. Selected photos are downsampled off the main actor before storage so timeline rendering never repeatedly decodes the original full-resolution source.
 
 ## Important states and interactions
 
@@ -52,12 +52,15 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - Empty composer: no Send button.
 - Empty composer with complete relay setup: the trailing waveform control is
   visible inside the glass text-entry capsule.
+- Starting the deterministic voice-recording state dismisses composer focus;
+  returning focus to the text field stops that state so the red stop control
+  never remains active while composing text.
 - Empty composer with unavailable profile relays: **Check your profile relays** and the
   outlined warning replace the normal entry field; the complete capsule opens
   Relays.
 - Nonempty composer: Send appears and works.
 - Attachment menu opens native photo and file pickers; selected content appears in memory in the timeline.
-- Back returns to Chats without resetting the in-memory list.
+- Back returns to Chats without resetting the active profile's in-memory Fiatjaf list. Reopening Fiatjaf during the same process shows the sent messages, and switching profiles keeps each profile's messages independent.
 - The composer recovery treatment appears while a relay role is unassigned,
   reconnecting, or disconnected; it restores **Message** and the waveform as
   soon as every role has connected coverage.

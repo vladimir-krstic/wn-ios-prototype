@@ -10,11 +10,13 @@ struct ProfileSettingsView: View {
     @State private var about: String
     @State private var avatar: PrototypeAvatar
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var importedPhotoURL: URL?
     @State private var selectedWebChoice: AvatarWebImageChoice?
     @State private var isPhotosPickerPresented = false
     @State private var isFileImporterPresented = false
     @State private var isWebImagePickerPresented = false
     @State private var photoError: String?
+    @State private var photoPreparationID: UUID?
     @State private var isEditing = false
 
     @FocusState private var focusedField: Field?
@@ -99,8 +101,19 @@ struct ProfileSettingsView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .onChange(of: selectedPhotoItem) {
-            loadSelectedPhoto()
+        .task(id: selectedPhotoItem) {
+            guard let selectedPhotoItem else {
+                return
+            }
+
+            await prepareSelectedPhoto(selectedPhotoItem)
+        }
+        .task(id: importedPhotoURL) {
+            guard let importedPhotoURL else {
+                return
+            }
+
+            await prepareImportedPhoto(importedPhotoURL)
         }
         .background(.background)
     }
@@ -121,6 +134,12 @@ struct ProfileSettingsView: View {
             if isEditing {
                 avatarMenu
                     .padding(.top)
+
+                if isPreparingPhoto {
+                    ProgressView("Preparing Photo")
+                        .font(.footnote)
+                        .padding(.top)
+                }
             }
 
             if let photoError {
@@ -209,6 +228,7 @@ struct ProfileSettingsView: View {
             Text(avatar == .monogram ? "Add Photo" : "Change Photo")
         }
         .buttonStyle(.glass)
+        .disabled(isPreparingPhoto)
     }
 
     private var avatarImage: UIImage? {
@@ -230,6 +250,10 @@ struct ProfileSettingsView: View {
             ?? UIImage()
     }
 
+    private var isPreparingPhoto: Bool {
+        photoPreparationID != nil
+    }
+
     private static func webChoice(
         for avatar: PrototypeAvatar
     ) -> AvatarWebImageChoice? {
@@ -242,6 +266,7 @@ struct ProfileSettingsView: View {
 
     private var canFinishEditing: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !isPreparingPhoto
     }
 
     private var canEditProfile: Bool {
@@ -266,11 +291,13 @@ struct ProfileSettingsView: View {
     }
 
     private func cancelEditing() {
+        cancelPhotoPreparation()
         focusedField = nil
         name = profile.name
         about = profile.about
         avatar = profile.avatar
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         selectedWebChoice = Self.webChoice(for: profile.avatar)
         photoError = nil
         isEditing = false
@@ -292,33 +319,40 @@ struct ProfileSettingsView: View {
         isEditing = false
     }
 
-    private func loadSelectedPhoto() {
-        guard let selectedPhotoItem else {
-            return
+    private func prepareSelectedPhoto(
+        _ selectedPhotoItem: PhotosPickerItem
+    ) async {
+        let preparationID = UUID()
+        photoPreparationID = preparationID
+        photoError = nil
+        defer {
+            finishPhotoPreparation(preparationID)
         }
 
-        photoError = nil
-
-        Task {
-            defer {
-                self.selectedPhotoItem = nil
+        do {
+            guard
+                let data = try await selectedPhotoItem.loadTransferable(
+                    type: Data.self
+                ),
+                let preparedData = await ProfileAvatarImageProcessor
+                    .preparedDataAsync(from: data),
+                !Task.isCancelled,
+                photoPreparationID == preparationID
+            else {
+                if !Task.isCancelled,
+                   photoPreparationID == preparationID {
+                    showPhotoError()
+                }
+                return
             }
 
-            do {
-                guard
-                    let data = try await selectedPhotoItem.loadTransferable(
-                        type: Data.self
-                    ),
-                    let preparedData = ProfileAvatarImageProcessor
-                        .preparedData(from: data)
-                else {
-                    showPhotoError()
-                    return
-                }
-
-                avatar = .imageData(preparedData)
-                selectedWebChoice = nil
-            } catch {
+            avatar = .imageData(preparedData)
+            selectedWebChoice = nil
+            self.selectedPhotoItem = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if photoPreparationID == preparationID {
                 showPhotoError()
             }
         }
@@ -327,41 +361,64 @@ struct ProfileSettingsView: View {
     private func handleImportedFile(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
-            let hasAccess = url.startAccessingSecurityScopedResource()
-            defer {
-                if hasAccess {
-                    url.stopAccessingSecurityScopedResource()
-                }
-            }
-
-            do {
-                let data = try Data(contentsOf: url)
-                guard let preparedData = ProfileAvatarImageProcessor
-                    .preparedData(from: data) else {
-                    showPhotoError()
-                    return
-                }
-
-                avatar = .imageData(preparedData)
-                selectedWebChoice = nil
-                selectedPhotoItem = nil
-                photoError = nil
-            } catch {
-                showPhotoError()
-            }
+            importedPhotoURL = url
         case .failure:
             showPhotoError()
         }
     }
 
+    private func prepareImportedPhoto(_ url: URL) async {
+        let preparationID = UUID()
+        photoPreparationID = preparationID
+        photoError = nil
+
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+            finishPhotoPreparation(preparationID)
+        }
+
+        do {
+            guard
+                let preparedData = try await ProfileAvatarImageProcessor
+                    .preparedData(contentsOf: url),
+                !Task.isCancelled,
+                photoPreparationID == preparationID
+            else {
+                if !Task.isCancelled,
+                   photoPreparationID == preparationID {
+                    showPhotoError()
+                }
+                return
+            }
+
+            avatar = .imageData(preparedData)
+            selectedWebChoice = nil
+            selectedPhotoItem = nil
+            importedPhotoURL = nil
+            photoError = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if photoPreparationID == preparationID {
+                showPhotoError()
+            }
+        }
+    }
+
     private func removePhoto() {
+        cancelPhotoPreparation()
         avatar = .monogram
         selectedWebChoice = nil
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         photoError = nil
     }
 
     private func useWebImage(_ choice: AvatarWebImageChoice) {
+        cancelPhotoPreparation()
         guard UIImage(named: choice.assetName) != nil else {
             showPhotoError()
             return
@@ -373,11 +430,23 @@ struct ProfileSettingsView: View {
         )
         selectedWebChoice = choice
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         photoError = nil
+    }
+
+    private func finishPhotoPreparation(_ preparationID: UUID) {
+        if photoPreparationID == preparationID {
+            photoPreparationID = nil
+        }
+    }
+
+    private func cancelPhotoPreparation() {
+        photoPreparationID = nil
     }
 
     private func showPhotoError() {
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         photoError = "Couldn't use that photo. Choose another image and try again."
     }
 }

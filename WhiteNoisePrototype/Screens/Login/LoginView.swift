@@ -165,6 +165,24 @@ struct LoginView: View {
                 onInputFocusChange(false)
             }
         }
+        .task(id: isSigningIn) {
+            guard isSigningIn else {
+                return
+            }
+
+            do {
+                try await Task.sleep(for: .seconds(2))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            isSigningIn = false
+            onSignIn()
+        }
         .background(.background)
     }
 
@@ -184,11 +202,6 @@ struct LoginView: View {
         isKeyFocused = false
         isSigningIn = true
 
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            isSigningIn = false
-            onSignIn()
-        }
     }
 }
 

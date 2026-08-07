@@ -7,6 +7,7 @@ struct SignUpView: View {
     @State private var name: String
     @State private var about = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var importedPhotoURL: URL?
     @State private var avatarImage: UIImage?
     @State private var selectedAvatar: PrototypeAvatar?
     @State private var selectedWebChoice: AvatarWebImageChoice?
@@ -14,23 +15,24 @@ struct SignUpView: View {
     @State private var isFileImporterPresented = false
     @State private var isWebImagePickerPresented = false
     @State private var photoError: String?
+    @State private var photoPreparationID: UUID?
     @State private var isSigningUp = false
 
     @FocusState private var focusedField: Field?
 
-    let onSignUp: (String, PrototypeAvatar?) -> Void
+    let onSignUp: (String, String, PrototypeAvatar?) -> Void
 
     init(
         initialName: String = "Marmota",
         onSignUp: @escaping (String) -> Void
     ) {
         _name = State(initialValue: initialName)
-        self.onSignUp = { name, _ in onSignUp(name) }
+        self.onSignUp = { name, _, _ in onSignUp(name) }
     }
 
     init(
         initialName: String = "Marmota",
-        onSignUp: @escaping (String, PrototypeAvatar?) -> Void
+        onSignUp: @escaping (String, String, PrototypeAvatar?) -> Void
     ) {
         _name = State(initialValue: initialName)
         self.onSignUp = onSignUp
@@ -71,6 +73,7 @@ struct SignUpView: View {
                 .listRowBackground(Color(uiColor: .secondarySystemFill))
             }
         }
+        .disabled(isSigningUp)
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -86,7 +89,7 @@ struct SignUpView: View {
             .buttonStyle(.glassProminent)
             .controlSize(.extraLarge)
             .buttonSizing(.flexible)
-            .allowsHitTesting(!isSigningUp)
+            .disabled(isSigningUp || isPreparingPhoto)
             .accessibilityLabel(isSigningUp ? "Signing Up" : "Sign Up")
             .accessibilityIdentifier("sign-up.create")
             .accessibilityValue(isSigningUp ? "In progress" : "")
@@ -104,8 +107,41 @@ struct SignUpView: View {
             selection: $selectedPhotoItem,
             matching: .images
         )
-        .onChange(of: selectedPhotoItem) {
-            loadSelectedPhoto()
+        .task(id: selectedPhotoItem) {
+            guard let selectedPhotoItem else {
+                return
+            }
+
+            await prepareSelectedPhoto(selectedPhotoItem)
+        }
+        .task(id: importedPhotoURL) {
+            guard let importedPhotoURL else {
+                return
+            }
+
+            await prepareImportedPhoto(importedPhotoURL)
+        }
+        .task(id: isSigningUp) {
+            guard isSigningUp else {
+                return
+            }
+
+            do {
+                try await Task.sleep(for: .seconds(2))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            isSigningUp = false
+            onSignUp(
+                name.trimmingCharacters(in: .whitespacesAndNewlines),
+                about,
+                selectedAvatar
+            )
         }
         .sheet(isPresented: $isWebImagePickerPresented) {
             AvatarWebImagePickerView(
@@ -168,6 +204,13 @@ struct SignUpView: View {
             }
             .buttonStyle(.glass)
             .padding(.top)
+            .disabled(isPreparingPhoto)
+
+            if isPreparingPhoto {
+                ProgressView("Preparing Photo")
+                    .font(.footnote)
+                    .padding(.top)
+            }
 
             if let photoError {
                 Text(photoError)
@@ -192,29 +235,46 @@ struct SignUpView: View {
             ?? UIImage()
     }
 
-    private func loadSelectedPhoto() {
-        guard let selectedPhotoItem else {
-            return
+    private var isPreparingPhoto: Bool {
+        photoPreparationID != nil
+    }
+
+    private func prepareSelectedPhoto(
+        _ selectedPhotoItem: PhotosPickerItem
+    ) async {
+        let preparationID = UUID()
+        photoPreparationID = preparationID
+        photoError = nil
+        defer {
+            finishPhotoPreparation(preparationID)
         }
 
-        photoError = nil
-
-        Task {
-            do {
-                guard
-                    let data = try await selectedPhotoItem.loadTransferable(
-                        type: Data.self
-                    ),
-                    let image = UIImage(data: data)
-                else {
+        do {
+            guard
+                let sourceData = try await selectedPhotoItem.loadTransferable(
+                    type: Data.self
+                ),
+                let preparedData = await ProfileAvatarImageProcessor
+                    .preparedDataAsync(from: sourceData),
+                !Task.isCancelled,
+                photoPreparationID == preparationID,
+                let image = UIImage(data: preparedData)
+            else {
+                if !Task.isCancelled,
+                   photoPreparationID == preparationID {
                     showPhotoError()
-                    return
                 }
+                return
+            }
 
-                avatarImage = image
-                selectedAvatar = .imageData(data)
-                selectedWebChoice = nil
-            } catch {
+            avatarImage = image
+            selectedAvatar = .imageData(preparedData)
+            selectedWebChoice = nil
+            self.selectedPhotoItem = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if photoPreparationID == preparationID {
                 showPhotoError()
             }
         }
@@ -223,68 +283,82 @@ struct SignUpView: View {
     private func handleImportedFile(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
-            let hasAccess = url.startAccessingSecurityScopedResource()
-            defer {
-                if hasAccess {
-                    url.stopAccessingSecurityScopedResource()
-                }
-            }
-
-            do {
-                let data = try Data(contentsOf: url)
-                guard let image = UIImage(data: data) else {
-                    showPhotoError()
-                    return
-                }
-
-                avatarImage = image
-                selectedAvatar = .imageData(data)
-                selectedWebChoice = nil
-                selectedPhotoItem = nil
-                photoError = nil
-            } catch {
-                showPhotoError()
-            }
+            importedPhotoURL = url
         case .failure:
             showPhotoError()
         }
     }
 
+    private func prepareImportedPhoto(_ url: URL) async {
+        let preparationID = UUID()
+        photoPreparationID = preparationID
+        photoError = nil
+
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+            finishPhotoPreparation(preparationID)
+        }
+
+        do {
+            guard
+                let preparedData = try await ProfileAvatarImageProcessor
+                    .preparedData(contentsOf: url),
+                !Task.isCancelled,
+                photoPreparationID == preparationID,
+                let image = UIImage(data: preparedData)
+            else {
+                if !Task.isCancelled,
+                   photoPreparationID == preparationID {
+                    showPhotoError()
+                }
+                return
+            }
+
+            avatarImage = image
+            selectedAvatar = .imageData(preparedData)
+            selectedWebChoice = nil
+            selectedPhotoItem = nil
+            importedPhotoURL = nil
+            photoError = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if photoPreparationID == preparationID {
+                showPhotoError()
+            }
+        }
+    }
+
     private func removePhoto() {
+        cancelPhotoPreparation()
         avatarImage = nil
         selectedAvatar = nil
         selectedWebChoice = nil
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         photoError = nil
     }
 
     private func showPhotoError() {
-        avatarImage = nil
-        selectedAvatar = nil
-        selectedWebChoice = nil
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         photoError = "Couldn't use that photo. Choose another image and try again."
     }
 
     private func signUp() {
-        guard !isSigningUp else {
+        guard !isSigningUp, !isPreparingPhoto else {
             return
         }
 
         focusedField = nil
         isSigningUp = true
-
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            isSigningUp = false
-            onSignUp(
-                name.trimmingCharacters(in: .whitespacesAndNewlines),
-                selectedAvatar
-            )
-        }
     }
 
     private func useWebImage(_ choice: AvatarWebImageChoice) {
+        cancelPhotoPreparation()
         guard let image = UIImage(named: choice.assetName) else {
             showPhotoError()
             return
@@ -297,7 +371,18 @@ struct SignUpView: View {
         )
         selectedWebChoice = choice
         selectedPhotoItem = nil
+        importedPhotoURL = nil
         photoError = nil
+    }
+
+    private func finishPhotoPreparation(_ preparationID: UUID) {
+        if photoPreparationID == preparationID {
+            photoPreparationID = nil
+        }
+    }
+
+    private func cancelPhotoPreparation() {
+        photoPreparationID = nil
     }
 }
 
