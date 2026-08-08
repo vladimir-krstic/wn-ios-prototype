@@ -7,162 +7,126 @@ struct ChatsView: View {
         case archived
         case left
 
-        var id: Self {
-            self
-        }
+        var id: Self { self }
 
         var title: String {
             switch self {
-            case .all:
-                "Chats"
-            case .unread:
-                "Unread"
-            case .archived:
-                "Archived"
-            case .left:
-                "Left"
+            case .all: "Chats"
+            case .unread: "Unread"
+            case .archived: "Archived"
+            case .left: "Left"
             }
         }
 
         var symbol: String {
             switch self {
-            case .all:
-                "bubble.left.and.bubble.right"
-            case .unread:
-                "message.badge"
-            case .archived:
-                "archivebox"
-            case .left:
-                "rectangle.portrait.and.arrow.right"
+            case .all: "bubble.left.and.bubble.right"
+            case .unread: "message.badge"
+            case .archived: "archivebox"
+            case .left: "rectangle.portrait.and.arrow.right"
             }
         }
     }
 
-    @Binding private var chats: [ChatListItem]
-    @Binding private var fiatjafMessages: [FiatjafConversationMessage]
-    @Binding private var supportMessages: [SupportConversationMessage]
+    @Binding private var profile: PrototypeProfile
     @Binding private var settings: PrototypeSettingsState
-    @Binding private var relayConfiguration: PrototypeRelayConfiguration
-    @Binding private var developerTools: PrototypeDeveloperToolsState
-    @State private var scope = ChatScope.all
-    @State private var searchText = ""
+    @State private var scope: ChatScope
+    @State private var searchText: String
     @State private var isSearchMounted = false
     @State private var isSearchPresented = false
-    @State private var isShowingFiatjafConversation = false
-    @State private var isShowingSupportConversation = false
+    @State private var selectedChatID: String?
+    @State private var isShowingNewChat = false
     @FocusState private var isSearchFocused: Bool
 
-    let profile: PrototypeProfile
     let onOpenSettings: () -> Void
-    let onNewMessage: () -> Void
 
     init(
-        chats: Binding<[ChatListItem]>,
-        fiatjafMessages: Binding<[FiatjafConversationMessage]> = .constant([]),
-        supportMessages: Binding<[SupportConversationMessage]> = .constant([]),
+        profile: Binding<PrototypeProfile>,
         settings: Binding<PrototypeSettingsState>,
-        relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
-            .fixtures
-        ),
-        developerTools: Binding<PrototypeDeveloperToolsState> = .constant(
-            .fixtures()
-        ),
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
-        profile: PrototypeProfile = .marmota,
-        onOpenSettings: @escaping () -> Void = {},
-        onNewMessage: @escaping () -> Void
+        onOpenSettings: @escaping () -> Void = {}
     ) {
-        self.profile = profile
-        self.onOpenSettings = onOpenSettings
-        self.onNewMessage = onNewMessage
-        _chats = chats
-        _fiatjafMessages = fiatjafMessages
-        _supportMessages = supportMessages
+        _profile = profile
         _settings = settings
-        _relayConfiguration = relayConfiguration
-        _developerTools = developerTools
         _scope = State(initialValue: initialScope)
         _searchText = State(initialValue: initialSearchText)
+        self.onOpenSettings = onOpenSettings
     }
 
     var body: some View {
         chatContent
-            .ignoresSafeArea(
-                .container,
-                edges: [.top, .bottom]
+            .ignoresSafeArea(.container, edges: [.top, .bottom])
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .modifier(
+                OnDemandChatSearch(
+                    searchText: $searchText,
+                    isMounted: $isSearchMounted,
+                    isPresented: $isSearchPresented,
+                    isFocused: $isSearchFocused
+                )
             )
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .modifier(
-            OnDemandChatSearch(
-                searchText: $searchText,
-                isMounted: $isSearchMounted,
-                isPresented: $isSearchPresented,
-                isFocused: $isSearchFocused
-            )
-        )
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                profileNavigationLink
-            }
-            .sharedBackgroundVisibility(.hidden)
-
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                filterMenu
-
-                Button {
-                    isSearchMounted = true
-                } label: {
-                    Label("Search Chats", systemImage: "magnifyingglass")
-                        .labelStyle(.iconOnly)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    profileNavigationLink
                 }
+                .sharedBackgroundVisibility(.hidden)
 
-                if !relayConfiguration.needsAttention {
-                    Button(action: onNewMessage) {
-                        Label(
-                            "New Message",
-                            systemImage: "plus.bubble"
-                        )
-                        .labelStyle(.iconOnly)
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    filterMenu
+
+                    Button {
+                        isSearchMounted = true
+                    } label: {
+                        Label("Search Chats", systemImage: "magnifyingglass")
+                            .labelStyle(.iconOnly)
                     }
-                    .accessibilityHint("Creates a new chat.")
-                } else {
-                    RelayWarningLink(
-                        configuration: $relayConfiguration
+
+                    if !profile.relayConfiguration.needsAttention {
+                        Button {
+                            isShowingNewChat = true
+                        } label: {
+                            Label("New Message", systemImage: "plus.bubble")
+                                .labelStyle(.iconOnly)
+                        }
+                        .accessibilityHint("Creates a new chat.")
+                        .accessibilityIdentifier("chats.new")
+                    } else {
+                        RelayWarningLink(
+                            configuration: $profile.relayConfiguration
+                        )
+                    }
+                }
+            }
+            .modifier(
+                ReadAllBottomBar(
+                    isVisible: readAllIsVisible,
+                    action: markAllChatsRead
+                )
+            )
+            .navigationDestination(isPresented: conversationIsPresented) {
+                if let selectedChatID {
+                    ConversationView(
+                        profile: $profile,
+                        settings: $settings,
+                        chatID: selectedChatID
                     )
                 }
             }
-
-        }
-        .modifier(
-            ReadAllBottomBar(
-                isVisible: readAllIsVisible,
-                action: markAllChatsRead
-            )
-        )
-        .navigationDestination(
-            isPresented: $isShowingFiatjafConversation
-        ) {
-            FiatjafConversationView(
-                messages: $fiatjafMessages,
-                chats: $chats,
-                settings: $settings,
-                relayConfiguration: $relayConfiguration,
-                developerTools: $developerTools
-            )
-        }
-        .navigationDestination(
-            isPresented: $isShowingSupportConversation
-        ) {
-            WhiteNoiseSupportConversationView(
-                messages: $supportMessages,
-                chats: $chats,
-                settings: $settings,
-                developerTools: $developerTools,
-                senderName: profile.name
-            )
-        }
+            .navigationDestination(isPresented: $isShowingNewChat) {
+                NewChatView(
+                    profile: $profile,
+                    settings: $settings,
+                    onOpenChat: { chatID in
+                        isShowingNewChat = false
+                        Task { @MainActor in
+                            await Task.yield()
+                            selectedChatID = chatID
+                        }
+                    }
+                )
+            }
     }
 
     @ViewBuilder
@@ -171,17 +135,8 @@ struct ChatsView: View {
             NativeChatList(
                 chats: visibleChats,
                 actions: NativeChatList.Actions(
-                    canOpen: { id in
-                        id == "fiatjaf"
-                            || id == ChatListFixtures.supportChatID
-                    },
-                    open: { id in
-                        if id == "fiatjaf" {
-                            isShowingFiatjafConversation = true
-                        } else if id == ChatListFixtures.supportChatID {
-                            isShowingSupportConversation = true
-                        }
-                    },
+                    canOpen: { _ in true },
+                    open: openConversation,
                     markRead: markChatRead,
                     markUnread: markChatUnread,
                     togglePinned: togglePinned,
@@ -204,12 +159,17 @@ struct ChatsView: View {
         }
     }
 
+    private var conversationIsPresented: Binding<Bool> {
+        Binding {
+            selectedChatID != nil
+        } set: { isPresented in
+            if !isPresented { selectedChatID = nil }
+        }
+    }
+
     private var profileNavigationLink: some View {
         Button(action: onOpenSettings) {
-            ProfileAvatarView(
-                profile: profile,
-                size: 44
-            )
+            ProfileAvatarView(profile: profile, size: 44)
         }
         .buttonStyle(ProfileAvatarNavigationStyle())
         .accessibilityLabel("Profile")
@@ -217,139 +177,104 @@ struct ChatsView: View {
     }
 
     private func markChatRead(_ id: String) {
-        updateChat(id: id) { chat in
-            chat.unreadCount = 0
-            chat.isMarkedUnread = false
+        updateChat(id: id) {
+            $0.listState.unreadCount = 0
+            $0.listState.isMarkedUnread = false
         }
     }
 
     private func markAllChatsRead() {
-        for index in chats.indices
-        where !chats[index].isArchived && chats[index].isUnread {
-            chats[index].unreadCount = 0
-            chats[index].isMarkedUnread = false
+        for index in profile.chats.indices where !profile.chats[index].listState.isArchived {
+            profile.chats[index].listState.unreadCount = 0
+            profile.chats[index].listState.isMarkedUnread = false
         }
     }
 
     private func markChatUnread(_ id: String) {
-        updateChat(id: id) { chat in
-            chat.unreadCount = 0
-            chat.isMarkedUnread = true
+        updateChat(id: id) {
+            $0.listState.unreadCount = 0
+            $0.listState.isMarkedUnread = true
         }
     }
 
     private func togglePinned(_ id: String) {
-        updateChat(id: id) { chat in
-            chat.isPinned.toggle()
-        }
+        updateChat(id: id) { $0.listState.isPinned.toggle() }
     }
 
-    private func muteChat(
-        _ id: String,
-        _ duration: ChatListItem.MuteDuration
-    ) {
-        updateChat(id: id) { chat in
-            chat.muteDuration = duration
-        }
+    private func muteChat(_ id: String, _ duration: ChatListItem.MuteDuration) {
+        updateChat(id: id) { $0.listState.muteDuration = duration }
     }
 
     private func unmuteChat(_ id: String) {
-        updateChat(id: id) { chat in
-            chat.muteDuration = nil
-        }
+        updateChat(id: id) { $0.listState.muteDuration = nil }
     }
 
     private func toggleArchive(_ id: String) {
-        updateChat(id: id) { chat in
-            chat.isArchived.toggle()
-        }
+        updateChat(id: id) { $0.listState.isArchived.toggle() }
     }
 
     private func leaveChat(_ id: String) {
-        updateChat(id: id) { chat in
-            chat.membershipState = .left
-            chat.unreadCount = 0
-            chat.isMarkedUnread = false
-            chat.muteDuration = nil
-            chat.deliveryState = .none
-        }
+        updateChat(id: id) { _ = $0.leave(currentProfileID: profile.id) }
     }
 
     private func deleteChat(_ id: String) {
-        chats.removeAll { chat in
-            chat.id == id
-        }
+        profile.chats.removeAll { $0.id == id }
     }
 
-    private func updateChat(
-        id: String,
-        mutation: (inout ChatListItem) -> Void
-    ) {
-        guard let index = chats.firstIndex(where: { chat in
-            chat.id == id
-        }) else {
+    private func openConversation(_ id: String) {
+        isSearchFocused = false
+        isSearchPresented = false
+        isSearchMounted = false
+        searchText = ""
+        selectedChatID = id
+    }
+
+    private func updateChat(id: String, mutation: (inout PrototypeChat) -> Void) {
+        guard let index = profile.chats.firstIndex(where: { $0.id == id }) else {
             return
         }
+        mutation(&profile.chats[index])
+    }
 
-        mutation(&chats[index])
+    private var rows: [ChatListItem] {
+        profile.chats.map {
+            $0.row(people: profile.people, currentProfileID: profile.id)
+        }
     }
 
     private var visibleChats: [ChatListItem] {
-        let scopedChats = chats.filter { chat in
+        let scopedChats = rows.filter { chat in
             switch scope {
-            case .all:
-                !chat.isArchived
-            case .unread:
-                !chat.isArchived && chat.isUnread
-            case .archived:
-                chat.isArchived
-            case .left:
-                !chat.isArchived && chat.hasEndedMembership
+            case .all: !chat.isArchived
+            case .unread: !chat.isArchived && chat.isUnread
+            case .archived: chat.isArchived
+            case .left: !chat.isArchived && chat.hasEndedMembership
             }
         }
 
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matchingChats: [ChatListItem]
-        if query.isEmpty {
-            matchingChats = scopedChats
-        } else {
-            matchingChats = scopedChats.filter { chat in
-                chat.title.range(
-                    of: query,
-                    options: [.caseInsensitive, .diacriticInsensitive]
-                ) != nil
-                || chat.searchablePreview.range(
-                    of: query,
-                    options: [.caseInsensitive, .diacriticInsensitive]
-                ) != nil
-            }
+        let matchingChats = query.isEmpty ? scopedChats : scopedChats.filter { chat in
+            chat.title.localizedCaseInsensitiveContains(query)
+                || chat.searchablePreview.localizedCaseInsensitiveContains(query)
         }
-
-        return matchingChats.filter(\.isPinned)
-            + matchingChats.filter { !$0.isPinned }
+        return matchingChats.filter(\.isPinned) + matchingChats.filter { !$0.isPinned }
     }
 
     private var hasUnreadChats: Bool {
-        chats.contains { chat in
-            !chat.isArchived && chat.isUnread
-        }
+        rows.contains { !$0.isArchived && $0.isUnread }
     }
 
-    private var readAllIsVisible: Bool {
-        scope == .unread && hasUnreadChats
-    }
+    private var readAllIsVisible: Bool { scope == .unread && hasUnreadChats }
 
     private var filterMenu: some View {
         Menu {
             Picker("Filter Chats", selection: $scope) {
                 ForEach(ChatScope.allCases) { scope in
-                    Label(scope.title, systemImage: scope.symbol)
-                        .tag(scope)
+                    Label(scope.title, systemImage: scope.symbol).tag(scope)
                 }
             }
         } label: {
-            filterMenuLabel
-            .accessibilityLabel("Filter Chats")
+            filterMenuLabel.accessibilityLabel("Filter Chats")
         }
         .menuIndicator(.hidden)
         .accessibilityValue(scope.title)
@@ -363,7 +288,6 @@ struct ChatsView: View {
         } else {
             HStack {
                 Image(systemName: "line.3.horizontal.decrease")
-
                 Text(scope.title)
             }
             .font(.subheadline)
@@ -371,79 +295,36 @@ struct ChatsView: View {
             .padding(.trailing, 10)
             .frame(height: 34)
             .background {
-                Capsule()
-                    .fill(Color("AccentColor"))
-                    .padding(.leading, -5)
+                Capsule().fill(Color("AccentColor")).padding(.leading, -5)
             }
         }
     }
 
     private var emptyTitle: LocalizedStringKey {
-        guard searchText.isEmpty else {
-            return "No Results"
-        }
-
+        if !searchText.isEmpty { return "No Results" }
         return switch scope {
-        case .all:
-            "No Chats"
-        case .unread:
-            "No Unread Chats"
-        case .archived:
-            "No Archived Chats"
-        case .left:
-            "No Left Chats"
+        case .all: "No Chats"
+        case .unread: "No Unread Chats"
+        case .archived: "No Archived Chats"
+        case .left: "No Left Chats"
         }
     }
 
     private var emptyDescription: LocalizedStringKey {
-        guard searchText.isEmpty else {
-            return "Check the spelling or try a different search."
-        }
-
+        if !searchText.isEmpty { return "Check the spelling or try a different search." }
         return switch scope {
-        case .all:
-            "Start a new chat to send a message."
-        case .unread:
-            "You’re all caught up."
-        case .archived:
-            "Chats you archive will appear here."
-        case .left:
-            "Chats you leave or are removed from will appear here."
+        case .all: "Start a new chat to send a message."
+        case .unread: "You’re all caught up."
+        case .archived: "Chats you archive will appear here."
+        case .left: "Chats you leave or are removed from will appear here."
         }
     }
 
-    private var emptySymbol: String {
-        guard searchText.isEmpty else {
-            return "magnifyingglass"
-        }
-
-        return scope.symbol
-    }
+    private var emptySymbol: String { searchText.isEmpty ? scope.symbol : "magnifyingglass" }
 }
 
 private struct ProfileAvatarNavigationStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-    }
-}
-
-extension ChatsView {
-    init(
-        chats: [ChatListItem],
-        initialScope: ChatScope = .all,
-        initialSearchText: String = "",
-        profile: PrototypeProfile = .marmota,
-        onNewMessage: @escaping () -> Void
-    ) {
-        self.init(
-            chats: .constant(chats),
-            settings: .constant(PrototypeSettingsState()),
-            initialScope: initialScope,
-            initialSearchText: initialSearchText,
-            profile: profile,
-            onNewMessage: onNewMessage
-        )
-    }
+    func makeBody(configuration: Configuration) -> some View { configuration.label }
 }
 
 private struct ReadAllBottomBar: ViewModifier {
@@ -453,14 +334,10 @@ private struct ReadAllBottomBar: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if isVisible {
-            content
-                .toolbar {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button("Read All", action: action)
-                    }
-
-                    ToolbarSpacer(.flexible, placement: .bottomBar)
-                }
+            content.toolbar {
+                ToolbarItem(placement: .bottomBar) { Button("Read All", action: action) }
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+            }
         } else {
             content
         }
@@ -502,79 +379,11 @@ private struct OnDemandChatSearch: ViewModifier {
     }
 }
 
-#Preview("Chats — Empty") {
+#Preview("Chats") {
+    @Previewable @State var profile = PrototypeProfile.marmota
+    @Previewable @State var settings = PrototypeSettingsState()
     NavigationStack {
-        ChatsView(chats: ChatListFixtures.empty, onNewMessage: {})
+        ChatsView(profile: $profile, settings: $settings)
     }
     .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Populated") {
-    NavigationStack {
-        ChatsView(chats: ChatListFixtures.populated, onNewMessage: {})
-    }
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Empty Unread") {
-    NavigationStack {
-        ChatsView(
-            chats: ChatListFixtures.empty,
-            initialScope: .unread,
-            onNewMessage: {}
-        )
-    }
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Empty Archived") {
-    NavigationStack {
-        ChatsView(
-            chats: ChatListFixtures.empty,
-            initialScope: .archived,
-            onNewMessage: {}
-        )
-    }
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Left") {
-    NavigationStack {
-        ChatsView(
-            chats: ChatListFixtures.populated,
-            initialScope: .left,
-            onNewMessage: {}
-        )
-    }
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Empty Left") {
-    NavigationStack {
-        ChatsView(
-            chats: ChatListFixtures.empty,
-            initialScope: .left,
-            onNewMessage: {}
-        )
-    }
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Search No Results") {
-    NavigationStack {
-        ChatsView(
-            chats: ChatListFixtures.populated,
-            initialSearchText: "No matching chat",
-            onNewMessage: {}
-        )
-    }
-    .tint(Color("AccentColor"))
-}
-
-#Preview("Chats — Empty Dark") {
-    NavigationStack {
-        ChatsView(chats: ChatListFixtures.empty, onNewMessage: {})
-    }
-    .tint(Color("AccentColor"))
-    .preferredColorScheme(.dark)
 }

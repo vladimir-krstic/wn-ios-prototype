@@ -30,6 +30,13 @@ enum ProfileAvatarImageProcessor {
 enum ConversationImageProcessor {
     private static let maximumPixelDimension = 1024
 
+    static func preparedData(from sourceData: Data) -> Data? {
+        ImageDataProcessor.preparedJPEGData(
+            from: sourceData,
+            maximumPixelDimension: maximumPixelDimension
+        )
+    }
+
     static func preparedDataAsync(from sourceData: Data) async -> Data? {
         await ImageDataProcessor.preparedJPEGDataAsync(
             from: sourceData,

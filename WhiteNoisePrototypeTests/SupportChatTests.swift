@@ -5,27 +5,39 @@ import Testing
 struct SupportChatTests {
     @Test("Starting support never creates a duplicate")
     func supportChatIsUnique() {
-        var chats: [ChatListItem] = []
+        var profile = PrototypeProfile.pebble
 
-        ChatListFixtures.ensureSupportChat(in: &chats)
-        ChatListFixtures.ensureSupportChat(in: &chats)
+        let first = profile.openOrCreateSupportChat()
+        let second = profile.openOrCreateSupportChat()
 
-        #expect(chats.count == 1)
-        #expect(chats.first?.id == ChatListFixtures.supportChatID)
+        #expect(first == ChatListFixtures.supportChatID)
+        #expect(second == first)
+        #expect(profile.chats.count == 1)
+        #expect(profile.chats.first?.id == ChatListFixtures.supportChatID)
+        #expect(profile.chats.first?.timeline.first?.id == "white-noise-support-guidance")
+        #expect(profile.chats.first?.messages.isEmpty == true)
+    }
+
+    @Test("Support creation requires Chat Messages relays")
+    func supportRequiresRelays() {
+        var profile = PrototypeProfile.pebble
+        profile.relayConfiguration = .missingChatMessages
+
+        #expect(profile.openOrCreateSupportChat() == nil)
+        #expect(profile.chats.isEmpty)
     }
 
     @Test("Support is inserted directly after Fiatjaf")
     func supportFollowsFiatjaf() {
-        var chats = ChatListFixtures.populated.filter { chat in
-            chat.id != ChatListFixtures.supportChatID
-        }
+        var profile = PrototypeProfile.marmota
+        profile.chats.removeAll { $0.id == ChatListFixtures.supportChatID }
 
-        ChatListFixtures.ensureSupportChat(in: &chats)
+        _ = profile.openOrCreateSupportChat()
 
-        let fiatjafIndex = chats.firstIndex { chat in
+        let fiatjafIndex = profile.chats.firstIndex { chat in
             chat.id == ChatListFixtures.fiatjafChatID
         }
-        let supportIndex = chats.firstIndex { chat in
+        let supportIndex = profile.chats.firstIndex { chat in
             chat.id == ChatListFixtures.supportChatID
         }
 
@@ -34,22 +46,23 @@ struct SupportChatTests {
 
     @Test("Appending a profile-owned message updates its chat preview")
     func appendedMessageUpdatesPreview() throws {
-        var messages: [PrototypeConversationMessage] = []
-        var chats = ChatListFixtures.populated
-
-        PrototypeConversationState.append(
-            .text("Still here after Back."),
-            to: &messages,
-            chats: &chats,
-            chatID: ChatListFixtures.fiatjafChatID
+        var profile = PrototypeProfile.marmota
+        let index = try #require(
+            profile.chats.firstIndex { $0.id == ChatListFixtures.fiatjafChatID }
         )
 
-        let chat = try #require(
-            chats.first { $0.id == ChatListFixtures.fiatjafChatID }
+        profile.chats[index].appendMessage(
+            authorID: profile.id,
+            text: "Still here after Back."
         )
-        #expect(messages.map(\.content) == [.text("Still here after Back.")])
-        #expect(chat.previewAuthor == "You")
-        #expect(chat.preview == "Still here after Back.")
-        #expect(chat.timestamp == "Now")
+
+        let row = profile.chats[index].row(
+            people: profile.people,
+            currentProfileID: profile.id
+        )
+        #expect(profile.chats[index].messages.last?.text == "Still here after Back.")
+        #expect(row.previewAuthor == "You")
+        #expect(row.preview == "Still here after Back.")
+        #expect(row.timestamp == "Now")
     }
 }

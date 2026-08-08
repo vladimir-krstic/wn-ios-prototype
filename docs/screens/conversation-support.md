@@ -29,6 +29,8 @@ contain more than one support conversation.
 - The support introduction uses the centered secondary timeline-event
   treatment used by day and membership events. It is not an incoming message
   bubble and has no sender timestamp.
+- Support uses the shared profile-owned chat model and shared conversation;
+  there is no separate Support message collection or bespoke composer.
 - The timeline reuses the accepted incoming and outgoing message bubbles,
   external timestamps, native scrolling, soft bottom scroll-edge treatment,
   and Liquid Glass composer structure from `conversation-fiatjaf.md`.

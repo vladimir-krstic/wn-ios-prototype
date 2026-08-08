@@ -2,7 +2,10 @@
 
 ## Purpose and navigation
 
-Open a polished deterministic one-to-one conversation with **Fiatjaf** from the Marmota Chats list. The native navigation stack owns Back behavior. This is the first implemented conversation destination; other chat rows remain unchanged until their screens are selected.
+Open the accepted deterministic one-to-one story with **Fiatjaf** from the
+Marmota Chats list. The native navigation stack owns Back behavior, and the
+screen now uses the same authoritative conversation architecture as every
+other chat.
 
 ## Copy and content
 
@@ -25,13 +28,9 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 
 - `NavigationStack` and the system Back button own navigation and interactive swipe-back.
 - The title uses a compact circular Fiatjaf avatar and semantic headline typography in the principal toolbar position.
-- When the active profile has an unavailable relay role, the toolbar remains
-  unchanged. The empty composer uses **Check your profile relays** as its prompt and
-  replaces the waveform action with an outlined orange
-  `exclamationmark.triangle` SF Symbol. The complete composer is a native
-  `NavigationLink`; pressing anywhere inside it pushes
-  Relays, and Back returns to this conversation without resetting it. Typing
-  resumes after relay setup is repaired.
+- When this chat has no Chat Relays, history and the toolbar remain available
+  while **Check Chat Relays** replaces the composer. The recovery action pushes
+  this chat's independent relay list; adding a relay restores typing.
 - A native `ScrollView` with `LazyVStack` owns timeline scrolling without a visible scroll indicator. Messages are bottom-aligned when the content is shorter than the viewport.
 - Outgoing messages use the adaptive app accent: black with white content in Light Mode and white with black content in Dark Mode.
 - Incoming messages use the adaptive semantic `secondarySystemFill`.
@@ -43,7 +42,11 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - The timeline keeps system spacing between its final message and the stationary composer when first opened and after sending.
 - Message metadata shows time only. Timestamps sit outside the bubble: beneath the inward edge of outgoing and incoming messages. Delivery checkmarks aren’t part of the White Noise conversation design.
 - Sending nonempty text appends a deterministic outgoing bubble labeled **Now**, clears the composer, keeps the new message visible, and updates the Fiatjaf row preview.
-- The attachment button presents native `PhotosPicker` and file-importer choices. A selected photo or file is appended to the active profile's deterministic in-memory Fiatjaf messages and is discarded when the process ends. Selected photos are downsampled off the main actor before storage so timeline rendering never repeatedly decodes the original full-resolution source.
+- The attachment button presents native `PhotosPicker` and file-importer
+  choices. Selected photos, videos, and files appear in an ordered removable
+  queue and send with optional text. Photos are downsampled off the main actor;
+  video/file data is copied to temporary app-owned storage and discarded when
+  the process ends.
 
 ## Important states and interactions
 
@@ -55,15 +58,14 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - Starting the deterministic voice-recording state dismisses composer focus;
   returning focus to the text field stops that state so the red stop control
   never remains active while composing text.
-- Empty composer with unavailable profile relays: **Check your profile relays** and the
-  outlined warning replace the normal entry field; the complete capsule opens
-  Relays.
+- Empty composer with no Chat Relays: **Check Chat Relays** replaces normal
+  entry and opens this chat's routing page.
 - Nonempty composer: Send appears and works.
 - Attachment menu opens native photo and file pickers; selected content appears in memory in the timeline.
 - Back returns to Chats without resetting the active profile's in-memory Fiatjaf list. Reopening Fiatjaf during the same process shows the sent messages, and switching profiles keeps each profile's messages independent.
-- The composer recovery treatment appears while a relay role is unassigned,
-  reconnecting, or disconnected; it restores **Message** and the waveform as
-  soon as every role has connected coverage.
+- The composer recovery treatment appears only while this chat's independent
+  relay list is empty; adding a valid relay restores **Message** and the
+  waveform immediately.
 
 ## Accessibility
 
@@ -101,7 +103,8 @@ The Fiatjaf avatar and five animal photographs are bundled exports from the appr
 
 ## Acceptance
 
-- The Marmota Chats list contains Fiatjaf and tapping only that row opens this destination.
+- The Marmota Chats list contains Fiatjaf and its row opens this story through
+  the same shared destination architecture as every other row.
 - The title, avatar, exact messages, reply, reaction, media collage, external inward-aligned timestamps, and Liquid Glass composer are visible and coherent.
 - Outgoing bubbles are black in Light Mode rather than production iOS blue.
 - The composer uses the real keyboard, appends a message, and keeps stable geometry.

@@ -73,6 +73,14 @@ struct ChatListRow: View {
                     .scaledToFill()
                     .accessibilityHidden(true)
 
+            case let .imageData(data):
+                if let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .accessibilityHidden(true)
+                }
+
             case let .monogram(initials):
                 Text(initials)
                     .font(.headline)

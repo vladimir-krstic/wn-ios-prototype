@@ -3,33 +3,15 @@ import UIKit
 
 struct SupportPrototypeView: View {
     @State private var isShowingSupportConversation = false
-    @Binding private var chats: [ChatListItem]
-    @Binding private var supportMessages: [SupportConversationMessage]
+    @Binding private var profile: PrototypeProfile
     @Binding private var settings: PrototypeSettingsState
-    @Binding private var relayConfiguration: PrototypeRelayConfiguration
-    @Binding private var developerTools: PrototypeDeveloperToolsState
-    private let profileName: String
 
     init(
-        chats: Binding<[ChatListItem]> = .constant([]),
-        supportMessages: Binding<[SupportConversationMessage]> = .constant([]),
-        settings: Binding<PrototypeSettingsState> = .constant(
-            PrototypeSettingsState()
-        ),
-        relayConfiguration: Binding<PrototypeRelayConfiguration> = .constant(
-            .fixtures
-        ),
-        developerTools: Binding<PrototypeDeveloperToolsState> = .constant(
-            .fixtures()
-        ),
-        profileName: String = "Marmota"
+        profile: Binding<PrototypeProfile> = .constant(.marmota),
+        settings: Binding<PrototypeSettingsState> = .constant(PrototypeSettingsState())
     ) {
-        _chats = chats
-        _supportMessages = supportMessages
+        _profile = profile
         _settings = settings
-        _relayConfiguration = relayConfiguration
-        _developerTools = developerTools
-        self.profileName = profileName
     }
 
     var body: some View {
@@ -76,33 +58,27 @@ struct SupportPrototypeView: View {
         .navigationDestination(
             isPresented: $isShowingSupportConversation
         ) {
-            WhiteNoiseSupportConversationView(
-                messages: $supportMessages,
-                chats: $chats,
+            ConversationView(
+                profile: $profile,
                 settings: $settings,
-                developerTools: $developerTools,
-                senderName: profileName
+                chatID: ChatListFixtures.supportChatID
             )
         }
     }
 
     private var supportChatExists: Bool {
-        chats.contains(where: { chat in
+        profile.chats.contains(where: { chat in
             chat.id == ChatListFixtures.supportChatID
         })
     }
 
     private var canOpenSupportChat: Bool {
         supportChatExists
-            || relayConfiguration.isAvailable(for: .chatMessages)
+            || profile.relayConfiguration.isAvailable(for: .chatMessages)
     }
 
     private func openSupportChat() {
-        if !supportChatExists {
-            ChatListFixtures.ensureSupportChat(in: &chats)
-        }
-
-        isShowingSupportConversation = true
+        isShowingSupportConversation = profile.openOrCreateSupportChat() != nil
     }
 
     private var startChatAccessibilityHint: String {
@@ -110,7 +86,7 @@ struct SupportPrototypeView: View {
             return "Opens your existing conversation with White Noise Support."
         }
 
-        if relayConfiguration.isAvailable(for: .chatMessages) {
+        if profile.relayConfiguration.isAvailable(for: .chatMessages) {
             return "Starts a conversation with White Noise Support."
         }
 

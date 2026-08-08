@@ -332,19 +332,12 @@ struct SettingsView: View {
                 )
             }
         case .support:
-            SupportPrototypeView(
-                chats: activeProfileBinding?.chats ?? .constant([]),
-                supportMessages:
-                    activeProfileBinding?.supportMessages ?? .constant([]),
-                settings: $settings,
-                relayConfiguration:
-                    activeProfileBinding?.relayConfiguration
-                        ?? .constant(.fixtures),
-                developerTools:
-                    activeProfileBinding?.developerTools
-                        ?? .constant(.fixtures()),
-                profileName: activeProfile?.name ?? "Profile"
-            )
+            if let activeProfileBinding {
+                SupportPrototypeView(
+                    profile: activeProfileBinding,
+                    settings: $settings
+                )
+            }
         case .donate:
             DonatePrototypeView()
         case .developerTools:

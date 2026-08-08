@@ -146,6 +146,7 @@ struct NativeChatList: UIViewRepresentable {
                     UIBackgroundConfiguration.clear()
                 cell.accessories = []
                 cell.accessibilityIdentifier = "chat.\(chatID)"
+                cell.accessibilityLabel = Self.accessibilityLabel(for: chat)
             }
 
             dataSource = UICollectionViewDiffableDataSource<
@@ -161,6 +162,19 @@ struct NativeChatList: UIViewRepresentable {
                     item: chatID
                 )
             }
+        }
+
+        private static func accessibilityLabel(for chat: ChatListItem) -> String {
+            var components = [chat.title]
+            if let author = chat.visiblePreviewAuthor {
+                components.append("\(author): \(chat.visiblePreview)")
+            } else if chat.isDraft && !chat.hasEndedMembership {
+                components.append("Draft: \(chat.visiblePreview)")
+            } else {
+                components.append(chat.visiblePreview)
+            }
+            components.append(chat.timestamp)
+            return components.joined(separator: ", ")
         }
 
         func applySnapshot(animated: Bool) {
@@ -310,7 +324,7 @@ struct NativeChatList: UIViewRepresentable {
 
             if chat.hasEndedMembership {
                 contextualActions.append(deleteAction(for: chat))
-            } else {
+            } else if chat.isGroup {
                 contextualActions.append(leaveAction(for: chat))
             }
 

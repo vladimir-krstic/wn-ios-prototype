@@ -438,3 +438,27 @@ working style remains authoritative.
   using the system state when the console is already empty.
 - The animated **Live** symbol uses semantic system green while the visible
   label and VoiceOver description continue to communicate state without color.
+
+## WN-PROTOTYPE-0023 — Unified profile-owned chats and complete chat flows
+
+- Date: 2026-08-08
+- Status: Approved; completes the per-chat editing deferral in
+  WN-PROTOTYPE-0005
+
+- Each profile owns one authoritative People directory and chat collection.
+  A chat owns its metadata, list state, independent routing, messages, draft,
+  membership, and reactions; chat-list rows are projections of that state.
+- Every chat row opens one shared direct/group conversation architecture.
+  Maya Chen is the exhaustive direct showcase and Weekend Walks is the
+  exhaustive admin group showcase. Fiatjaf and White Noise Support retain their
+  accepted visible stories while moving to the shared state.
+- New direct chats use a person-profile **Message** step and deduplicate by
+  person. New groups require at least one other person, make the creator an
+  admin, and copy the creator profile's available Chat Messages relays.
+- Per-chat relay editing now lives in Chat Info and Group Info. Editing a chat
+  never rewrites profile defaults or another chat. An empty chat relay list
+  disables sending but preserves history.
+- The functional composer sends text, links, images, videos, files, replies,
+  mentions, and a simulated press-and-hold voice message. Voice uses one
+  bundled locally generated recording and no microphone API. Location,
+  contact, GIF, and sticker remain deterministic showcase renderers.

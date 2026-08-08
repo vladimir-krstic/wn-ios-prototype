@@ -25,7 +25,10 @@ private struct PrototypeRootView: View {
         var id: Self { self }
     }
 
-    @State private var rootDestination = RootDestination.welcome
+    @State private var rootDestination = ProcessInfo.processInfo.arguments
+        .contains("-ui-testing-chats")
+        ? RootDestination.chats
+        : RootDestination.welcome
     @State private var onboardingPresentation: OnboardingPresentation?
     @State private var profiles = PrototypeProfile.initialProfiles
     @State private var activeProfileID = PrototypeProfile.marmota.id
@@ -42,21 +45,11 @@ private struct PrototypeRootView: View {
             case .chats:
                 NavigationStack {
                     ChatsView(
-                        chats: activeChats,
-                        fiatjafMessages:
-                            activeProfileBinding.fiatjafMessages,
-                        supportMessages:
-                            activeProfileBinding.supportMessages,
+                        profile: activeProfileBinding,
                         settings: $settings,
-                        relayConfiguration:
-                            activeProfileBinding.relayConfiguration,
-                        developerTools:
-                            activeProfileBinding.developerTools,
-                        profile: activeProfile,
                         onOpenSettings: {
                             isShowingSettings = true
-                        },
-                        onNewMessage: {}
+                        }
                     )
                     .navigationDestination(
                         isPresented: $isShowingSettings
@@ -155,26 +148,6 @@ private struct PrototypeRootView: View {
             }
 
             profiles[index] = profile
-        }
-    }
-
-    private var activeChats: Binding<[ChatListItem]> {
-        Binding {
-            guard let index = profiles.firstIndex(
-                where: { $0.id == activeProfileID }
-            ) else {
-                return []
-            }
-
-            return profiles[index].chats
-        } set: { chats in
-            guard let index = profiles.firstIndex(
-                where: { $0.id == activeProfileID }
-            ) else {
-                return
-            }
-
-            profiles[index].chats = chats
         }
     }
 

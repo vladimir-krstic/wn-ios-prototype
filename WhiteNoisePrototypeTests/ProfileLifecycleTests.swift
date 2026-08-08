@@ -43,9 +43,13 @@ struct ProfileLifecycleTests {
     @Test("Re-onboarding updates editable values without replacing local data")
     func reactivationUpdatesOnlyEditableProfileValues() {
         var stored = PrototypeProfile.marmota
-        stored.supportMessages = [
-            SupportConversationMessage(id: 1, content: .text("Saved locally")),
-        ]
+        let supportIndex = stored.chats.firstIndex {
+            $0.id == ChatListFixtures.supportChatID
+        }!
+        stored.chats[supportIndex].appendMessage(
+            authorID: stored.id,
+            text: "Saved locally"
+        )
         stored.developerTools.setEnabled(true)
         stored.developerTools.debugMode = true
         let relayConfiguration = stored.relayConfiguration
@@ -64,7 +68,7 @@ struct ProfileLifecycleTests {
         #expect(stored.name == "River")
         #expect(stored.about == "A refreshed profile.")
         #expect(stored.avatar == avatar)
-        #expect(stored.supportMessages.count == 1)
+        #expect(stored.chats[supportIndex].messages.count == 1)
         #expect(stored.relayConfiguration == relayConfiguration)
         #expect(stored.developerTools.isConversationDebugEnabled)
     }

@@ -31,6 +31,7 @@ final class ProfileExitFlowUITests: XCTestCase {
         openSettings(in: app)
         openSignOut(in: app)
 
+        turnOffWipeData(in: app)
         let signOut = app.buttons["sign-out.keep-data"]
         XCTAssertTrue(signOut.waitForExistence(timeout: 3))
         signOut.tap()
@@ -60,8 +61,10 @@ final class ProfileExitFlowUITests: XCTestCase {
         openSettings(in: app)
         openSignOut(in: app)
 
-        app.switches["sign-out.wipe-data-toggle"].tap()
-        app.buttons["sign-out.keep-data"].tap()
+        turnOffWipeData(in: app)
+        let signOut = app.buttons["sign-out.keep-data"]
+        XCTAssertTrue(signOut.waitForExistence(timeout: 3))
+        signOut.tap()
 
         XCTAssertTrue(
             app.buttons["welcome.sign-up"].waitForExistence(timeout: 5)
@@ -176,5 +179,14 @@ final class ProfileExitFlowUITests: XCTestCase {
         let confirm = app.buttons["wipe-profile.confirm"]
         XCTAssertTrue(confirm.isEnabled)
         confirm.tap()
+    }
+
+    private func turnOffWipeData(in app: XCUIApplication) {
+        let toggle = app.switches["sign-out.wipe-data-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+        if toggle.value as? String != "0" {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(toggle.value as? String, "0")
     }
 }

@@ -3,6 +3,7 @@ import Foundation
 struct ChatListItem: Identifiable, Equatable {
     enum Avatar: Equatable {
         case asset(String)
+        case imageData(Data)
         case monogram(String)
         case systemSymbol(String)
     }
@@ -111,6 +112,7 @@ struct ChatListItem: Identifiable, Equatable {
     let id: String
     let title: String
     let avatar: Avatar
+    let isGroup: Bool
     var preview: String
     var previewAuthor: String?
     var attachmentPreview: AttachmentPreview?
@@ -128,6 +130,7 @@ struct ChatListItem: Identifiable, Equatable {
         id: String,
         title: String,
         avatar: Avatar,
+        isGroup: Bool = false,
         preview: String,
         previewAuthor: String? = nil,
         attachmentPreview: AttachmentPreview? = nil,
@@ -144,6 +147,7 @@ struct ChatListItem: Identifiable, Equatable {
         self.id = id
         self.title = title
         self.avatar = avatar
+        self.isGroup = isGroup
         self.preview = preview
         self.previewAuthor = previewAuthor
         self.attachmentPreview = attachmentPreview

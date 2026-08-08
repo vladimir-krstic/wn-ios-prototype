@@ -1,0 +1,53 @@
+import AVFoundation
+import Foundation
+import UIKit
+
+struct ConversationPreparedVideo {
+    let url: URL
+    let thumbnailData: Data?
+    let duration: TimeInterval
+}
+
+enum ConversationVideoProcessor {
+    static func prepare(data: Data) async -> ConversationPreparedVideo? {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "video-\(UUID().uuidString).mov")
+
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try data.write(to: url, options: .atomic)
+            }.value
+            try Task.checkCancellation()
+
+            let asset = AVURLAsset(url: url)
+            let loadedDuration = try await asset.load(.duration)
+            let duration = loadedDuration.seconds.isFinite
+                ? max(0, loadedDuration.seconds)
+                : 0
+
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: 1_024, height: 1_024)
+            let requestedTime = CMTime(
+                seconds: min(max(duration * 0.1, 0), 0.5),
+                preferredTimescale: 600
+            )
+            let generated = try await generator.image(at: requestedTime)
+            let jpeg = UIImage(cgImage: generated.image).jpegData(compressionQuality: 0.82)
+            let thumbnail: Data? = if let jpeg {
+                await ConversationImageProcessor.preparedDataAsync(from: jpeg)
+            } else {
+                nil
+            }
+
+            return ConversationPreparedVideo(
+                url: url,
+                thumbnailData: thumbnail,
+                duration: duration
+            )
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            return nil
+        }
+    }
+}

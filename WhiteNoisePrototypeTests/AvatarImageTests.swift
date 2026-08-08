@@ -50,4 +50,32 @@ struct AvatarImageTests {
         #expect(max(width, height) <= 512)
         #expect(CGImageSourceGetType(source) == UTType.jpeg.identifier as CFString)
     }
+
+    @Test("Conversation photos are encoded once at no more than 1024 pixels")
+    @MainActor
+    func conversationPhotoPreparation() throws {
+        let renderer = UIGraphicsImageRenderer(
+            size: CGSize(width: 1_800, height: 1_200)
+        )
+        let image = renderer.image { context in
+            UIColor.systemGreen.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1_800, height: 1_200))
+        }
+        let sourceData = try #require(image.pngData())
+        let preparedData = try #require(
+            ConversationImageProcessor.preparedData(from: sourceData)
+        )
+        let source = try #require(
+            CGImageSourceCreateWithData(preparedData as CFData, nil)
+        )
+        let properties = try #require(
+            CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+                as? [CFString: Any]
+        )
+        let width = try #require(properties[kCGImagePropertyPixelWidth] as? Int)
+        let height = try #require(properties[kCGImagePropertyPixelHeight] as? Int)
+
+        #expect(max(width, height) <= 1_024)
+        #expect(CGImageSourceGetType(source) == UTType.jpeg.identifier as CFString)
+    }
 }

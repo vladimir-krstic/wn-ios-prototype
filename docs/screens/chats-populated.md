@@ -2,7 +2,10 @@
 
 ## Purpose and navigation
 
-Show a deterministic populated Chats destination after either onboarding path. The profile avatar opens Settings. Fiatjaf and White Noise Support open their implemented conversations; New Message and all other conversation destinations remain reserved for later screens. Rows support native swipe actions.
+Show a deterministic populated Chats destination after either onboarding path.
+The profile avatar opens Settings, New Message starts direct/group creation,
+and every row opens the shared direct/group conversation architecture. Rows
+support native swipe actions.
 
 ## Copy
 
@@ -62,15 +65,20 @@ Show a deterministic populated Chats destination after either onboarding path. T
 - Search matches title and preview within the selected scope, ignoring case and diacritics.
 - Swipe mutations update the same in-memory collection used by Chats, Unread, Archived, Left, and Search, so every filtered projection stays consistent.
 - **Read All** clears every nonarchived unread count and manual unread marker, including matches outside an active search query. The Unread scope then resolves to its existing **No Unread Chats** state.
-- Fixture order, names, previews, timestamps, and status values never use randomness or the current clock.
+- Fixture order, names, previews, and status values are stable. Fixture message
+  dates resolve once from an injectable launch-time reference, while the
+  accepted initial row timestamp labels remain stable.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
 - Nostr Devs and Radia Perlman are the only initially pinned chats. Their older timestamps make the pin-driven ordering explicit while leaving recent unpinned activity chronological beneath them.
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
 - Book Club starts in the voluntary-left state and shows **You left this chat.** Quiet Studio Group remains the removed fixture and shows **You were removed from this chat.** Both appear in Chats and Left as retained read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
-- Fiatjaf uses the approved Figma avatar, appears in older active activity after the uninterrupted marketing hero block, and opens the deterministic conversation defined in `conversation-fiatjaf.md`.
+- Fiatjaf uses the approved Figma avatar, appears in older active activity after
+  the uninterrupted marketing hero block, and opens its accepted story through
+  the shared conversation defined in `conversation-fiatjaf.md` and
+  `conversation-shared.md`.
 - White Noise Support follows Fiatjaf directly, uses the native
-  `questionmark.bubble.fill` identity, and opens the single deterministic
+  `questionmark.bubble` identity, and opens the single profile-owned
   conversation defined in `conversation-support.md`.
 
 ## App Store Chats hero
@@ -97,9 +105,12 @@ The complete ten-person legacy marketing cast now forms the uninterrupted hero b
 - Leading swipe toggles Read and Unread and offers Pin or Unpin. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 22-point monochrome badge with no number.
 - Pin and Unpin apply immediately to nonarchived chats. Pinned chats sort above unpinned chats within Chats, Unread, Left, and active search results while preserving the deterministic relative order inside each group.
 - Pin and Unpin first complete UIKit’s native contextual action, then observe the public `UICellConfigurationState.isSwiped` state on the display refresh cycle. Only after UIKit reports that no visible row remains swiped does the in-memory order change. The final sorted snapshot and pin-badge state are then swapped in atomically with UIKit’s reload-data snapshot API and animations disabled. The swipe closure provides the system-owned action feedback; the list doesn’t animate a row across unrelated conversations. No guessed delay, fade, custom duration, spring, transition, or manual row offset is applied.
-- An active row in Chats or Unread exposes Mute/Unmute, Archive, and Leave. Leave applies to both named one-to-one chats and groups because both use White Noise membership.
+- An active row in Chats or Unread exposes Mute/Unmute and Archive. Active
+  group rows also expose Leave; direct chats never expose Leave.
 - An inactive retained row in Chats or Left exposes Archive and Delete; it no longer exposes Mute, Unmute, or Leave.
-- An active row in Archived exposes Unarchive and Leave. An inactive row in Archived exposes Unarchive and Delete. Archived rows never expose Mute or Unmute.
+- An active group row in Archived exposes Unarchive and Leave. Active direct
+  rows expose only Unarchive. An inactive row exposes Unarchive and Delete;
+  archived rows never expose Mute or Unmute.
 - Muting opens **Mute Notifications** with Signal’s current duration set: 1 hour, 8 hours, 1 day, 1 week, and Always. Unmute applies immediately.
 - Archive and Unarchive apply immediately and move the row between the native filtered projections. Existing mute state is preserved while archived and returns if the chat is restored.
 - Leaving clears unread and mute state, replaces the preview with **You left this chat.**, and shows `rectangle.portrait.and.arrow.right` beside the chat name.
@@ -130,7 +141,9 @@ The complete ten-person legacy marketing cast now forms the uninterrupted hero b
 
 - Every attachment preview is present in the active Chats scope: Photo, multiple Photos, Video, Voice message, File, Location, Contact, Link, GIF, and Sticker.
 - Each uses a baseline-aligned SF Symbol plus concise text in the same regular secondary `subheadline` style as an ordinary message preview.
-- These fixtures verify list presentation only. They do not imply that the corresponding composer or sending flow is implemented.
+- Photos, videos, files, and voice messages also exercise the shared composer.
+  Location, Contact, GIF, and Sticker remain deterministic showcase-only
+  renderers.
 
 ## Avatar provenance
 

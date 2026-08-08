@@ -514,19 +514,4 @@ enum ChatListFixtures {
 
     static let empty: [ChatListItem] = []
 
-    static func ensureSupportChat(in chats: inout [ChatListItem]) {
-        guard !chats.contains(where: { chat in
-            chat.id == supportChatID
-        }) else {
-            return
-        }
-
-        if let fiatjafIndex = chats.firstIndex(where: { chat in
-            chat.id == "fiatjaf"
-        }) {
-            chats.insert(supportChat, at: fiatjafIndex + 1)
-        } else {
-            chats.insert(supportChat, at: 0)
-        }
-    }
 }

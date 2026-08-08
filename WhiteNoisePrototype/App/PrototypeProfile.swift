@@ -15,9 +15,8 @@ struct PrototypeProfile: Identifiable, Equatable {
     var nostrAddress: String
     var lightningAddress: String
     var avatar: PrototypeAvatar
-    var chats: [ChatListItem]
-    var fiatjafMessages: [FiatjafConversationMessage]
-    var supportMessages: [SupportConversationMessage]
+    var people: [PrototypePerson]
+    var chats: [PrototypeChat]
     var relayConfiguration: PrototypeRelayConfiguration
     var developerTools: PrototypeDeveloperToolsState
 
@@ -29,9 +28,8 @@ struct PrototypeProfile: Identifiable, Equatable {
         nostrAddress: String = "",
         lightningAddress: String = "",
         avatar: PrototypeAvatar = .monogram,
-        chats: [ChatListItem],
-        fiatjafMessages: [FiatjafConversationMessage] = [],
-        supportMessages: [SupportConversationMessage] = [],
+        people: [PrototypePerson] = PrototypeChatFixtures.people(),
+        chats: [PrototypeChat],
         relayConfiguration: PrototypeRelayConfiguration = .fixtures,
         developerTools: PrototypeDeveloperToolsState? = nil
     ) {
@@ -42,9 +40,8 @@ struct PrototypeProfile: Identifiable, Equatable {
         self.nostrAddress = nostrAddress
         self.lightningAddress = lightningAddress
         self.avatar = avatar
+        self.people = people
         self.chats = chats
-        self.fiatjafMessages = fiatjafMessages
-        self.supportMessages = supportMessages
         self.relayConfiguration = relayConfiguration
         self.developerTools = developerTools ?? .fixtures(
             profileID: id,
@@ -70,11 +67,12 @@ struct PrototypeProfile: Identifiable, Equatable {
 
     var unreadCount: Int {
         chats.reduce(into: 0) { count, chat in
-            guard !chat.isArchived, chat.isUnread else {
+            let row = chat.row(people: people, currentProfileID: id)
+            guard !row.isArchived, row.isUnread else {
                 return
             }
 
-            count += max(chat.unreadCount, 1)
+            count += max(row.unreadCount, 1)
         }
     }
 
@@ -98,7 +96,11 @@ extension PrototypeProfile {
         nostrAddress: "marmota@whitenoise.example",
         lightningAddress: "marmota@pay.example",
         avatar: .asset("ProfileAvatarMarmota"),
-        chats: ChatListFixtures.populated
+        chats: PrototypeChatFixtures.chats(
+            profileID: "marmota",
+            relayURLs: PrototypeRelayConfiguration.fixtures
+                .availableChatMessageRelayURLs
+        )
     )
 
     static let openQuill = PrototypeProfile(
@@ -106,7 +108,7 @@ extension PrototypeProfile {
         name: "Open Quill",
         publicKey: "npub1q2v9n6t4r7c3x8m5k2w9p6s4y7h3d8f5j2a9e6u4z7n1m2d9",
         avatar: .asset("ProfileAvatarOpenQuill"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static let openCircuit = PrototypeProfile(
@@ -114,7 +116,7 @@ extension PrototypeProfile {
         name: "Open Circuit",
         publicKey: "npub1f6k3r8w2v9c5m7t4y1p8s6h3d9n2x5j7a4e8u6z3q9k1p7v2",
         avatar: .asset("ProfileAvatarOpenCircuit"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static let cipherWheel = PrototypeProfile(
@@ -122,7 +124,7 @@ extension PrototypeProfile {
         name: "Cipher Wheel",
         publicKey: "npub1s4h8c2y7v5m9r3t6p1w8d4n7x2j5a9e3u6z8q4k7c2m1f3k8",
         avatar: .asset("ProfileAvatarCipherWheel"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static let freeSignal = PrototypeProfile(
@@ -130,7 +132,7 @@ extension PrototypeProfile {
         name: "Free Signal",
         publicKey: "npub1n7d2p5x9v4c8m3t6y1s7h5k2j9a4e8u3z6q1r7w5f2m9w6r4",
         avatar: .asset("ProfileAvatarFreeSignal"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static let publicVoice = PrototypeProfile(
@@ -138,7 +140,7 @@ extension PrototypeProfile {
         name: "Public Voice",
         publicKey: "npub1c9m4v7q2r8t5y3p6s1h9d4n7x2j5a8e3u6z1k4w7f9m2x9q2",
         avatar: .asset("ProfileAvatarPublicVoice"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static let libertyRelay = PrototypeProfile(
@@ -146,7 +148,7 @@ extension PrototypeProfile {
         name: "Liberty Relay",
         publicKey: "npub1t3r8k6z2v9c5m7y4p1s8h3d6n9x2j5a7e4u8q6w3f9k1s4m7",
         avatar: .asset("ProfileAvatarLibertyRelay"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static let pebble = PrototypeProfile(
@@ -154,7 +156,7 @@ extension PrototypeProfile {
         name: "Pebble",
         publicKey: "npub1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7",
         avatar: .asset("ProfileAvatarPebble"),
-        chats: ChatListFixtures.empty
+        chats: []
     )
 
     static func initialSignUp(
