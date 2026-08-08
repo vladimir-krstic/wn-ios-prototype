@@ -140,8 +140,9 @@ enum PrototypeChatFixtures {
     }
 
     private static func mayaTimeline(profileID: String, now: Date) -> [PrototypeTimelineEntry] {
-        let old = now.addingTimeInterval(-12 * 86_400)
-        let recent = now.addingTimeInterval(-86_400)
+        let inception = now.addingTimeInterval(-45 * 86_400)
+        let mediaDay = now.addingTimeInterval(-12 * 86_400)
+        let yesterday = now.addingTimeInterval(-86_400)
         let today = now.addingTimeInterval(-3_600)
         let photo = PrototypeAttachment.photo(
             id: "maya-photo-one",
@@ -156,35 +157,40 @@ enum PrototypeChatFixtures {
         )
 
         return [
-            .message(PrototypeMessage(id: "maya-1", authorID: "maya-chen", sentAt: old, text: "Did you get a chance to read the notes?")),
-            .message(PrototypeMessage(id: "maya-2", authorID: profileID, sentAt: old.addingTimeInterval(90), text: "I did. **The shorter version works better.**")),
-            .message(PrototypeMessage(id: "maya-3", authorID: "maya-chen", sentAt: old.addingTimeInterval(180), text: "Agreed. This reference is useful too: https://whitenoise.chat")),
-            .message(PrototypeMessage(id: "maya-3b", authorID: "maya-chen", sentAt: old.addingTimeInterval(240), text: "The first section is clear.\nThe final paragraph could be shorter.")),
-            .message(PrototypeMessage(id: "maya-3c", authorID: "maya-chen", sentAt: old.addingTimeInterval(300), text: "I marked the one sentence I’d keep.")),
-            .message(PrototypeMessage(id: "maya-3d", authorID: profileID, sentAt: old.addingTimeInterval(360), text: "That makes sense. I’ll keep the opening intact, tighten the middle, and make the ending direct enough to read quickly without losing the important context.")),
-            .message(PrototypeMessage(id: "maya-3e", authorID: profileID, sentAt: old.addingTimeInterval(420), text: "I’ll send the revision after lunch.")),
-            .message(PrototypeMessage(id: "maya-4", authorID: profileID, sentAt: recent, text: "This is the latest photo.", attachments: [photo], reactions: [PrototypeReaction(emoji: "❤", personIDs: ["maya-chen"])])),
-            .message(PrototypeMessage(id: "maya-5", authorID: "maya-chen", sentAt: recent.addingTimeInterval(120), text: "The crop looks great.", replyToMessageID: "maya-4")),
-            .message(PrototypeMessage(id: "maya-6", authorID: "maya-chen", sentAt: recent.addingTimeInterval(240), attachments: [
+            .message(PrototypeMessage(id: "maya-1", authorID: "maya-chen", sentAt: inception, text: "Hi—Maya here.")),
+            .message(PrototypeMessage(id: "maya-2", authorID: profileID, sentAt: inception.addingTimeInterval(60), text: "Hi Maya. Good to meet you.")),
+            .message(PrototypeMessage(id: "maya-3", authorID: "maya-chen", sentAt: inception.addingTimeInterval(150), text: "I pulled the first draft together.\nCould you look at the opening and the final paragraph?")),
+            .message(PrototypeMessage(id: "maya-3b", authorID: profileID, sentAt: inception.addingTimeInterval(240), text: "Yes. I’ll read both before lunch.", replyToMessageID: "maya-3")),
+            .message(PrototypeMessage(id: "maya-3c", authorID: profileID, sentAt: inception.addingTimeInterval(300), text: "I’ll keep the opening intact and tighten the middle.\nThe ending can be direct enough to read quickly without losing the context that makes the recommendation useful.")),
+            .message(PrototypeMessage(id: "maya-3d", authorID: "maya-chen", sentAt: inception.addingTimeInterval(390), text: "That sounds right. The full background matters, but the main idea should still be obvious to someone who only has a minute to read it.")),
+            .message(PrototypeMessage(id: "maya-3e", authorID: "maya-chen", sentAt: inception.addingTimeInterval(450), text: "I marked the sentence I’d keep.")),
+            .message(PrototypeMessage(id: "maya-3f", authorID: profileID, sentAt: inception.addingTimeInterval(540), text: "I agree. **The shorter version works better.** I’m using this as the reference: https://whitenoise.chat")),
+
+            .message(PrototypeMessage(id: "maya-4", authorID: profileID, sentAt: mediaDay, text: "This is the latest photo.", attachments: [photo], reactions: [PrototypeReaction(emoji: "❤", personIDs: ["maya-chen"])])),
+            .message(PrototypeMessage(id: "maya-5", authorID: "maya-chen", sentAt: mediaDay.addingTimeInterval(120), text: "The crop looks great.", replyToMessageID: "maya-4")),
+            .message(PrototypeMessage(id: "maya-6", authorID: "maya-chen", sentAt: mediaDay.addingTimeInterval(210), attachments: [photo])),
+            .message(PrototypeMessage(id: "maya-7", authorID: profileID, sentAt: mediaDay.addingTimeInterval(330), text: "These two could sit together.", attachments: [
                 .photo(id: "maya-two-a", source: .asset("FiatjafMediaMarmot"), label: "Marmot in grass"),
                 .photo(id: "maya-two-b", source: .asset("FiatjafMediaSloth"), label: "Sloth in a tree"),
             ])),
-            .message(PrototypeMessage(id: "maya-7", authorID: profileID, sentAt: recent.addingTimeInterval(360), attachments: [
+            .message(PrototypeMessage(id: "maya-8", authorID: "maya-chen", sentAt: mediaDay.addingTimeInterval(450), text: "And these tell the full sequence.", attachments: [
                 .photo(id: "maya-three-a", source: .asset("FiatjafMediaBadger"), label: "Badger in grass"),
                 .photo(id: "maya-three-b", source: .asset("FiatjafMediaFox"), label: "Fox portrait"),
                 .photo(id: "maya-three-c", source: .asset("FiatjafMediaOstrich"), label: "Ostrich in a field"),
             ])),
-            .message(PrototypeMessage(id: "maya-7b", authorID: "maya-chen", sentAt: recent.addingTimeInterval(420), attachments: [photo])),
-            .message(PrototypeMessage(id: "maya-8", authorID: "maya-chen", sentAt: today, text: "Here’s the short clip.", attachments: [video], reactions: [PrototypeReaction(emoji: "🔥", personIDs: [profileID, "maya-chen"])])),
-            .message(PrototypeMessage(id: "maya-9", authorID: profileID, sentAt: today.addingTimeInterval(120), text: "Photo and video together.", attachments: [photo, video])),
-            .message(PrototypeMessage(id: "maya-10", authorID: "maya-chen", sentAt: today.addingTimeInterval(240), attachments: [.file(id: "maya-file", name: "Weekend Notes.pdf", size: 284_000, url: nil)])),
-            .message(PrototypeMessage(id: "maya-11", authorID: profileID, sentAt: today.addingTimeInterval(300), attachments: [.voice(id: "maya-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
-            .message(PrototypeMessage(id: "maya-12", authorID: "maya-chen", sentAt: today.addingTimeInterval(360), attachments: [.link(id: "maya-link", title: "White Noise", domain: "whitenoise.chat", summary: "Private, resilient messaging for people and groups.", image: .asset("WhiteNoiseMark"))])),
-            .message(PrototypeMessage(id: "maya-13", authorID: "maya-chen", sentAt: today.addingTimeInterval(420), deletionState: .deletedByOther)),
-            .message(PrototypeMessage(id: "maya-14", authorID: profileID, sentAt: today.addingTimeInterval(480), deletionState: .deletedByCurrentProfile)),
-            .message(PrototypeMessage(id: "maya-15", authorID: profileID, sentAt: today.addingTimeInterval(540), text: "Replying to a message that’s no longer available.", replyToMessageID: "maya-13")),
-            .message(PrototypeMessage(id: "maya-16", authorID: profileID, sentAt: today.addingTimeInterval(600), text: "I’ll send the revised version now.", deliveryState: .failed)),
-            .message(PrototypeMessage(id: "maya-17", authorID: "maya-chen", sentAt: today.addingTimeInterval(660), text: "Can you send the latest version when you have a moment?", reactions: [
+            .message(PrototypeMessage(id: "maya-9", authorID: "maya-chen", sentAt: mediaDay.addingTimeInterval(570), text: "Here’s the short clip.", attachments: [video])),
+            .message(PrototypeMessage(id: "maya-9b", authorID: profileID, sentAt: mediaDay.addingTimeInterval(660), text: "That movement makes the sequence much clearer.", replyToMessageID: "maya-9")),
+            .message(PrototypeMessage(id: "maya-9c", authorID: profileID, sentAt: mediaDay.addingTimeInterval(750), text: "This pairing is probably the strongest.", attachments: [photo, video])),
+
+            .message(PrototypeMessage(id: "maya-10", authorID: "maya-chen", sentAt: yesterday, text: "Here are the notes from our last pass.", attachments: [.file(id: "maya-file", name: "Weekend Notes.pdf", size: 284_000, url: nil)])),
+            .message(PrototypeMessage(id: "maya-11", authorID: profileID, sentAt: yesterday.addingTimeInterval(120), attachments: [.voice(id: "maya-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
+            .message(PrototypeMessage(id: "maya-12", authorID: "maya-chen", sentAt: yesterday.addingTimeInterval(240), text: "This is the reference I mentioned.", attachments: [.link(id: "maya-link", title: "White Noise", domain: "whitenoise.chat", summary: "Private, resilient messaging for people and groups.", image: .asset("WhiteNoiseMark"))])),
+
+            .message(PrototypeMessage(id: "maya-13", authorID: "maya-chen", sentAt: today, deletionState: .deletedByOther)),
+            .message(PrototypeMessage(id: "maya-14", authorID: profileID, sentAt: today.addingTimeInterval(120), deletionState: .deletedByCurrentProfile)),
+            .message(PrototypeMessage(id: "maya-15", authorID: profileID, sentAt: today.addingTimeInterval(240), text: "Replying to a message that’s no longer available.", replyToMessageID: "maya-13")),
+            .message(PrototypeMessage(id: "maya-16", authorID: profileID, sentAt: today.addingTimeInterval(360), text: "I’ll send the revised version now.", deliveryState: .failed)),
+            .message(PrototypeMessage(id: "maya-17", authorID: "maya-chen", sentAt: today.addingTimeInterval(480), text: "Can you send the latest version when you have a moment?", reactions: [
                 PrototypeReaction(emoji: "👍", personIDs: [profileID]),
                 PrototypeReaction(emoji: "😀", personIDs: [profileID, "maya-chen"]),
             ])),
@@ -193,9 +199,10 @@ enum PrototypeChatFixtures {
 
     private static func weekendTimeline(profileID: String, now: Date) -> [PrototypeTimelineEntry] {
         let old = now.addingTimeInterval(-400 * 86_400)
+        let earlyHistory = now.addingTimeInterval(-120 * 86_400)
         let weekday = now.addingTimeInterval(-4 * 86_400)
         let yesterday = now.addingTimeInterval(-86_400)
-        let today = now.addingTimeInterval(-2_400)
+        let today = now.addingTimeInterval(-7_200)
         func image(_ id: String, _ asset: String, _ label: String) -> PrototypeAttachment {
             .photo(id: id, source: .asset(asset), label: label)
         }
@@ -213,39 +220,55 @@ enum PrototypeChatFixtures {
         return [
             .event(PrototypeTimelineEvent(id: "week-event-created", date: old, kind: .created(actorID: profileID))),
             .event(PrototypeTimelineEvent(id: "week-event-added", date: old.addingTimeInterval(60), kind: .added(actorID: profileID, personIDs: ["maya-chen", "elias-moreno"]))),
-            .event(PrototypeTimelineEvent(id: "week-event-added-one", date: old.addingTimeInterval(90), kind: .added(actorID: profileID, personIDs: ["nora-bennett"]))),
-            .event(PrototypeTimelineEvent(id: "week-event-joined", date: old.addingTimeInterval(120), kind: .joined(personID: "mina-park"))),
-            .message(PrototypeMessage(id: "week-msg-1", authorID: "nora-bennett", sentAt: old.addingTimeInterval(240), text: "Welcome everyone. Let’s choose a route that works for the whole group.")),
+            .message(PrototypeMessage(id: "week-msg-1", authorID: "maya-chen", sentAt: old.addingTimeInterval(180), text: "Thanks for setting this up.")),
+            .message(PrototypeMessage(id: "week-msg-2", authorID: "elias-moreno", sentAt: old.addingTimeInterval(240), text: "I have a few easy routes we can try.")),
+            .event(PrototypeTimelineEvent(id: "week-event-added-one", date: old.addingTimeInterval(360), kind: .added(actorID: profileID, personIDs: ["nora-bennett"]))),
+            .message(PrototypeMessage(id: "week-msg-3", authorID: "nora-bennett", sentAt: old.addingTimeInterval(480), text: "Welcome everyone. Let’s choose a route that works for the whole group.")),
+            .event(PrototypeTimelineEvent(id: "week-event-joined", date: old.addingTimeInterval(600), kind: .joined(personID: "mina-park"))),
+            .message(PrototypeMessage(id: "week-msg-4", authorID: "mina-park", sentAt: old.addingTimeInterval(720), text: "Glad I found the group.")),
+            .message(PrototypeMessage(id: "week-msg-5", authorID: "mina-park", sentAt: old.addingTimeInterval(780), text: "Sunday mornings usually work for me.")),
+
+            .event(PrototypeTimelineEvent(id: "week-event-name", date: earlyHistory, kind: .changedName(actorID: profileID, name: "Weekend Walks"))),
+            .message(PrototypeMessage(id: "week-msg-6", authorID: "nora-bennett", sentAt: earlyHistory.addingTimeInterval(120), text: "Weekend Walks fits us better.")),
+            .event(PrototypeTimelineEvent(id: "week-event-photo", date: earlyHistory.addingTimeInterval(240), kind: .changedPhoto(actorID: profileID))),
+            .message(PrototypeMessage(id: "week-msg-7", authorID: "maya-chen", sentAt: earlyHistory.addingTimeInterval(360), text: "That photo is from our first riverside route.")),
+            .message(PrototypeMessage(id: "week-msg-8", authorID: "maya-chen", sentAt: earlyHistory.addingTimeInterval(420), text: "I still like that path best.")),
+            .event(PrototypeTimelineEvent(id: "week-event-description", date: earlyHistory.addingTimeInterval(540), kind: .changedDescription(actorID: profileID))),
+
             .event(PrototypeTimelineEvent(id: "week-event-admin", date: weekday, kind: .madeAdmin(actorID: profileID, personID: "maya-chen"))),
-            .event(PrototypeTimelineEvent(id: "week-event-admin-remove", date: weekday.addingTimeInterval(60), kind: .removedAdmin(actorID: profileID, personID: "maya-chen"))),
-            .event(PrototypeTimelineEvent(id: "week-event-name", date: weekday.addingTimeInterval(120), kind: .changedName(actorID: profileID, name: "Weekend Walks"))),
-            .event(PrototypeTimelineEvent(id: "week-event-photo", date: weekday.addingTimeInterval(180), kind: .changedPhoto(actorID: profileID))),
-            .event(PrototypeTimelineEvent(id: "week-event-description", date: weekday.addingTimeInterval(240), kind: .changedDescription(actorID: profileID))),
-            .event(PrototypeTimelineEvent(id: "week-event-description-remove", date: weekday.addingTimeInterval(300), kind: .removedDescription(actorID: profileID))),
-            .message(PrototypeMessage(id: "week-msg-2", authorID: "maya-chen", sentAt: yesterday, text: "@Marmota, does the riverside path work?")),
-            .message(PrototypeMessage(id: "week-msg-3", authorID: profileID, sentAt: yesterday.addingTimeInterval(90), text: "Yes, and the forecast looks clear.", replyToMessageID: "week-msg-2")),
-            .message(PrototypeMessage(id: "week-msg-4", authorID: "elias-moreno", sentAt: yesterday.addingTimeInterval(180), attachments: Array(gallery.prefix(4)))),
-            .message(PrototypeMessage(id: "week-msg-5", authorID: "mina-park", sentAt: yesterday.addingTimeInterval(270), attachments: Array(gallery.prefix(5)))),
-            .message(PrototypeMessage(id: "week-msg-6", authorID: "nora-bennett", sentAt: yesterday.addingTimeInterval(360), text: "A few views from last time.", attachments: gallery, reactions: [
+            .message(PrototypeMessage(id: "week-msg-9", authorID: "maya-chen", sentAt: weekday.addingTimeInterval(120), text: "I’ll organize the route options and meeting points.")),
+            .message(PrototypeMessage(id: "week-msg-10", authorID: "elias-moreno", sentAt: weekday.addingTimeInterval(240), text: "Here are four from the west trail.", attachments: Array(gallery.prefix(4)), reactions: [PrototypeReaction(emoji: "👍", personIDs: [profileID])])),
+            .message(PrototypeMessage(id: "week-msg-11", authorID: "mina-park", sentAt: weekday.addingTimeInterval(360), text: "And five from the lake loop.", attachments: Array(gallery.prefix(5)))),
+            .message(PrototypeMessage(id: "week-msg-12", authorID: "nora-bennett", sentAt: weekday.addingTimeInterval(480), text: "A few views from last time.", attachments: gallery, reactions: [
                 PrototypeReaction(emoji: "❤", personIDs: [profileID, "maya-chen", "elias-moreno"]),
                 PrototypeReaction(emoji: "🔥", personIDs: ["mina-park"]),
             ])),
-            .message(PrototypeMessage(id: "week-msg-6b", authorID: "maya-chen", sentAt: yesterday.addingTimeInterval(420), text: "This clip shows the narrow section.", attachments: [
+            .message(PrototypeMessage(id: "week-msg-13", authorID: "maya-chen", sentAt: weekday.addingTimeInterval(600), text: "I’m done with the route changes, so you can take admin back.")),
+            .event(PrototypeTimelineEvent(id: "week-event-admin-remove", date: weekday.addingTimeInterval(720), kind: .removedAdmin(actorID: profileID, personID: "maya-chen"))),
+
+            .event(PrototypeTimelineEvent(id: "week-event-description-remove", date: yesterday, kind: .removedDescription(actorID: profileID))),
+            .message(PrototypeMessage(id: "week-msg-14", authorID: "maya-chen", sentAt: yesterday, text: "@Marmota, does the riverside path work?")),
+            .message(PrototypeMessage(id: "week-msg-15", authorID: profileID, sentAt: yesterday.addingTimeInterval(120), text: "Yes, and the forecast looks clear.", replyToMessageID: "week-msg-14")),
+            .message(PrototypeMessage(id: "week-msg-16", authorID: "nora-bennett", sentAt: yesterday.addingTimeInterval(240), text: "Then let’s keep the changing details here instead of in the description.", replyToMessageID: "week-msg-15")),
+            .message(PrototypeMessage(id: "week-msg-17", authorID: "maya-chen", sentAt: yesterday.addingTimeInterval(360), text: "This clip shows the narrow section.", attachments: [
                 .video(id: "week-video", url: nil, thumbnail: .asset("FiatjafMediaBadger"), duration: 9),
             ])),
-            .message(PrototypeMessage(id: "week-msg-6c", authorID: profileID, sentAt: yesterday.addingTimeInterval(480), text: "And here’s the bridge beside it.", attachments: [
+            .message(PrototypeMessage(id: "week-msg-18", authorID: profileID, sentAt: yesterday.addingTimeInterval(480), text: "And here’s the bridge beside it.", attachments: [
                 gallery[0],
                 .video(id: "week-mixed-video", url: nil, thumbnail: .asset("FiatjafMediaMarmot"), duration: 7),
-            ], replyToMessageID: "week-msg-6b")),
-            .message(PrototypeMessage(id: "week-msg-7", authorID: "leo-martins", sentAt: today, attachments: [.gif(id: "week-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")])),
-            .message(PrototypeMessage(id: "week-msg-8", authorID: profileID, sentAt: today.addingTimeInterval(60), attachments: [.sticker(id: "week-sticker", assetName: "FiatjafMediaFox", label: "Friendly fox")])),
-            .message(PrototypeMessage(id: "week-msg-9", authorID: "maya-chen", sentAt: today.addingTimeInterval(120), attachments: [.location(id: "week-location", name: "Riverside Trail", address: "North entrance by the footbridge")])),
-            .message(PrototypeMessage(id: "week-msg-10", authorID: "elias-moreno", sentAt: today.addingTimeInterval(180), attachments: [.contact(id: "week-contact", personID: "avery-stone")])),
-            .message(PrototypeMessage(id: "week-msg-11", authorID: "nora-bennett", sentAt: today.addingTimeInterval(240), attachments: [.file(id: "week-file", name: "Trail Plan.pdf", size: 420_000, url: nil)])),
-            .message(PrototypeMessage(id: "week-msg-12", authorID: profileID, sentAt: today.addingTimeInterval(300), attachments: [.voice(id: "week-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
-            .event(PrototypeTimelineEvent(id: "week-event-left", date: today.addingTimeInterval(360), kind: .left(personID: "leo-martins"))),
-            .event(PrototypeTimelineEvent(id: "week-event-removed", date: today.addingTimeInterval(420), kind: .removed(actorID: profileID, personID: "theo-grant"))),
-            .message(PrototypeMessage(id: "week-msg-13", authorID: "nora-bennett", sentAt: today.addingTimeInterval(480), text: "Saturday morning works for me.")),
+            ], replyToMessageID: "week-msg-17")),
+
+            .message(PrototypeMessage(id: "week-msg-19", authorID: "leo-martins", sentAt: today, attachments: [.gif(id: "week-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")])),
+            .message(PrototypeMessage(id: "week-msg-20", authorID: profileID, sentAt: today.addingTimeInterval(120), attachments: [.sticker(id: "week-sticker", assetName: "FiatjafMediaFox", label: "Friendly fox")])),
+            .message(PrototypeMessage(id: "week-msg-21", authorID: "maya-chen", sentAt: today.addingTimeInterval(240), attachments: [.location(id: "week-location", name: "Riverside Trail", address: "North entrance by the footbridge")])),
+            .message(PrototypeMessage(id: "week-msg-22", authorID: "elias-moreno", sentAt: today.addingTimeInterval(360), attachments: [.contact(id: "week-contact", personID: "avery-stone")])),
+            .message(PrototypeMessage(id: "week-msg-23", authorID: "nora-bennett", sentAt: today.addingTimeInterval(480), attachments: [.file(id: "week-file", name: "Trail Plan.pdf", size: 420_000, url: nil)])),
+            .message(PrototypeMessage(id: "week-msg-24", authorID: profileID, sentAt: today.addingTimeInterval(600), attachments: [.voice(id: "week-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
+            .message(PrototypeMessage(id: "week-msg-25", authorID: "leo-martins", sentAt: today.addingTimeInterval(720), text: "I’m stepping out, but I hope the walk goes well.")),
+            .event(PrototypeTimelineEvent(id: "week-event-left", date: today.addingTimeInterval(840), kind: .left(personID: "leo-martins"))),
+            .message(PrototypeMessage(id: "week-msg-26", authorID: "theo-grant", sentAt: today.addingTimeInterval(960), text: "I won’t be joining this one.")),
+            .event(PrototypeTimelineEvent(id: "week-event-removed", date: today.addingTimeInterval(1_080), kind: .removed(actorID: profileID, personID: "theo-grant"))),
+            .message(PrototypeMessage(id: "week-msg-27", authorID: "nora-bennett", sentAt: today.addingTimeInterval(1_200), text: "Saturday morning works for me.")),
         ]
     }
 

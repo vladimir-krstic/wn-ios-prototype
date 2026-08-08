@@ -156,6 +156,104 @@ struct PrototypeChatModelTests {
         #expect(chat.matchingMessages(query: "revised", people: PrototypeChatFixtures.people(), currentProfileID: "marmota").count == 1)
     }
 
+    @Test("Maya is a chronological and complete direct-message showcase")
+    func mayaShowcaseCatalog() throws {
+        let chat = try #require(PrototypeProfile.marmota.chats.first { $0.id == "maya-chen" })
+        let incoming = chat.messages.filter { $0.authorID == "maya-chen" }
+        let outgoing = chat.messages.filter { $0.authorID == "marmota" }
+
+        #expect(Set(chat.timeline.map(\.id)).count == chat.timeline.count)
+        #expect(chat.timeline.map(\.date) == chat.timeline.map(\.date).sorted())
+        #expect(incoming.contains { !$0.text.isEmpty && $0.text.count < 30 })
+        #expect(outgoing.contains { !$0.text.isEmpty && $0.text.count < 30 })
+        #expect(incoming.contains { $0.text.contains("\n") })
+        #expect(outgoing.contains { $0.text.contains("\n") })
+        #expect(incoming.contains { $0.text.count > 120 })
+        #expect(outgoing.contains { $0.text.count > 120 })
+        #expect(chat.messages.first { $0.id == "maya-3b" }?.replyToMessageID == "maya-3")
+        #expect(chat.messages.first { $0.id == "maya-5" }?.replyToMessageID == "maya-4")
+        #expect(chat.messages.first { $0.id == "maya-9b" }?.replyToMessageID == "maya-9")
+        #expect(chat.messages.contains { $0.deletionState == .deletedByOther })
+        #expect(chat.messages.contains { $0.deletionState == .deletedByCurrentProfile })
+        #expect(chat.messages.contains { $0.deliveryState == .failed })
+        #expect(chat.messages.contains { $0.reactions.count == 1 })
+        #expect(chat.messages.contains { $0.reactions.count > 1 })
+
+        let attachmentCounts = Set(chat.messages.map(\.attachments.count))
+        #expect(attachmentCounts.isSuperset(of: [1, 2, 3]))
+        #expect(chat.messages.flatMap(\.attachments).contains { if case .video = $0 { true } else { false } })
+        #expect(chat.messages.flatMap(\.attachments).contains { if case .file = $0 { true } else { false } })
+        #expect(chat.messages.flatMap(\.attachments).contains { if case .voice = $0 { true } else { false } })
+        #expect(chat.messages.flatMap(\.attachments).contains { if case .link = $0 { true } else { false } })
+    }
+
+    @Test("Weekend Walks is a chronological group and system-event showcase")
+    func weekendWalksShowcaseCatalog() throws {
+        let calendar = Calendar.autoupdatingCurrent
+        let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 8, day: 8, hour: 12)))
+        let group = try #require(
+            PrototypeChatFixtures.chats(
+                profileID: "marmota",
+                relayURLs: ["wss://relay.example.com"],
+                now: now
+            ).first { $0.id == "weekend-walks" }
+        )
+
+        #expect(Set(group.timeline.map(\.id)).count == group.timeline.count)
+        #expect(group.timeline.map(\.date) == group.timeline.map(\.date).sorted())
+        guard case let .event(firstEvent)? = group.timeline.first else {
+            Issue.record("Weekend Walks must begin with its creation event.")
+            return
+        }
+        #expect(firstEvent.kind == .created(actorID: "marmota"))
+
+        let eventCopy = Set(group.timeline.compactMap { entry -> String? in
+            guard case let .event(event) = entry else { return nil }
+            return PrototypeGroupEventFormatter.text(
+                for: event.kind,
+                profileID: "marmota",
+                profileName: "Marmota",
+                people: PrototypeChatFixtures.people()
+            )
+        })
+        let requiredEvents: Set<String> = [
+            "You created the group.",
+            "You added Maya Chen and Elias Moreno.",
+            "You added Nora Bennett.",
+            "Mina Park joined the group.",
+            "Leo Martins left the group.",
+            "You removed Theo Grant.",
+            "You made Maya Chen an admin.",
+            "You removed Maya Chen as an admin.",
+            "You changed the group name to Weekend Walks.",
+            "You changed the group photo.",
+            "You changed the group description.",
+            "You removed the group description.",
+        ]
+        #expect(eventCopy.isSuperset(of: requiredEvents))
+
+        let galleryCounts = Set(group.messages.map(\.attachments.count))
+        #expect(galleryCounts.isSuperset(of: [4, 5, 7]))
+        let attachments = group.messages.flatMap(\.attachments)
+        #expect(attachments.contains { if case .video = $0 { true } else { false } })
+        #expect(attachments.contains { if case .file = $0 { true } else { false } })
+        #expect(attachments.contains { if case .voice = $0 { true } else { false } })
+        #expect(attachments.contains { if case .gif = $0 { true } else { false } })
+        #expect(attachments.contains { if case .sticker = $0 { true } else { false } })
+        #expect(attachments.contains { if case .location = $0 { true } else { false } })
+        #expect(attachments.contains { if case .contact = $0 { true } else { false } })
+        #expect(group.messages.contains { $0.text.contains("@Marmota") })
+        #expect(group.messages.contains { $0.replyToMessageID != nil && $0.authorID == "marmota" })
+        #expect(group.messages.contains { $0.replyToMessageID != nil && $0.authorID != "marmota" })
+
+        let separators = Set(group.timeline.map { PrototypeDateFormatter.separator(for: $0.date, now: now) })
+        #expect(separators.contains("Today"))
+        #expect(separators.contains("Yesterday"))
+        #expect(separators.contains(where: { $0.contains("2025") }))
+        let weekdayDate = try #require(calendar.date(byAdding: .day, value: -4, to: now))
+        #expect(separators.contains(weekdayDate.formatted(.dateTime.weekday(.wide))))
+    }
+
     @Test("Mentions filter group members only")
     func mentions() throws {
         let group = try #require(PrototypeProfile.marmota.chats.first { $0.id == "weekend-walks" })

@@ -9,6 +9,12 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 
 - Messages use stable identities in a `ScrollViewReader`, `ScrollView`, and
   `LazyVStack`. Incoming content is leading; outgoing content is trailing.
+- Two existing chats are the durable conversation reference histories. **Maya
+  Chen** is the complete one-to-one catalog and **Weekend Walks** is the
+  complete group catalog. Each begins with the conversation's earliest
+  activity and proceeds in strict chronological order to the current day.
+  Variants form a readable conversation rather than an adjacent checklist of
+  unrelated examples.
 - Consecutive messages group by author. Group chats show an incoming author's
   name and avatar once per cluster. Locale-aware time appears at the cluster
   end; centered separators cover Today, Yesterday, recent dates, and older full
@@ -90,6 +96,13 @@ This brief records the adopted behaviors locally.
 - Every chat row opens the same conversation architecture.
 - Maya Chen covers the complete direct-message catalog; Weekend Walks covers
   the complete group/system-event catalog and gallery sizes one through seven.
+- Maya includes short, multiline, and long text in both directions; replies to
+  text, photo, and video; every agreed media and reaction state; both deleted
+  states; and a failed outgoing message, all in chronological narrative order.
+- Weekend Walks starts with **You created the group.** and interleaves every
+  agreed membership, role, name, photo, and description event with the
+  messages that give it context. Its dates visibly span an older full date, a
+  recent weekday, Yesterday, and Today.
 - Sending, drafts, replies, reactions, deletion, retry, search, attachments,
   voice playback, and row previews remain coherent through navigation.
 - Fiatjaf and Support preserve their accepted visible content and special
