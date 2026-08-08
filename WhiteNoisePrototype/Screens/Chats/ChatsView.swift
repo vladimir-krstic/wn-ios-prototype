@@ -1,5 +1,13 @@
 import SwiftUI
 
+enum ChatsRoute: Hashable {
+    case newChat
+    case person(String)
+    case newGroup
+    case newGroupSetup([String])
+    case conversation(String)
+}
+
 struct ChatsView: View {
     enum ChatScope: String, CaseIterable, Identifiable {
         case all
@@ -34,24 +42,25 @@ struct ChatsView: View {
     @State private var searchText: String
     @State private var isSearchMounted = false
     @State private var isSearchPresented = false
-    @State private var selectedChatID: String?
-    @State private var isShowingNewChat = false
     @FocusState private var isSearchFocused: Bool
 
     let onOpenSettings: () -> Void
+    let onOpenRoute: (ChatsRoute) -> Void
 
     init(
         profile: Binding<PrototypeProfile>,
         settings: Binding<PrototypeSettingsState>,
         initialScope: ChatScope = .all,
         initialSearchText: String = "",
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onOpenRoute: @escaping (ChatsRoute) -> Void = { _ in }
     ) {
         _profile = profile
         _settings = settings
         _scope = State(initialValue: initialScope)
         _searchText = State(initialValue: initialSearchText)
         self.onOpenSettings = onOpenSettings
+        self.onOpenRoute = onOpenRoute
     }
 
     var body: some View {
@@ -85,7 +94,7 @@ struct ChatsView: View {
 
                     if !profile.relayConfiguration.needsAttention {
                         Button {
-                            isShowingNewChat = true
+                            onOpenRoute(.newChat)
                         } label: {
                             Label("New Message", systemImage: "plus.bubble")
                                 .labelStyle(.iconOnly)
@@ -105,28 +114,6 @@ struct ChatsView: View {
                     action: markAllChatsRead
                 )
             )
-            .navigationDestination(isPresented: conversationIsPresented) {
-                if let selectedChatID {
-                    ConversationView(
-                        profile: $profile,
-                        settings: $settings,
-                        chatID: selectedChatID
-                    )
-                }
-            }
-            .navigationDestination(isPresented: $isShowingNewChat) {
-                NewChatView(
-                    profile: $profile,
-                    settings: $settings,
-                    onOpenChat: { chatID in
-                        isShowingNewChat = false
-                        Task { @MainActor in
-                            await Task.yield()
-                            selectedChatID = chatID
-                        }
-                    }
-                )
-            }
     }
 
     @ViewBuilder
@@ -156,14 +143,6 @@ struct ChatsView: View {
                 }
                 .allowsHitTesting(false)
             }
-        }
-    }
-
-    private var conversationIsPresented: Binding<Bool> {
-        Binding {
-            selectedChatID != nil
-        } set: { isPresented in
-            if !isPresented { selectedChatID = nil }
         }
     }
 
@@ -226,7 +205,7 @@ struct ChatsView: View {
         isSearchPresented = false
         isSearchMounted = false
         searchText = ""
-        selectedChatID = id
+        onOpenRoute(.conversation(id))
     }
 
     private func updateChat(id: String, mutation: (inout PrototypeChat) -> Void) {

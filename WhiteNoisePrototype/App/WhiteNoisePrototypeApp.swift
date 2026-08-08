@@ -37,20 +37,59 @@ private struct PrototypeRootView: View {
     )
     @State private var settings = PrototypeSettingsState()
     @State private var isShowingSettings = false
+    @State private var chatsPath: [ChatsRoute] = []
     @State private var dismissesAddProfileAfterSettingsRemoval = false
 
     var body: some View {
         Group {
             switch rootDestination {
             case .chats:
-                NavigationStack {
+                NavigationStack(path: $chatsPath) {
                     ChatsView(
                         profile: activeProfileBinding,
                         settings: $settings,
                         onOpenSettings: {
                             isShowingSettings = true
+                        },
+                        onOpenRoute: { route in
+                            chatsPath.append(route)
                         }
                     )
+                    .navigationDestination(for: ChatsRoute.self) { route in
+                        switch route {
+                        case .newChat:
+                            NewChatView(
+                                profile: activeProfileBinding,
+                                settings: $settings
+                            )
+                        case let .person(personID):
+                            PersonProfileView(
+                                profile: activeProfileBinding,
+                                settings: $settings,
+                                personID: personID,
+                                onMessagePerson: openOrCreateDirectChat
+                            )
+                        case .newGroup:
+                            NewGroupView(
+                                profile: activeProfileBinding,
+                                settings: $settings
+                            )
+                        case let .newGroupSetup(personIDs):
+                            NewGroupSetupView(
+                                profile: activeProfileBinding,
+                                settings: $settings,
+                                selectedPersonIDs: personIDs,
+                                onCreateGroup: createGroup
+                            )
+                        case let .conversation(chatID):
+                            ConversationView(
+                                profile: activeProfileBinding,
+                                settings: $settings,
+                                chatID: chatID,
+                                authoritativeChatReplacement: replaceChat
+                            )
+                        }
+                    }
                     .navigationDestination(
                         isPresented: $isShowingSettings
                     ) {
@@ -149,6 +188,52 @@ private struct PrototypeRootView: View {
 
             profiles[index] = profile
         }
+    }
+
+    private func openOrCreateDirectChat(personID: String) {
+        var profile = activeProfile
+        guard let chatID = profile.openOrCreateDirectChat(personID: personID) else {
+            return
+        }
+        openCreatedChat(chatID, updatedProfile: profile)
+    }
+
+    private func createGroup(
+        name: String,
+        description: String,
+        avatar: ChatListItem.Avatar,
+        selectedPersonIDs: [String]
+    ) {
+        var profile = activeProfile
+        guard let chatID = profile.createGroup(
+            name: name,
+            description: description,
+            avatar: avatar,
+            selectedPersonIDs: selectedPersonIDs
+        ) else {
+            return
+        }
+        openCreatedChat(chatID, updatedProfile: profile)
+    }
+
+    private func replaceChat(
+        chatID: String,
+        chat: PrototypeChat
+    ) {
+        var profile = activeProfile
+        guard let index = profile.chats.firstIndex(where: { $0.id == chatID }) else {
+            return
+        }
+        profile.chats[index] = chat
+        activeProfileBinding.wrappedValue = profile
+    }
+
+    private func openCreatedChat(
+        _ chatID: String,
+        updatedProfile: PrototypeProfile
+    ) {
+        activeProfileBinding.wrappedValue = updatedProfile
+        chatsPath.append(.conversation(chatID))
     }
 
     private func completeInitialSignIn() {

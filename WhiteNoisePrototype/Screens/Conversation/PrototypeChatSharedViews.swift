@@ -117,9 +117,18 @@ enum PrototypeGroupEventFormatter {
 enum PrototypeDateFormatter {
     static func separator(for date: Date, now: Date = .now) -> String {
         let calendar = Calendar.autoupdatingCurrent
-        if calendar.isDateInToday(date) { return "Today" }
-        if calendar.isDateInYesterday(date) { return "Yesterday" }
-        if let days = calendar.dateComponents([.day], from: date, to: now).day,
+        if calendar.isDate(date, inSameDayAs: now) { return "Today" }
+        let startOfToday = calendar.startOfDay(for: now)
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday),
+           calendar.isDate(date, inSameDayAs: yesterday) {
+            return "Yesterday"
+        }
+        if let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: date),
+            to: startOfToday
+        ).day,
+           days > 1,
            days < 7 {
             return date.formatted(.dateTime.weekday(.wide))
         }

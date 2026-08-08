@@ -67,6 +67,9 @@ enum PrototypeChatFixtures {
             default:
                 break
             }
+            if chat.draft.isEmpty, let latestDate = chat.timeline.last?.date {
+                chat.listState.activityDate = latestDate
+            }
             return chat
         }
     }
@@ -101,8 +104,13 @@ enum PrototypeChatFixtures {
         var members: [PrototypeGroupMember] = []
         if isGroup {
             let currentRole: PrototypeGroupRole = row.id == "product-circle" ? .member : .admin
-            members = [PrototypeGroupMember(personID: profileID, role: currentRole)]
-            for personID in ["maya-chen", "mina-park", "elias-moreno", "nora-bennett", "leo-martins"] {
+            if row.membershipState == .active {
+                members = [PrototypeGroupMember(personID: profileID, role: currentRole)]
+            }
+            let currentMemberIDs = row.id == "weekend-walks"
+                ? ["maya-chen", "mina-park", "elias-moreno", "nora-bennett"]
+                : ["maya-chen", "mina-park", "elias-moreno", "nora-bennett", "leo-martins"]
+            for personID in currentMemberIDs {
                 let role: PrototypeGroupRole = row.id == "product-circle" && personID == "maya-chen"
                     ? .admin
                     : .member
@@ -134,7 +142,7 @@ enum PrototypeChatFixtures {
                 unreadCount: row.unreadCount,
                 isMarkedUnread: row.isMarkedUnread,
                 muteDuration: row.muteDuration,
-                timestampLabel: row.timestamp
+                activityDate: seedDate(for: row.timestamp, now: now)
             )
         )
     }
@@ -227,6 +235,7 @@ enum PrototypeChatFixtures {
             .event(PrototypeTimelineEvent(id: "week-event-joined", date: old.addingTimeInterval(600), kind: .joined(personID: "mina-park"))),
             .message(PrototypeMessage(id: "week-msg-4", authorID: "mina-park", sentAt: old.addingTimeInterval(720), text: "Glad I found the group.")),
             .message(PrototypeMessage(id: "week-msg-5", authorID: "mina-park", sentAt: old.addingTimeInterval(780), text: "Sunday mornings usually work for me.")),
+            .event(PrototypeTimelineEvent(id: "week-event-leo-joined", date: old.addingTimeInterval(900), kind: .joined(personID: "leo-martins"))),
 
             .event(PrototypeTimelineEvent(id: "week-event-name", date: earlyHistory, kind: .changedName(actorID: profileID, name: "Weekend Walks"))),
             .message(PrototypeMessage(id: "week-msg-6", authorID: "nora-bennett", sentAt: earlyHistory.addingTimeInterval(120), text: "Weekend Walks fits us better.")),
@@ -239,6 +248,7 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "week-msg-9", authorID: "maya-chen", sentAt: weekday.addingTimeInterval(120), text: "I’ll organize the route options and meeting points.")),
             .message(PrototypeMessage(id: "week-msg-10", authorID: "elias-moreno", sentAt: weekday.addingTimeInterval(240), text: "Here are four from the west trail.", attachments: Array(gallery.prefix(4)), reactions: [PrototypeReaction(emoji: "👍", personIDs: [profileID])])),
             .message(PrototypeMessage(id: "week-msg-11", authorID: "mina-park", sentAt: weekday.addingTimeInterval(360), text: "And five from the lake loop.", attachments: Array(gallery.prefix(5)))),
+            .message(PrototypeMessage(id: "week-msg-11b", authorID: "maya-chen", sentAt: weekday.addingTimeInterval(420), text: "These six cover the trail from start to finish.", attachments: Array(gallery.prefix(6)))),
             .message(PrototypeMessage(id: "week-msg-12", authorID: "nora-bennett", sentAt: weekday.addingTimeInterval(480), text: "A few views from last time.", attachments: gallery, reactions: [
                 PrototypeReaction(emoji: "❤", personIDs: [profileID, "maya-chen", "elias-moreno"]),
                 PrototypeReaction(emoji: "🔥", personIDs: ["mina-park"]),
@@ -258,14 +268,15 @@ enum PrototypeChatFixtures {
                 .video(id: "week-mixed-video", url: nil, thumbnail: .asset("FiatjafMediaMarmot"), duration: 7),
             ], replyToMessageID: "week-msg-17")),
 
-            .message(PrototypeMessage(id: "week-msg-19", authorID: "leo-martins", sentAt: today, attachments: [.gif(id: "week-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")])),
-            .message(PrototypeMessage(id: "week-msg-20", authorID: profileID, sentAt: today.addingTimeInterval(120), attachments: [.sticker(id: "week-sticker", assetName: "FiatjafMediaFox", label: "Friendly fox")])),
-            .message(PrototypeMessage(id: "week-msg-21", authorID: "maya-chen", sentAt: today.addingTimeInterval(240), attachments: [.location(id: "week-location", name: "Riverside Trail", address: "North entrance by the footbridge")])),
+            .message(PrototypeMessage(id: "week-msg-19", authorID: "leo-martins", sentAt: today, attachments: [.gif(id: "week-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")], reactions: [PrototypeReaction(emoji: "🤣", personIDs: [profileID, "maya-chen"])])),
+            .message(PrototypeMessage(id: "week-msg-20", authorID: profileID, sentAt: today.addingTimeInterval(120), attachments: [.sticker(id: "week-sticker", assetName: "FiatjafMediaFox", label: "Friendly fox")], reactions: [PrototypeReaction(emoji: "🦫", personIDs: ["elias-moreno"])])),
+            .message(PrototypeMessage(id: "week-msg-21", authorID: "maya-chen", sentAt: today.addingTimeInterval(240), text: "Not the steep shortcut—this entrance.", attachments: [.location(id: "week-location", name: "Riverside Trail", address: "North entrance by the footbridge")], reactions: [PrototypeReaction(emoji: "👎", personIDs: [profileID, "nora-bennett"])])),
             .message(PrototypeMessage(id: "week-msg-22", authorID: "elias-moreno", sentAt: today.addingTimeInterval(360), attachments: [.contact(id: "week-contact", personID: "avery-stone")])),
             .message(PrototypeMessage(id: "week-msg-23", authorID: "nora-bennett", sentAt: today.addingTimeInterval(480), attachments: [.file(id: "week-file", name: "Trail Plan.pdf", size: 420_000, url: nil)])),
             .message(PrototypeMessage(id: "week-msg-24", authorID: profileID, sentAt: today.addingTimeInterval(600), attachments: [.voice(id: "week-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
             .message(PrototypeMessage(id: "week-msg-25", authorID: "leo-martins", sentAt: today.addingTimeInterval(720), text: "I’m stepping out, but I hope the walk goes well.")),
             .event(PrototypeTimelineEvent(id: "week-event-left", date: today.addingTimeInterval(840), kind: .left(personID: "leo-martins"))),
+            .event(PrototypeTimelineEvent(id: "week-event-theo-added", date: today.addingTimeInterval(900), kind: .added(actorID: profileID, personIDs: ["theo-grant"]))),
             .message(PrototypeMessage(id: "week-msg-26", authorID: "theo-grant", sentAt: today.addingTimeInterval(960), text: "I won’t be joining this one.")),
             .event(PrototypeTimelineEvent(id: "week-event-removed", date: today.addingTimeInterval(1_080), kind: .removed(actorID: profileID, personID: "theo-grant"))),
             .message(PrototypeMessage(id: "week-msg-27", authorID: "nora-bennett", sentAt: today.addingTimeInterval(1_200), text: "Saturday morning works for me.")),
@@ -344,6 +355,22 @@ enum PrototypeChatFixtures {
             return now.addingTimeInterval(TimeInterval(-hours * 3_600))
         }
         if label == "Yesterday" { return now.addingTimeInterval(-86_400) }
+
+        let calendar = Calendar.autoupdatingCurrent
+        let weekdaySymbols = DateFormatter().weekdaySymbols ?? []
+        if let weekdayIndex = weekdaySymbols.firstIndex(of: label) {
+            let targetWeekday = weekdayIndex + 1
+            let currentWeekday = calendar.component(.weekday, from: now)
+            let daysBack = (currentWeekday - targetWeekday + 7) % 7
+            return calendar.date(byAdding: .day, value: -(daysBack == 0 ? 7 : daysBack), to: now)
+                ?? now.addingTimeInterval(-7 * 86_400)
+        }
+
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.calendar = calendar
+        parser.dateFormat = "M/d/yy"
+        if let parsed = parser.date(from: label) { return parsed }
         return now.addingTimeInterval(-7 * 86_400)
     }
 

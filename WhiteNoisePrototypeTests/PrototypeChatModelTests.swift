@@ -23,6 +23,15 @@ struct PrototypeChatModelTests {
         #expect(profile.chats[0].routing.relayURLs == copiedRelays)
     }
 
+    @Test("A new direct chat requires profile Chat Messages relays")
+    func directChatCreationRequiresRelays() {
+        var profile = PrototypeProfile.pebble
+        profile.relayConfiguration = .missingChatMessages
+
+        #expect(profile.openOrCreateDirectChat(personID: "maya-chen") == nil)
+        #expect(profile.chats.isEmpty)
+    }
+
     @Test("Group creation validates input, makes the profile admin, and copies relays")
     func groupCreation() throws {
         var profile = PrototypeProfile.pebble
@@ -49,6 +58,22 @@ struct PrototypeChatModelTests {
         #expect(group.timeline.count == 1)
     }
 
+    @Test("A new group requires profile Chat Messages relays")
+    func groupCreationRequiresRelays() {
+        var profile = PrototypeProfile.pebble
+        profile.relayConfiguration = .missingChatMessages
+
+        #expect(
+            profile.createGroup(
+                name: "Walks",
+                description: "",
+                avatar: .monogram("W"),
+                selectedPersonIDs: ["maya-chen"]
+            ) == nil
+        )
+        #expect(profile.chats.isEmpty)
+    }
+
     @Test("Profile chat state is isolated")
     func profileIsolation() {
         var first = PrototypeProfile.marmota
@@ -60,6 +85,27 @@ struct PrototypeChatModelTests {
         #expect(first.chats.first { $0.id == id }?.draft == "Only first")
         #expect(second.chats.first?.draft == "")
         #expect(second.chats.first?.id == "second-maya")
+    }
+
+    @Test("Every fixture chat has stable unique routing references")
+    func fixtureRoutingIntegrity() {
+        let profile = PrototypeProfile.marmota
+        let personIDs = Set(profile.people.map(\.id))
+
+        #expect(Set(profile.chats.map(\.id)).count == profile.chats.count)
+        for chat in profile.chats {
+            switch chat.kind {
+            case let .direct(personID):
+                #expect(personIDs.contains(personID))
+            case .group:
+                #expect(chat.members.allSatisfy {
+                    $0.personID == profile.id || personIDs.contains($0.personID)
+                })
+            }
+            #expect(chat.messages.allSatisfy {
+                $0.authorID == profile.id || personIDs.contains($0.authorID)
+            })
+        }
     }
 
     @Test("Row previews derive from messages, deletion, failure, and ended membership")
@@ -107,6 +153,11 @@ struct PrototypeChatModelTests {
         chat.toggleReaction(emoji: "🦫", messageID: "m", currentProfileID: "marmota")
         #expect(chat.messages[0].reactions == [PrototypeReaction(emoji: "🦫", personIDs: ["marmota"])])
         chat.toggleReaction(emoji: "🦫", messageID: "m", currentProfileID: "marmota")
+        #expect(chat.messages[0].reactions.isEmpty)
+        chat.toggleReaction(emoji: "?", messageID: "m", currentProfileID: "marmota")
+        #expect(chat.messages[0].reactions.isEmpty)
+        chat.mutateMessage("m") { $0.deletionState = .deletedByOther }
+        chat.toggleReaction(emoji: "❤", messageID: "m", currentProfileID: "marmota")
         #expect(chat.messages[0].reactions.isEmpty)
     }
 
@@ -233,7 +284,7 @@ struct PrototypeChatModelTests {
         #expect(eventCopy.isSuperset(of: requiredEvents))
 
         let galleryCounts = Set(group.messages.map(\.attachments.count))
-        #expect(galleryCounts.isSuperset(of: [4, 5, 7]))
+        #expect(galleryCounts.isSuperset(of: [4, 5, 6, 7]))
         let attachments = group.messages.flatMap(\.attachments)
         #expect(attachments.contains { if case .video = $0 { true } else { false } })
         #expect(attachments.contains { if case .file = $0 { true } else { false } })
@@ -245,6 +296,22 @@ struct PrototypeChatModelTests {
         #expect(group.messages.contains { $0.text.contains("@Marmota") })
         #expect(group.messages.contains { $0.replyToMessageID != nil && $0.authorID == "marmota" })
         #expect(group.messages.contains { $0.replyToMessageID != nil && $0.authorID != "marmota" })
+        #expect(!group.members.contains { $0.personID == "leo-martins" })
+        #expect(!group.members.contains { $0.personID == "theo-grant" })
+
+        let direct = try #require(
+            PrototypeChatFixtures.chats(
+                profileID: "marmota",
+                relayURLs: ["wss://relay.example.com"],
+                now: now
+            ).first { $0.id == "maya-chen" }
+        )
+        let showcaseGalleryCounts = Set((direct.messages + group.messages).map(\.attachments.count))
+        #expect(showcaseGalleryCounts.isSuperset(of: Set(1...7)))
+        let showcaseReactionSet = Set(
+            (direct.messages + group.messages).flatMap(\.reactions).map(\.emoji)
+        )
+        #expect(showcaseReactionSet.isSuperset(of: ["❤", "😀", "👍", "👎", "🤣", "🔥", "🦫"]))
 
         let separators = Set(group.timeline.map { PrototypeDateFormatter.separator(for: $0.date, now: now) })
         #expect(separators.contains("Today"))
@@ -254,11 +321,23 @@ struct PrototypeChatModelTests {
         #expect(separators.contains(weekdayDate.formatted(.dateTime.weekday(.wide))))
     }
 
+    @Test("Ended groups do not retain the active profile as a current member")
+    func endedGroupMembershipMatchesListState() throws {
+        let chats = PrototypeProfile.marmota.chats
+        let left = try #require(chats.first { $0.id == "book-club" })
+        let removed = try #require(chats.first { $0.id == "quiet-studio" })
+
+        #expect(left.listState.membershipState == .left)
+        #expect(removed.listState.membershipState == .removed)
+        #expect(!left.members.contains { $0.personID == "marmota" })
+        #expect(!removed.members.contains { $0.personID == "marmota" })
+    }
+
     @Test("Mentions filter group members only")
     func mentions() throws {
         let group = try #require(PrototypeProfile.marmota.chats.first { $0.id == "weekend-walks" })
         let candidates = group.mentionCandidates(query: "ma", people: PrototypeChatFixtures.people(), currentProfileID: "marmota")
-        #expect(candidates.map(\.id) == ["maya-chen", "leo-martins"])
+        #expect(candidates.map(\.id) == ["maya-chen"])
     }
 
     @Test("Last-admin protection and successful leave")
@@ -275,7 +354,7 @@ struct PrototypeChatModelTests {
             emptyPreview: "",
             draft: "",
             replyToMessageID: nil,
-            listState: PrototypeChatListState(timestampLabel: "Now")
+            listState: PrototypeChatListState()
         )
         #expect(group.leave(currentProfileID: "marmota") == false)
         group.members.append(PrototypeGroupMember(personID: "maya-chen", role: .admin))
@@ -335,7 +414,7 @@ struct PrototypeChatModelTests {
     @Test("Date separators cover relative, recent, and full-date states")
     func dateSeparators() throws {
         let calendar = Calendar.autoupdatingCurrent
-        let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 8, day: 8, hour: 12)))
+        let now = try #require(calendar.date(from: DateComponents(year: 2024, month: 3, day: 20, hour: 12)))
         let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: now))
         let recent = try #require(calendar.date(byAdding: .day, value: -3, to: now))
         let old = try #require(calendar.date(byAdding: .day, value: -400, to: now))
@@ -343,7 +422,56 @@ struct PrototypeChatModelTests {
         #expect(PrototypeDateFormatter.separator(for: now, now: now) == "Today")
         #expect(PrototypeDateFormatter.separator(for: yesterday, now: now) == "Yesterday")
         #expect(PrototypeDateFormatter.separator(for: recent, now: now) == recent.formatted(.dateTime.weekday(.wide)))
-        #expect(PrototypeDateFormatter.separator(for: old, now: now).contains("2025"))
+        #expect(PrototypeDateFormatter.separator(for: old, now: now).contains("2023"))
+    }
+
+    @Test("Chat-list timestamps derive from activity dates and visible content")
+    func chatListTimestampProjection() throws {
+        let calendar = Calendar.autoupdatingCurrent
+        let now = try #require(calendar.date(from: DateComponents(year: 2024, month: 3, day: 20, hour: 12)))
+        let earlier = try #require(calendar.date(byAdding: .day, value: -3, to: now))
+        var chat = emptyDirectChat()
+        chat.timeline = [
+            .message(PrototypeMessage(id: "earlier", authorID: "maya-chen", sentAt: earlier, text: "Earlier")),
+            .message(PrototypeMessage(id: "latest", authorID: "marmota", sentAt: now.addingTimeInterval(-120), text: "Latest")),
+        ]
+
+        var row = chat.row(
+            people: PrototypeChatFixtures.people(),
+            currentProfileID: "marmota",
+            now: now
+        )
+        #expect(row.timestamp == "2m")
+
+        chat.deleteMessage("latest", currentProfileID: "marmota")
+        row = chat.row(
+            people: PrototypeChatFixtures.people(),
+            currentProfileID: "marmota",
+            now: now
+        )
+        #expect(row.preview == "Earlier")
+        #expect(row.timestamp == earlier.formatted(.dateTime.weekday(.wide)))
+    }
+
+    @Test("A group event becomes authoritative row activity")
+    func groupEventRowProjection() throws {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        var group = try #require(
+            PrototypeProfile.marmota.chats.first { $0.id == "weekend-walks" }
+        )
+        group.appendEvent(
+            .changedName(actorID: "marmota", name: "River Walks"),
+            now: now
+        )
+
+        let row = group.row(
+            people: PrototypeChatFixtures.people(),
+            currentProfileID: "marmota",
+            now: now
+        )
+        #expect(row.preview == "You changed the group name to River Walks.")
+        #expect(row.previewAuthor == nil)
+        #expect(row.timestamp == "Now")
     }
 
     @Test("Chat relays normalize, reject duplicates, allow final removal, and stay independent")
@@ -385,7 +513,7 @@ struct PrototypeChatModelTests {
             emptyPreview: "No messages yet.",
             draft: "",
             replyToMessageID: nil,
-            listState: PrototypeChatListState(timestampLabel: "Now")
+            listState: PrototypeChatListState()
         )
     }
 }

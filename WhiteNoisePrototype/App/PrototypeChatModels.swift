@@ -164,6 +164,8 @@ enum PrototypeAttachment: Equatable, Identifiable {
 }
 
 struct PrototypeReaction: Identifiable, Equatable {
+    static let supportedEmoji = ["❤", "😀", "👍", "👎", "🤣", "🔥", "🦫"]
+
     let emoji: String
     var personIDs: [String]
     var id: String { emoji }
@@ -272,7 +274,7 @@ struct PrototypeChatListState: Equatable {
     var unreadCount = 0
     var isMarkedUnread = false
     var muteDuration: ChatListItem.MuteDuration?
-    var timestampLabel: String
+    var activityDate: Date = .now
 }
 
 struct PrototypeChat: Identifiable, Equatable {
@@ -319,36 +321,69 @@ struct PrototypeChat: Identifiable, Equatable {
         }
     }
 
-    func row(people: [PrototypePerson], currentProfileID: String) -> ChatListItem {
-        let lastMessage = messages.last { !$0.isDeleted }
+    func row(
+        people: [PrototypePerson],
+        currentProfileID: String,
+        now: Date = .now
+    ) -> ChatListItem {
+        let latestEntry = timeline.reversed().first { entry in
+            switch entry {
+            case let .message(message): !message.isDeleted
+            case .event: true
+            case .notice: false
+            }
+        }
         let previewText: String
         let previewAuthor: String?
         let attachmentPreview: ChatListItem.AttachmentPreview?
+        let previewMessage: PrototypeMessage?
+        let previewDate: Date
 
         if !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             previewText = draft
             previewAuthor = nil
             attachmentPreview = nil
-        } else if let lastMessage {
-            previewText = lastMessage.text
-            previewAuthor = authorLabel(
-                for: lastMessage.authorID,
-                people: people,
-                currentProfileID: currentProfileID
-            )
-            if lastMessage.attachments.count > 1,
-               lastMessage.attachments.allSatisfy({ attachment in
-                   if case .photo = attachment { return true }
-                   return false
-               }) {
-                attachmentPreview = .photos(lastMessage.attachments.count)
-            } else {
-                attachmentPreview = lastMessage.attachments.first?.listPreview
+            previewMessage = nil
+            previewDate = listState.activityDate
+        } else if let latestEntry {
+            previewDate = latestEntry.date
+            switch latestEntry {
+            case let .message(message):
+                previewText = message.text
+                previewAuthor = authorLabel(
+                    for: message.authorID,
+                    people: people,
+                    currentProfileID: currentProfileID
+                )
+                if message.attachments.count > 1,
+                   message.attachments.allSatisfy({ attachment in
+                       if case .photo = attachment { return true }
+                       return false
+                   }) {
+                    attachmentPreview = .photos(message.attachments.count)
+                } else {
+                    attachmentPreview = message.attachments.first?.listPreview
+                }
+                previewMessage = message
+            case let .event(event):
+                previewText = PrototypeGroupEventFormatter.text(
+                    for: event.kind,
+                    profileID: currentProfileID,
+                    profileName: "You",
+                    people: people
+                )
+                previewAuthor = nil
+                attachmentPreview = nil
+                previewMessage = nil
+            case .notice:
+                preconditionFailure("Notices are excluded from chat-row activity")
             }
         } else {
             previewText = emptyPreview
             previewAuthor = nil
             attachmentPreview = nil
+            previewMessage = nil
+            previewDate = listState.activityDate
         }
 
         return ChatListItem(
@@ -359,7 +394,7 @@ struct PrototypeChat: Identifiable, Equatable {
             preview: previewText,
             previewAuthor: previewAuthor,
             attachmentPreview: attachmentPreview,
-            timestamp: listState.timestampLabel,
+            timestamp: PrototypeChatListDateFormatter.label(for: previewDate, now: now),
             membershipState: listState.membershipState,
             isArchived: listState.isArchived,
             isPinned: listState.isPinned,
@@ -368,7 +403,7 @@ struct PrototypeChat: Identifiable, Equatable {
             isMuted: listState.muteDuration != nil,
             isDraft: !draft.isEmpty,
             deliveryState: listState.membershipState == .active
-                && lastMessage?.deliveryState == .failed
+                && previewMessage?.deliveryState == .failed
                 ? .failed
                 : .none
         )
@@ -394,7 +429,7 @@ struct PrototypeChat: Identifiable, Equatable {
         )
         draft = ""
         replyToMessageID = nil
-        listState.timestampLabel = "Now"
+        listState.activityDate = now
         listState.unreadCount = 0
         listState.isMarkedUnread = false
     }
@@ -409,7 +444,7 @@ struct PrototypeChat: Identifiable, Equatable {
                 )
             )
         )
-        listState.timestampLabel = "Now"
+        listState.activityDate = now
     }
 
     func isCurrentProfileAdmin(_ currentProfileID: String) -> Bool {
@@ -424,6 +459,36 @@ struct PrototypeChat: Identifiable, Equatable {
         if authorID == currentProfileID { return "You" }
         guard isGroup else { return nil }
         return people.first { $0.id == authorID }?.name
+    }
+}
+
+enum PrototypeChatListDateFormatter {
+    static func label(for date: Date, now: Date = .now) -> String {
+        let calendar = Calendar.autoupdatingCurrent
+        if calendar.isDate(date, inSameDayAs: now) {
+            let elapsed = max(0, now.timeIntervalSince(date))
+            if elapsed < 60 { return "Now" }
+            if elapsed < 3_600 { return "\(max(1, Int(elapsed / 60)))m" }
+            return "\(max(1, Int(elapsed / 3_600)))h"
+        }
+
+        let startOfToday = calendar.startOfDay(for: now)
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday),
+           calendar.isDate(date, inSameDayAs: yesterday) {
+            return "Yesterday"
+        }
+
+        let dayDistance = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: date),
+            to: startOfToday
+        ).day ?? Int.max
+        if dayDistance > 1, dayDistance < 7 {
+            return date.formatted(.dateTime.weekday(.wide))
+        }
+        return date.formatted(
+            .dateTime.year(.twoDigits).month(.defaultDigits).day()
+        )
     }
 }
 

@@ -56,6 +56,23 @@ private struct DirectChatInfoView: View {
                 .listRowBackground(Color.clear)
             }
 
+            if !person.about.isEmpty {
+                Section("About") {
+                    Text(person.about)
+                }
+            }
+
+            if !person.nostrAddress.isEmpty || !person.lightningAddress.isEmpty {
+                Section("Addresses") {
+                    if !person.nostrAddress.isEmpty {
+                        LabeledContent("Nostr", value: person.nostrAddress)
+                    }
+                    if !person.lightningAddress.isEmpty {
+                        LabeledContent("Lightning", value: person.lightningAddress)
+                    }
+                }
+            }
+
             Section {
                 Button("Search", systemImage: "magnifyingglass", action: onSearch)
                 Button(person.isFollowing ? "Unfollow" : "Follow", systemImage: "person.badge.plus") {
@@ -215,7 +232,7 @@ private struct GroupInfoView: View {
             Text("You’ll keep the chat history, but you won’t be able to send messages.")
         }
         .alert("Can’t Leave Group", isPresented: $isShowingOnlyAdminAlert) {
-            Button("OK") {}
+            Button("Done") {}
         } message: {
             Text("You’re the only admin in this group. Make another member an admin before you leave.")
         }
@@ -367,10 +384,12 @@ private struct EditGroupView: View {
                         Button { isWebPickerPresented = true } label: {
                             Label("Find Image on Web", systemImage: "globe")
                         }
-                        Button("Remove Photo", systemImage: "trash", role: .destructive) {
-                            avatar = .systemSymbol("person.3.fill")
+                        if hasPhoto {
+                            Button("Remove Photo", systemImage: "trash", role: .destructive) {
+                                avatar = .systemSymbol("person.3.fill")
+                            }
                         }
-                    } label: { Text("Change Photo") }
+                    } label: { Text(hasPhoto ? "Change Photo" : "Add Photo") }
                 }
                 .frame(maxWidth: .infinity).listRowBackground(Color.clear)
             }
@@ -382,7 +401,11 @@ private struct EditGroupView: View {
         }
         .navigationTitle("Edit Group")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", action: save).disabled(!hasValidChanges)
             }
@@ -413,6 +436,12 @@ private struct EditGroupView: View {
     private var currentWebChoice: AvatarWebImageChoice? {
         guard case let .asset(name) = avatar else { return nil }
         return AvatarWebImageCatalog.choices.first { $0.assetName == name }
+    }
+    private var hasPhoto: Bool {
+        switch avatar {
+        case .asset, .imageData: true
+        case .monogram, .systemSymbol: false
+        }
     }
 
     private func save() {
@@ -495,33 +524,11 @@ struct GroupMemberView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                VStack(spacing: 10) {
-                    memberAvatar
-                    Text(displayName).font(.title2.bold())
-                    Text(member.role == .admin ? "Admin" : "Member").foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity).listRowBackground(Color.clear)
-            }
-
-            if personID != profile.id {
-                Section {
-                    Button("Message", systemImage: "message", action: openDirectChat)
-                    Button(person.isFollowing ? "Unfollow" : "Follow") {
-                        profile.people[personIndex].isFollowing.toggle()
-                    }
-                    Button("Add to Another Group", systemImage: "person.badge.plus") { isShowingAddToGroup = true }
-                }
-            }
-
-            if canManageOtherMember {
-                Section {
-                    Button(member.role == .admin ? "Remove Admin" : "Make Admin") {
-                        pendingAction = member.role == .admin ? .demote : .promote
-                    }
-                    Button("Remove from Group", role: .destructive) { pendingAction = .remove }
-                }
+        Group {
+            if let member {
+                memberList(member)
+            } else {
+                ContentUnavailableView("Member Unavailable", systemImage: "person.crop.circle.badge.questionmark")
             }
         }
         .navigationTitle("Group Member")
@@ -540,12 +547,63 @@ struct GroupMemberView: View {
         }
     }
 
+    private func memberList(_ member: PrototypeGroupMember) -> some View {
+        List {
+            Section {
+                VStack(spacing: 10) {
+                    memberAvatar
+                    Text(displayName).font(.title2.bold())
+                    Text(member.role == .admin ? "Admin" : "Member").foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity).listRowBackground(Color.clear)
+            }
+
+            if personID != profile.id {
+                Section {
+                    if canOpenDirectChat {
+                        Button("Message", systemImage: "message", action: openDirectChat)
+                    } else {
+                        NavigationLink {
+                            RelaysPrototypeView(configuration: $profile.relayConfiguration)
+                        } label: {
+                            Label("Check Profile Relays", systemImage: "exclamationmark.triangle")
+                        }
+                    }
+                    Button(person.isFollowing ? "Unfollow" : "Follow") {
+                        profile.people[personIndex].isFollowing.toggle()
+                    }
+                    Button("Add to Another Group", systemImage: "person.badge.plus") { isShowingAddToGroup = true }
+                }
+            }
+
+            if canManageOtherMember {
+                Section {
+                    Button(member.role == .admin ? "Remove Admin" : "Make Admin") {
+                        pendingAction = member.role == .admin ? .demote : .promote
+                    }
+                    Button("Remove from Group", role: .destructive) { pendingAction = .remove }
+                }
+            }
+        }
+    }
+
     private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
-    private var memberIndex: Int { profile.chats[chatIndex].members.firstIndex { $0.personID == personID }! }
-    private var member: PrototypeGroupMember { profile.chats[chatIndex].members[memberIndex] }
+    private var member: PrototypeGroupMember? {
+        profile.chats[chatIndex].members.first { $0.personID == personID }
+    }
     private var personIndex: Int { profile.people.firstIndex { $0.id == personID }! }
     private var person: PrototypePerson { profile.people[personIndex] }
     private var displayName: String { personID == profile.id ? profile.name : person.name }
+    private var existingDirectChatID: String? {
+        profile.chats.first { chat in
+            if case let .direct(id) = chat.kind { return id == personID }
+            return false
+        }?.id
+    }
+    private var canOpenDirectChat: Bool {
+        existingDirectChatID != nil
+            || !profile.relayConfiguration.availableChatMessageRelayURLs.isEmpty
+    }
     private var canManageOtherMember: Bool {
         personID != profile.id && profile.chats[chatIndex].isCurrentProfileAdmin(profile.id)
             && profile.chats[chatIndex].listState.membershipState == .active

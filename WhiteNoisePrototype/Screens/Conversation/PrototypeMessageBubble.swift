@@ -3,6 +3,7 @@ import SwiftUI
 struct PrototypeMessageBubble: View {
     @Environment(\.incomingPrototypeMessageColor) private var incomingColor
     @Environment(\.outgoingPrototypeMessageColor) private var outgoingColor
+    @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
 
     let message: PrototypeMessage
     let outgoing: Bool
@@ -26,7 +27,30 @@ struct PrototypeMessageBubble: View {
     let onOpenMedia: ([PrototypeAttachment], Int) -> Void
     let onOpenFile: (URL) -> Void
 
+    @ViewBuilder
     var body: some View {
+        if let voiceAttachment {
+            messageRow
+                .contentShape(.rect)
+                .onTapGesture {
+                    playback.toggleVoice(
+                        id: voiceAttachment.id,
+                        duration: voiceAttachment.duration
+                    )
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    playback.toggleVoice(
+                        id: voiceAttachment.id,
+                        duration: voiceAttachment.duration
+                    )
+                }
+        } else {
+            messageRow
+        }
+    }
+
+    private var messageRow: some View {
         HStack(alignment: .bottom, spacing: 6) {
             if outgoing { Spacer(minLength: 54) }
 
@@ -95,9 +119,23 @@ struct PrototypeMessageBubble: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
+        .accessibilityIdentifier("message.\(message.id)")
     }
 
+    @ViewBuilder
     private var bubbleContent: some View {
+        if isBorderlessSticker {
+            bubbleBody
+        } else {
+            bubbleBody
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .foregroundStyle(messageColor.foregroundColor)
+                .background(messageColor.color, in: shape)
+        }
+    }
+
+    private var bubbleBody: some View {
         VStack(alignment: .leading, spacing: 8) {
             if message.isDeleted {
                 Label(deletedText, systemImage: "trash")
@@ -121,10 +159,6 @@ struct PrototypeMessageBubble: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .foregroundStyle(messageColor.foregroundColor)
-        .background(messageColor.color, in: shape)
     }
 
     private var messageText: some View {
@@ -178,7 +212,7 @@ struct PrototypeMessageBubble: View {
     private var contextMenu: some View {
         if !message.isDeleted {
             Menu("React") {
-                ForEach(["❤", "😀", "👍", "👎", "🤣", "🔥", "🦫"], id: \.self) { emoji in
+                ForEach(PrototypeReaction.supportedEmoji, id: \.self) { emoji in
                     Button(emoji) { onToggleReaction(emoji) }
                 }
             }
@@ -228,6 +262,7 @@ struct PrototypeMessageBubble: View {
                     .overlay { Capsule().stroke(Color(uiColor: .separator), lineWidth: 0.5) }
                 }
                 .buttonStyle(.plain)
+                .frame(minHeight: 44)
                 .accessibilityLabel("\(reaction.emoji), \(reaction.personIDs.count) reactions")
             }
         }
@@ -246,6 +281,14 @@ struct PrototypeMessageBubble: View {
     }
 
     private var messageColor: PrototypeMessageColor { outgoing ? outgoingColor : incomingColor }
+    private var isBorderlessSticker: Bool {
+        guard message.replyToMessageID == nil,
+              message.text.isEmpty,
+              message.attachments.count == 1,
+              case .sticker = message.attachments[0]
+        else { return false }
+        return true
+    }
     private var deletedText: String {
         outgoing ? "You deleted this message." : "This message was deleted."
     }
@@ -270,7 +313,19 @@ struct PrototypeMessageBubble: View {
             ? ""
             : ", reply to \(replyAuthorName): \(replyPreview)"
         let failed = message.deliveryState == .failed ? ", not sent" : ""
-        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)"
+        let playbackAction = voiceAttachment.map { attachment in
+            let isPlaying = playback.activeVoiceID == attachment.id && !playback.isPaused
+            return isPlaying ? ", Pause" : ", Play"
+        } ?? ""
+        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)\(playbackAction)"
+    }
+    private var voiceAttachment: (id: String, duration: TimeInterval)? {
+        for attachment in message.attachments {
+            if case let .voice(id, _, duration) = attachment {
+                return (id, duration)
+            }
+        }
+        return nil
     }
 }
 
@@ -394,40 +449,32 @@ private struct PrototypeAttachmentCollectionView: View {
     private func nonMediaView(_ attachment: PrototypeAttachment) -> some View {
         switch attachment {
         case let .file(_, name, size, url):
-            Button {
-                if let url { onOpenFile(url) }
-            } label: {
-                HStack {
-                    Image(systemName: "doc.fill").font(.title2)
-                    VStack(alignment: .leading) {
-                        Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
-                        Text(fileMetadata(name: name, size: size))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Image(systemName: url == nil ? "exclamationmark.triangle" : "chevron.right")
-                        .foregroundStyle(.secondary)
+            if let url {
+                Button {
+                    onOpenFile(url)
+                } label: {
+                    fileRow(name: name, size: size, isAvailable: true)
                 }
-                .frame(width: 230)
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens a preview.")
+            } else {
+                fileRow(name: name, size: size, isAvailable: false)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("File, \(name), unavailable")
             }
-            .buttonStyle(.plain)
-            .accessibilityHint(url == nil ? "File is unavailable." : "Opens a preview.")
         case let .voice(id, _, duration):
             PrototypeVoiceBubble(id: id, duration: duration)
         case let .link(_, title, domain, summary, image):
-            Link(destination: URL(string: "https://\(domain)")!) {
-                VStack(alignment: .leading, spacing: 6) {
-                    if let image {
-                        PrototypeImageSourceView(source: image)
-                            .scaledToFill().frame(width: 230, height: 100).clipped()
-                    }
-                    Text(title).font(.headline)
-                    Text(domain).font(.caption).foregroundStyle(.secondary)
-                    Text(summary).font(.subheadline).lineLimit(3)
+            if let destination = safeLinkDestination(domain: domain) {
+                Link(destination: destination) {
+                    linkPreview(title: title, domain: domain, summary: summary, image: image)
                 }
-                .frame(width: 230, alignment: .leading)
+                .buttonStyle(.plain)
+            } else {
+                linkPreview(title: title, domain: domain, summary: summary, image: image)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Link preview unavailable, \(title), \(domain)")
             }
-            .buttonStyle(.plain)
         case let .gif(_, assetName, label):
             ZStack(alignment: .bottomLeading) {
                 Image(assetName).resizable().scaledToFill().frame(width: 230, height: 180).clipped()
@@ -467,6 +514,47 @@ private struct PrototypeAttachmentCollectionView: View {
         }
     }
 
+    private func fileRow(name: String, size: Int, isAvailable: Bool) -> some View {
+        HStack {
+            Image(systemName: "doc.fill").font(.title2)
+            VStack(alignment: .leading) {
+                Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text(fileMetadata(name: name, size: size))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: isAvailable ? "chevron.right" : "exclamationmark.triangle")
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 230)
+    }
+
+    private func linkPreview(
+        title: String,
+        domain: String,
+        summary: String,
+        image: PrototypeImageSource?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let image {
+                PrototypeImageSourceView(source: image)
+                    .scaledToFill().frame(width: 230, height: 100).clipped()
+            }
+            Text(title).font(.headline)
+            Text(domain).font(.caption).foregroundStyle(.secondary)
+            Text(summary).font(.subheadline).lineLimit(3)
+        }
+        .frame(width: 230, alignment: .leading)
+    }
+
+    private func safeLinkDestination(domain: String) -> URL? {
+        guard !domain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let url = URL(string: "https://\(domain)"),
+              url.host?.isEmpty == false
+        else { return nil }
+        return url
+    }
+
     private func fileMetadata(name: String, size: Int) -> String {
         let fileType = URL(fileURLWithPath: name).pathExtension.uppercased()
         let formattedSize = size.formatted(.byteCount(style: .file))
@@ -489,20 +577,29 @@ private struct PrototypeVoiceBubble: View {
                 playback.toggleVoice(id: id, duration: duration)
             } label: {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .frame(width: 30, height: 30)
+                    .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(isPlaying ? "Pause" : "Play")
+            .accessibilityIdentifier("voice.\(id).toggle")
             ProgressView(value: elapsed, total: max(duration, 0.1))
                 .frame(width: 120)
-            Text(prototypeDurationString(isActive ? elapsed : duration))
+            Text("\(prototypeDurationString(elapsed)) / \(prototypeDurationString(duration))")
                 .font(.caption.monospacedDigit())
         }
         .frame(width: 220)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Voice message, \(prototypeDurationString(elapsed)) of \(prototypeDurationString(duration))"
+        )
+        .accessibilityAction(named: isPlaying ? "Pause" : "Play") {
+            playback.toggleVoice(id: id, duration: duration)
+        }
+        .accessibilityHidden(true)
     }
 }
 
-private func prototypeDurationString(_ seconds: TimeInterval) -> String {
+func prototypeDurationString(_ seconds: TimeInterval) -> String {
     let total = max(0, Int(seconds.rounded()))
     return String(format: "%d:%02d", total / 60, total % 60)
 }

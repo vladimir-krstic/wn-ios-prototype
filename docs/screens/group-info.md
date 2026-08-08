@@ -18,6 +18,10 @@ Leave Group. Member rows push **Group Member**.
   leave.**
 - Edits and member/role changes append typed timeline events with human names
   and **You** for the active actor.
+- Edit Group uses explicit **Cancel** and **Save** actions. Cancel discards the
+  working copy. **Remove Photo** appears only for a replaceable custom photo;
+  a default monogram or symbol offers **Add Photo** without a false removal
+  action.
 - Leaving uses native destructive confirmation, preserves readable history,
   moves the row to Left, and disables sending. Re-invitation is not modeled.
 

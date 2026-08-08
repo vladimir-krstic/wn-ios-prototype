@@ -32,7 +32,7 @@ extension PrototypeProfile {
             emptyPreview: "Ask a question, report a problem, or share a suggestion.",
             draft: "",
             replyToMessageID: nil,
-            listState: PrototypeChatListState(timestampLabel: "Now")
+            listState: PrototypeChatListState(activityDate: now)
         )
         let insertion = chats.firstIndex { $0.id == ChatListFixtures.fiatjafChatID }
             .map { chats.index(after: $0) }
@@ -54,6 +54,9 @@ extension PrototypeProfile {
             return existing.id
         }
 
+        let relayURLs = relayConfiguration.availableChatMessageRelayURLs
+        guard !relayURLs.isEmpty else { return nil }
+
         let id = chatID ?? "direct-\(personID)-\(UUID().uuidString)"
         let chat = PrototypeChat(
             id: id,
@@ -62,14 +65,12 @@ extension PrototypeProfile {
             groupDescription: "",
             avatar: person.avatar,
             members: [],
-            routing: PrototypeChatRouting(
-                relayURLs: relayConfiguration.availableChatMessageRelayURLs
-            ),
+            routing: PrototypeChatRouting(relayURLs: relayURLs),
             timeline: [],
             emptyPreview: "No messages yet.",
             draft: "",
             replyToMessageID: nil,
-            listState: PrototypeChatListState(timestampLabel: "Now")
+            listState: PrototypeChatListState(activityDate: now)
         )
         let insertion = chats.firstIndex { !$0.listState.isPinned } ?? chats.endIndex
         chats.insert(chat, at: insertion)
@@ -91,6 +92,8 @@ extension PrototypeProfile {
             }
         }
         guard !trimmedName.isEmpty, !uniqueIDs.isEmpty else { return nil }
+        let relayURLs = relayConfiguration.availableChatMessageRelayURLs
+        guard !relayURLs.isEmpty else { return nil }
 
         var group = PrototypeChat(
             id: id,
@@ -100,14 +103,12 @@ extension PrototypeProfile {
             avatar: avatar,
             members: [PrototypeGroupMember(personID: self.id, role: .admin)]
                 + uniqueIDs.map { PrototypeGroupMember(personID: $0, role: .member) },
-            routing: PrototypeChatRouting(
-                relayURLs: relayConfiguration.availableChatMessageRelayURLs
-            ),
+            routing: PrototypeChatRouting(relayURLs: relayURLs),
             timeline: [],
             emptyPreview: "You created the group.",
             draft: "",
             replyToMessageID: nil,
-            listState: PrototypeChatListState(timestampLabel: "Now")
+            listState: PrototypeChatListState(activityDate: now)
         )
         group.appendEvent(.created(actorID: self.id), now: now)
         let insertion = chats.firstIndex { !$0.listState.isPinned } ?? chats.endIndex
@@ -247,7 +248,9 @@ extension PrototypeChat {
         messageID: String,
         currentProfileID: String
     ) {
+        guard PrototypeReaction.supportedEmoji.contains(emoji) else { return }
         mutateMessage(messageID) { message in
+            guard !message.isDeleted else { return }
             if let index = message.reactions.firstIndex(where: { $0.emoji == emoji }) {
                 if message.reactions[index].personIDs.contains(currentProfileID) {
                     message.reactions[index].personIDs.removeAll { $0 == currentProfileID }
@@ -298,7 +301,7 @@ extension PrototypeChat {
         listState.unreadCount = 0
         listState.isMarkedUnread = false
         listState.muteDuration = nil
-        listState.timestampLabel = "Now"
+        listState.activityDate = now
         return true
     }
 
@@ -311,7 +314,6 @@ extension PrototypeChat {
         else { return }
         mutation(&message)
         timeline[index] = .message(message)
-        listState.timestampLabel = "Now"
     }
 }
 

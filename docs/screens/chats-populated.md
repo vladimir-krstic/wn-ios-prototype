@@ -65,9 +65,12 @@ support native swipe actions.
 - Search matches title and preview within the selected scope, ignoring case and diacritics.
 - Swipe mutations update the same in-memory collection used by Chats, Unread, Archived, Left, and Search, so every filtered projection stays consistent.
 - **Read All** clears every nonarchived unread count and manual unread marker, including matches outside an active search query. The Unread scope then resolves to its existing **No Unread Chats** state.
-- Fixture order, names, previews, and status values are stable. Fixture message
-  dates resolve once from an injectable launch-time reference, while the
-  accepted initial row timestamp labels remain stable.
+- Fixture order, names, and initial status values are stable. Fixture dates
+  resolve once from an injectable launch-time reference. Each row derives its
+  preview, failure state, and timestamp from the latest visible timeline
+  message or typed group event; a draft temporarily supersedes that projection.
+  Deleting the latest message reveals the preceding valid activity instead of
+  leaving stale duplicated row data.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
 - Nostr Devs and Radia Perlman are the only initially pinned chats. Their older timestamps make the pin-driven ordering explicit while leaving recent unpinned activity chronological beneath them.
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.

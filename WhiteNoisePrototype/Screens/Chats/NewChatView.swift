@@ -4,29 +4,21 @@ import SwiftUI
 struct NewChatView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
-    let onOpenChat: (String) -> Void
-
     @State private var query = ""
-    @State private var selectedPersonID: String?
 
     var body: some View {
         List {
             Section {
-                NavigationLink {
-                    NewGroupView(profile: $profile, settings: $settings, onOpenChat: onOpenChat)
-                } label: {
+                NavigationLink(value: ChatsRoute.newGroup) {
                     Label("New Group", systemImage: "person.3")
                 }
             }
 
             Section {
                 ForEach(filteredPeople) { person in
-                    Button {
-                        selectedPersonID = person.id
-                    } label: {
+                    NavigationLink(value: ChatsRoute.person(person.id)) {
                         PersonRow(person: person)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -38,16 +30,6 @@ struct NewChatView: View {
         .navigationTitle("New Chat")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "Name or npub")
-        .navigationDestination(isPresented: personIsPresented) {
-            if let selectedPersonID {
-                PersonProfileView(
-                    profile: $profile,
-                    settings: $settings,
-                    personID: selectedPersonID,
-                    onOpenChat: onOpenChat
-                )
-            }
-        }
     }
 
     private var filteredPeople: [PrototypePerson] {
@@ -57,10 +39,6 @@ struct NewChatView: View {
             $0.name.localizedCaseInsensitiveContains(value)
                 || $0.publicKey.localizedCaseInsensitiveContains(value)
         }
-    }
-
-    private var personIsPresented: Binding<Bool> {
-        Binding { selectedPersonID != nil } set: { if !$0 { selectedPersonID = nil } }
     }
 }
 
@@ -82,6 +60,7 @@ struct PersonRow: View {
         }
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(showsCheckmark ? .isSelected : [])
     }
 }
 
@@ -90,7 +69,7 @@ struct PersonProfileView: View {
     @Binding var settings: PrototypeSettingsState
     let personID: String
     var contextGroupID: String?
-    let onOpenChat: (String) -> Void
+    let onMessagePerson: (String) -> Void
 
     @State private var isShowingBlockConfirmation = false
     @State private var isShowingAddToGroup = false
@@ -127,7 +106,15 @@ struct PersonProfileView: View {
             Section {
                 Button(person.isFollowing ? "Unfollow" : "Follow") { toggleFollow() }
                 Button("Add to Group", systemImage: "person.badge.plus") { isShowingAddToGroup = true }
-                Button("Message", systemImage: "message") { openDirectChat() }
+                if canOpenDirectChat {
+                    Button("Message", systemImage: "message") { onMessagePerson(personID) }
+                } else {
+                    NavigationLink {
+                        RelaysPrototypeView(configuration: $profile.relayConfiguration)
+                    } label: {
+                        Label("Check Profile Relays", systemImage: "exclamationmark.triangle")
+                    }
+                }
             }
 
             Section {
@@ -157,21 +144,25 @@ struct PersonProfileView: View {
 
     private var personIndex: Int { profile.people.firstIndex { $0.id == personID }! }
     private var person: PrototypePerson { profile.people[personIndex] }
+    private var existingDirectChatID: String? {
+        profile.chats.first { chat in
+            if case let .direct(id) = chat.kind { return id == personID }
+            return false
+        }?.id
+    }
+    private var canOpenDirectChat: Bool {
+        existingDirectChatID != nil
+            || !profile.relayConfiguration.availableChatMessageRelayURLs.isEmpty
+    }
 
     private func toggleFollow() { profile.people[personIndex].isFollowing.toggle() }
     private func setBlocked(_ blocked: Bool) { profile.people[personIndex].isBlocked = blocked }
 
-    private func openDirectChat() {
-        if let id = profile.openOrCreateDirectChat(personID: personID) {
-            onOpenChat(id)
-        }
-    }
 }
 
 struct NewGroupView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
-    let onOpenChat: (String) -> Void
     @State private var query = ""
     @State private var selectedIDs: Set<String> = []
 
@@ -221,14 +212,7 @@ struct NewGroupView: View {
         .searchable(text: $query, prompt: "Search People")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                NavigationLink {
-                    NewGroupSetupView(
-                        profile: $profile,
-                        settings: $settings,
-                        selectedPersonIDs: selectedPeople.map(\.id),
-                        onOpenChat: onOpenChat
-                    )
-                } label: {
+                NavigationLink(value: ChatsRoute.newGroupSetup(selectedPeople.map(\.id))) {
                     Text("Continue")
                 }
                 .disabled(selectedIDs.isEmpty)
@@ -246,11 +230,11 @@ struct NewGroupView: View {
     }
 }
 
-private struct NewGroupSetupView: View {
+struct NewGroupSetupView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
     let selectedPersonIDs: [String]
-    let onOpenChat: (String) -> Void
+    let onCreateGroup: (String, String, ChatListItem.Avatar, [String]) -> Void
 
     @State private var name = ""
     @State private var description = ""
@@ -325,14 +309,7 @@ private struct NewGroupSetupView: View {
     }
 
     private func createGroup() {
-        if let id = profile.createGroup(
-            name: trimmedName,
-            description: description,
-            avatar: avatar,
-            selectedPersonIDs: selectedPersonIDs
-        ) {
-            onOpenChat(id)
-        }
+        onCreateGroup(trimmedName, description, avatar, selectedPersonIDs)
     }
 }
 

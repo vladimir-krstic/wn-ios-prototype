@@ -62,40 +62,7 @@ struct ChatListRow: View {
 
     @ViewBuilder
     private var avatar: some View {
-        ZStack {
-            Circle()
-                .fill(Color(uiColor: .secondarySystemFill))
-
-            switch chat.avatar {
-            case let .asset(name):
-                Image(name)
-                    .resizable()
-                    .scaledToFill()
-                    .accessibilityHidden(true)
-
-            case let .imageData(data):
-                if let image = UIImage(data: data) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .accessibilityHidden(true)
-                }
-
-            case let .monogram(initials):
-                Text(initials)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .accessibilityHidden(true)
-
-            case let .systemSymbol(name):
-                Image(systemName: name)
-                    .font(.title2)
-                    .foregroundStyle(.primary)
-                    .accessibilityHidden(true)
-            }
-        }
-        .frame(width: 56, height: 56)
-        .clipShape(.circle)
+        PrototypeChatAvatarView(avatar: chat.avatar, size: 56)
         .overlay(alignment: .bottomTrailing) {
             if chat.isPinned {
                 Image(systemName: "pin.fill")

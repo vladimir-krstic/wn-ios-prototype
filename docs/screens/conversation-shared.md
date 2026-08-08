@@ -9,6 +9,9 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 
 - Messages use stable identities in a `ScrollViewReader`, `ScrollView`, and
   `LazyVStack`. Incoming content is leading; outgoing content is trailing.
+  Opening a conversation settles on the true newest timeline entry after the
+  composer safe-area inset is laid out; older history remains reachable by
+  scrolling to the conversation's beginning.
 - Two existing chats are the durable conversation reference histories. **Maya
   Chen** is the complete one-to-one catalog and **Weekend Walks** is the
   complete group catalog. Each begins with the conversation's earliest
@@ -39,10 +42,12 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   text, images, videos, and files. Media opens a paged viewer; videos use
   `VideoPlayer`, files use Quick Look where supported, and sharing uses the
   system share sheet.
-- Pressing and holding the empty-composer waveform starts a timer and animated
-  waveform; dragging away cancels; releasing sends the same bundled locally
-  generated voice asset. The app never initializes recording or requests
-  microphone permission. VoiceOver has an explicit alternative action.
+- Pressing and holding the empty-composer waveform replaces the input with a
+  visible elapsed timer and cancellation guidance while the waveform animates;
+  dragging away cancels; releasing sends the same bundled locally generated
+  voice asset. The app never initializes recording or requests microphone
+  permission. VoiceOver has an explicit start/stop alternative that does not
+  depend on a continuous hold.
 - Only one audio or video item plays at once and playback stops on navigation.
 - Location, contact, GIF, sticker, and deterministic link preview are polished
   showcase renderers, not composer options.
@@ -105,5 +110,8 @@ This brief records the adopted behaviors locally.
   recent weekday, Yesterday, and Today.
 - Sending, drafts, replies, reactions, deletion, retry, search, attachments,
   voice playback, and row previews remain coherent through navigation.
+- The chat-row preview and timestamp always derive from the latest visible
+  message or typed event, including after deletion and group-management
+  mutations.
 - Fiatjaf and Support preserve their accepted visible content and special
   presentation where required.

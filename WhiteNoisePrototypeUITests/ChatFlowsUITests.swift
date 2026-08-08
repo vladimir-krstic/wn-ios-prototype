@@ -35,6 +35,62 @@ final class ChatFlowsUITests: XCTestCase {
         ).firstMatch.waitForExistence(timeout: 3))
     }
 
+    func testShowcaseHistoriesOpenAtNewestAndReachTheirBeginnings() {
+        openChat("maya-chen")
+        let latestDirect = app.descendants(matching: .any)["message.maya-17"]
+        XCTAssertTrue(latestDirect.waitForExistence(timeout: 3))
+        XCTAssertTrue(latestDirect.isHittable)
+
+        let firstDirect = app.descendants(matching: .any)["message.maya-1"]
+        scrollToBeginning(until: firstDirect)
+        XCTAssertTrue(firstDirect.isHittable)
+
+        app.buttons["BackButton"].tap()
+        openChat("weekend-walks")
+        let latestGroup = app.descendants(matching: .any)["message.week-msg-27"]
+        XCTAssertTrue(latestGroup.waitForExistence(timeout: 3))
+        XCTAssertTrue(latestGroup.isHittable)
+
+        let createdEvent = app.descendants(matching: .any)["event.week-event-created"]
+        scrollToBeginning(until: createdEvent)
+        XCTAssertTrue(createdEvent.isHittable)
+        XCTAssertEqual(createdEvent.label, "You created the group.")
+    }
+
+    func testNewDirectChatCreatesOnceAndPersistsMessage() {
+        app.buttons["chats.new"].tap()
+        XCTAssertTrue(app.navigationBars["New Chat"].waitForExistence(timeout: 3))
+        let search = app.searchFields["Name or npub"]
+        search.tap()
+        search.typeText("Avery Stone")
+        button(containing: "Avery Stone").tap()
+        XCTAssertTrue(app.navigationBars["Avery Stone"].waitForExistence(timeout: 3))
+        app.buttons["Message"].tap()
+
+        let composer = app.textFields["conversation.composer"]
+        XCTAssertTrue(composer.waitForExistence(timeout: 5))
+        composer.tap()
+        composer.typeText("First chat with Avery")
+        XCTAssertEqual(composer.value as? String, "First chat with Avery")
+        let send = app.buttons["conversation.send"]
+        XCTAssertTrue(send.waitForExistence(timeout: 3))
+        send.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@", "First chat with Avery")
+        ).firstMatch.waitForExistence(timeout: 3))
+
+        returnToChats()
+        let row = app.cells.matching(
+            NSPredicate(format: "label CONTAINS %@", "Avery Stone")
+        ).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("First chat with Avery"))
+        row.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@", "First chat with Avery")
+        ).firstMatch.waitForExistence(timeout: 3))
+    }
+
     func testNewGroupCreatesAdminAndInitialEvent() {
         app.buttons["chats.new"].tap()
         XCTAssertTrue(app.navigationBars["New Chat"].waitForExistence(timeout: 3))
@@ -88,9 +144,7 @@ final class ChatFlowsUITests: XCTestCase {
         XCTAssertTrue(searchResult.waitForExistence(timeout: 3))
         searchResult.tap()
 
-        let incoming = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Maya Chen", "Weekend Notes.pdf")
-        ).firstMatch
+        let incoming = app.descendants(matching: .any)["message.maya-10"]
         XCTAssertTrue(incoming.waitForExistence(timeout: 3))
         incoming.press(forDuration: 1)
         app.buttons["Reply"].tap()
@@ -125,6 +179,14 @@ final class ChatFlowsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Group Info"].waitForExistence(timeout: 3))
         reveal(app.buttons["Edit Group"]).tap()
         let name = app.textFields["edit-group.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 3))
+        name.tap()
+        name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
+        name.typeText("Discard This Name")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(revealFromTop(app.staticTexts["Weekend Walks"].firstMatch).exists)
+
+        reveal(app.buttons["Edit Group"]).tap()
         XCTAssertTrue(name.waitForExistence(timeout: 3))
         name.tap()
         name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
@@ -169,7 +231,22 @@ final class ChatFlowsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[
             "You’re the only admin in this group. Make another member an admin before you leave."
         ].exists)
-        app.alerts.buttons["OK"].tap()
+        app.alerts.buttons["Done"].tap()
+    }
+
+    func testPromotingAnotherAdminAllowsLeavingGroup() {
+        openChat("weekend-walks")
+        app.buttons["conversation.info"].tap()
+        reveal(app.buttons["group-member.maya-chen"]).tap()
+        reveal(app.buttons["Make Admin"]).tap()
+        app.sheets.buttons["Make Admin"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+
+        reveal(app.buttons["Leave Group"]).tap()
+        app.sheets.buttons["Leave Group"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["You left this chat."].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.textFields["conversation.composer"].exists)
     }
 
     func testRemovingFinalChatRelayDisablesAndAddingRestoresComposer() {
@@ -201,13 +278,41 @@ final class ChatFlowsUITests: XCTestCase {
     func testVoiceReleaseSendsAndSlideCancelDoesNot() {
         openChat("maya-chen")
         let voiceMessages = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label CONTAINS %@", "Voice message")
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "message.",
+                "Voice message"
+            )
         )
         let initialCount = voiceMessages.count
         let voice = app.descendants(matching: .any)["conversation.voice"]
         XCTAssertTrue(voice.waitForExistence(timeout: 3))
         voice.press(forDuration: 0.6)
         XCTAssertEqual(voiceMessages.count, initialCount + 1)
+        let playback = voiceMessages.element(boundBy: voiceMessages.count - 1)
+        XCTAssertTrue(playback.waitForExistence(timeout: 2))
+        playback.tap()
+        XCTAssertEqual(
+            XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "label CONTAINS %@", "Pause"),
+                    object: playback
+                )],
+                timeout: 2
+            ),
+            .completed
+        )
+        playback.tap()
+        XCTAssertEqual(
+            XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "label CONTAINS %@", "Play"),
+                    object: playback
+                )],
+                timeout: 2
+            ),
+            .completed
+        )
 
         let destination = app.descendants(matching: .any).matching(
             NSPredicate(format: "label == %@", "Add Attachment")
@@ -221,6 +326,27 @@ final class ChatFlowsUITests: XCTestCase {
         let row = locateChat(id)
         row.tap()
         XCTAssertTrue(app.textFields["conversation.composer"].waitForExistence(timeout: 5))
+    }
+
+    private func scrollToBeginning(until element: XCUIElement) {
+        for _ in 0..<24 where !element.isHittable {
+            app.swipeDown()
+        }
+        XCTAssertTrue(element.waitForExistence(timeout: 3))
+    }
+
+    private func returnToChats() {
+        for _ in 0..<6 {
+            if app.buttons["chats.profile"].exists { return }
+            if app.buttons["close"].exists {
+                app.buttons["close"].tap()
+                continue
+            }
+            let back = app.buttons["BackButton"]
+            XCTAssertTrue(back.waitForExistence(timeout: 3))
+            back.tap()
+        }
+        XCTAssertTrue(app.buttons["chats.profile"].waitForExistence(timeout: 3))
     }
 
     private func locateChat(_ id: String) -> XCUIElement {

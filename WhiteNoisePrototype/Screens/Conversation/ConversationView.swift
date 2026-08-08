@@ -9,6 +9,7 @@ struct ConversationView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
     let chatID: String
+    let authoritativeChatReplacement: ((String, PrototypeChat) -> Void)?
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPhotoPickerPresented = false
@@ -22,13 +23,32 @@ struct ConversationView: View {
     @State private var selectedPersonID: String?
     @State private var isShowingSearch = false
     @State private var pendingSearchResultID: String?
+    @State private var composerText: String
+    @State private var renderedChat: PrototypeChat?
     @State private var voiceState = PrototypeVoiceRecordingState.idle
     @State private var recordingSeconds = 0
     @State private var fileImportTask: Task<Void, Never>?
     @FocusState private var composerIsFocused: Bool
 
+    init(
+        profile: Binding<PrototypeProfile>,
+        settings: Binding<PrototypeSettingsState>,
+        chatID: String,
+        authoritativeChatReplacement: ((String, PrototypeChat) -> Void)? = nil
+    ) {
+        _profile = profile
+        _settings = settings
+        self.chatID = chatID
+        self.authoritativeChatReplacement = authoritativeChatReplacement
+        let initialChat = profile.wrappedValue.chats.first(where: { $0.id == chatID })
+        _renderedChat = State(initialValue: initialChat)
+        _composerText = State(
+            initialValue: initialChat?.draft ?? ""
+        )
+    }
+
     var body: some View {
-        if chatIndex != nil {
+        if renderedChat != nil || chatIndex != nil {
             conversation
         } else {
             ContentUnavailableView("Chat Unavailable", systemImage: "bubble.left")
@@ -63,6 +83,10 @@ struct ConversationView: View {
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 composerArea
+            }
+            .task {
+                await Task.yield()
+                proxy.scrollTo(bottomID, anchor: .bottom)
             }
             .onChange(of: chat.timeline.count) {
                 withAnimation { proxy.scrollTo(bottomID, anchor: .bottom) }
@@ -155,12 +179,22 @@ struct ConversationView: View {
                         settings: $settings,
                         personID: selectedPersonID,
                         contextGroupID: chat.isGroup ? chatID : nil,
-                        onOpenChat: { _ in }
+                        onMessagePerson: { _ in
+                            self.selectedPersonID = nil
+                        }
                     )
                 }
             }
         }
+        .onAppear {
+            guard let current = profile.chats.first(where: { $0.id == chatID }) else {
+                return
+            }
+            renderedChat = current
+            composerText = current.draft
+        }
         .onDisappear {
+            persistDraft()
             PrototypePlaybackCoordinator.shared.stopAll()
             fileImportTask?.cancel()
             voiceState = .idle
@@ -227,6 +261,7 @@ struct ConversationView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 5)
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("event.\(event.id)")
 
         case let .notice(notice):
             Text(notice.text)
@@ -236,6 +271,7 @@ struct ConversationView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("notice.\(notice.id)")
 
         case let .message(message):
             let author = profile.people.first { $0.id == message.authorID }
@@ -327,14 +363,18 @@ struct ConversationView: View {
                 .accessibilityLabel("Add Attachment")
 
                 HStack(alignment: .bottom, spacing: 4) {
-                    TextField("Message", text: draftBinding, axis: .vertical)
-                        .lineLimit(1...6)
-                        .focused($composerIsFocused)
-                        .submitLabel(settings.returnKeyBehavior == .send ? .send : .return)
-                        .onSubmit {
-                            if settings.returnKeyBehavior == .send { send() }
-                        }
-                        .accessibilityIdentifier("conversation.composer")
+                    if isRecording {
+                        recordingStatus
+                    } else {
+                        TextField("Message", text: composerTextBinding, axis: .vertical)
+                            .lineLimit(1...6)
+                            .focused($composerIsFocused)
+                            .submitLabel(settings.returnKeyBehavior == .send ? .send : .return)
+                            .onSubmit {
+                                if settings.returnKeyBehavior == .send { send() }
+                            }
+                            .accessibilityIdentifier("conversation.composer")
+                    }
 
                     if !canSend {
                         voiceButton
@@ -404,6 +444,28 @@ struct ConversationView: View {
         }
     }
 
+    private var recordingStatus: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(.red)
+                .frame(width: 8, height: 8)
+                .symbolEffect(.pulse, isActive: !isCancellationArmed)
+            Text(prototypeDurationString(TimeInterval(recordingSeconds)))
+                .font(.body.monospacedDigit())
+                .accessibilityIdentifier("conversation.voice.timer")
+            Spacer(minLength: 8)
+            Text(isCancellationArmed ? "Release to Cancel" : "Slide to Cancel")
+                .font(.caption)
+                .foregroundStyle(isCancellationArmed ? .red : .secondary)
+                .lineLimit(1)
+                .accessibilityIdentifier("conversation.voice.status")
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Recording, \(prototypeDurationString(TimeInterval(recordingSeconds))), \(isCancellationArmed ? "release to cancel" : "release to send")"
+        )
+    }
+
     private var queuedAttachmentStrip: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 10) {
@@ -416,6 +478,7 @@ struct ConversationView: View {
                             Image(systemName: "xmark.circle.fill")
                                 .symbolRenderingMode(.palette)
                                 .foregroundStyle(.white, .black)
+                                .frame(minWidth: 44, minHeight: 44)
                         }
                         .offset(x: 5, y: -5)
                         .accessibilityLabel("Remove \(attachment.accessibilityLabel)")
@@ -534,12 +597,15 @@ struct ConversationView: View {
         return chat.routing.relayURLs.isEmpty ? .relays : nil
     }
 
-    private var draftBinding: Binding<String> {
-        Binding { chat.draft } set: { value in updateChat { $0.draft = value } }
+    private var composerTextBinding: Binding<String> {
+        Binding { composerText } set: { value in
+            composerText = value
+        }
     }
 
     private var canSend: Bool {
-        !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !queuedAttachments.isEmpty
+        !composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !queuedAttachments.isEmpty
     }
 
     private var isRecording: Bool {
@@ -547,12 +613,17 @@ struct ConversationView: View {
         return false
     }
 
+    private var isCancellationArmed: Bool {
+        if case let .recording(_, isArmed) = voiceState { return isArmed }
+        return false
+    }
+
     private var mentionQuery: String? {
         guard chat.isGroup,
-              let at = chat.draft.lastIndex(of: "@"),
-              chat.draft[at...].contains(" ") == false
+              let at = composerText.lastIndex(of: "@"),
+              composerText[at...].contains(" ") == false
         else { return nil }
-        return String(chat.draft[chat.draft.index(after: at)...])
+        return String(composerText[composerText.index(after: at)...])
     }
 
     private var mentionMatches: [PrototypePerson] {
@@ -565,23 +636,39 @@ struct ConversationView: View {
     }
 
     private var chatIndex: Int? { profile.chats.firstIndex { $0.id == chatID } }
-    private var chat: PrototypeChat { profile.chats[chatIndex!] }
+    private var chat: PrototypeChat {
+        if let renderedChat { return renderedChat }
+        return profile.chats[chatIndex!]
+    }
 
     private var personIsPresented: Binding<Bool> {
         Binding { selectedPersonID != nil } set: { if !$0 { selectedPersonID = nil } }
     }
 
     private func updateChat(_ mutation: (inout PrototypeChat) -> Void) {
-        guard let chatIndex else { return }
-        mutation(&profile.chats[chatIndex])
+        var updatedChat = chat
+        mutation(&updatedChat)
+        renderedChat = updatedChat
+
+        if let authoritativeChatReplacement {
+            authoritativeChatReplacement(chatID, updatedChat)
+        } else {
+            var updatedProfile = profile
+            guard let index = updatedProfile.chats.firstIndex(where: { $0.id == chatID }) else {
+                return
+            }
+            updatedProfile.chats[index] = updatedChat
+            profile = updatedProfile
+        }
     }
 
     private func send() {
-        let text = chat.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty || !queuedAttachments.isEmpty else { return }
         let attachments = queuedAttachments
         queuedAttachments.removeAll()
         updateChat { $0.appendMessage(authorID: profile.id, text: text, attachments: attachments) }
+        composerText = ""
     }
 
     private func sendVoiceMessage() {
@@ -667,11 +754,18 @@ struct ConversationView: View {
     }
 
     private func insertMention(_ person: PrototypePerson) {
-        guard let at = chat.draft.lastIndex(of: "@") else { return }
-        updateChat { value in
-            value.draft = String(value.draft[..<at]) + "@\(person.name) "
-        }
+        guard let at = composerText.lastIndex(of: "@") else { return }
+        let updatedDraft = String(composerText[..<at]) + "@\(person.name) "
+        composerText = updatedDraft
         composerIsFocused = true
+    }
+
+    private func persistDraft() {
+        guard chat.draft != composerText else { return }
+        updateChat { chat in
+            chat.draft = composerText
+            chat.listState.activityDate = .now
+        }
     }
 
     private func preparePhotoItems() async {
@@ -726,7 +820,10 @@ struct ConversationView: View {
                             url: destination
                         )
                     )
-                } catch { continue }
+                } catch {
+                    try? FileManager.default.removeItem(at: destination)
+                    continue
+                }
             }
         }
     }
