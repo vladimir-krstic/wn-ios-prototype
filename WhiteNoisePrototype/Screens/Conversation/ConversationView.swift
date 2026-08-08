@@ -187,11 +187,18 @@ struct ConversationView: View {
             }
         }
         .onAppear {
-            guard let current = profile.chats.first(where: { $0.id == chatID }) else {
+            guard var current = profile.chats.first(where: { $0.id == chatID }) else {
                 return
             }
+            let changedReadState = current.listState.unreadCount > 0
+                || current.listState.isMarkedUnread
+            current.listState.unreadCount = 0
+            current.listState.isMarkedUnread = false
             renderedChat = current
             composerText = current.draft
+            if changedReadState {
+                persistAuthoritativeChat(current)
+            }
         }
         .onDisappear {
             persistDraft()
@@ -650,6 +657,10 @@ struct ConversationView: View {
         mutation(&updatedChat)
         renderedChat = updatedChat
 
+        persistAuthoritativeChat(updatedChat)
+    }
+
+    private func persistAuthoritativeChat(_ updatedChat: PrototypeChat) {
         if let authoritativeChatReplacement {
             authoritativeChatReplacement(chatID, updatedChat)
         } else {
@@ -846,8 +857,10 @@ private struct ChatMessageSearchView: View {
                 dismiss()
             } label: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(authorName(message)).font(.headline)
-                    Text(preview(message)).foregroundStyle(.secondary).lineLimit(2)
+                    highlightedText(authorName(message)).font(.headline)
+                    highlightedText(preview(message))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                     Text(message.sentAt, format: .dateTime.month().day().hour().minute())
                         .font(.caption).foregroundStyle(.tertiary)
                 }
@@ -885,5 +898,24 @@ private struct ChatMessageSearchView: View {
         if message.isDeleted { return "Message deleted" }
         if !message.text.isEmpty { return message.text }
         return message.attachments.map(\.accessibilityLabel).joined(separator: ", ")
+    }
+
+    private func highlightedText(_ text: String) -> Text {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return Text(text) }
+
+        var result = Text("")
+        var cursor = text.startIndex
+        while cursor < text.endIndex,
+              let match = text.range(
+                  of: needle,
+                  options: [.caseInsensitive, .diacriticInsensitive],
+                  range: cursor..<text.endIndex
+              ) {
+            result = result + Text(String(text[cursor..<match.lowerBound]))
+                + Text(String(text[match])).bold().underline()
+            cursor = match.upperBound
+        }
+        return result + Text(String(text[cursor...]))
     }
 }

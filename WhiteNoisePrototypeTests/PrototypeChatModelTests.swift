@@ -74,6 +74,21 @@ struct PrototypeChatModelTests {
         #expect(profile.chats.isEmpty)
     }
 
+    @Test("Support is not selectable for direct or group creation")
+    func supportIsNotSelectable() {
+        var profile = PrototypeProfile.marmota
+
+        #expect(!profile.selectableChatPeople.contains { $0.id == ChatListFixtures.supportChatID })
+        #expect(
+            profile.createGroup(
+                name: "Support Group",
+                description: "",
+                avatar: .monogram("S"),
+                selectedPersonIDs: [ChatListFixtures.supportChatID]
+            ) == nil
+        )
+    }
+
     @Test("Profile chat state is isolated")
     func profileIsolation() {
         var first = PrototypeProfile.marmota
@@ -236,6 +251,11 @@ struct PrototypeChatModelTests {
         #expect(chat.messages.flatMap(\.attachments).contains { if case .file = $0 { true } else { false } })
         #expect(chat.messages.flatMap(\.attachments).contains { if case .voice = $0 { true } else { false } })
         #expect(chat.messages.flatMap(\.attachments).contains { if case .link = $0 { true } else { false } })
+        #expect(chat.messages.flatMap(\.attachments).allSatisfy { attachment in
+            if case let .file(_, _, _, url) = attachment { return url != nil }
+            if case let .video(_, url, _, _) = attachment { return url != nil }
+            return true
+        })
     }
 
     @Test("Weekend Walks is a chronological group and system-event showcase")
@@ -293,6 +313,11 @@ struct PrototypeChatModelTests {
         #expect(attachments.contains { if case .sticker = $0 { true } else { false } })
         #expect(attachments.contains { if case .location = $0 { true } else { false } })
         #expect(attachments.contains { if case .contact = $0 { true } else { false } })
+        #expect(attachments.allSatisfy { attachment in
+            if case let .file(_, _, _, url) = attachment { return url != nil }
+            if case let .video(_, url, _, _) = attachment { return url != nil }
+            return true
+        })
         #expect(group.messages.contains { $0.text.contains("@Marmota") })
         #expect(group.messages.contains { $0.replyToMessageID != nil && $0.authorID == "marmota" })
         #expect(group.messages.contains { $0.replyToMessageID != nil && $0.authorID != "marmota" })
@@ -390,6 +415,7 @@ struct PrototypeChatModelTests {
 
     @Test("Every attachment class has a deterministic row projection")
     func attachmentRowProjections() {
+        let people = PrototypeChatFixtures.people()
         let photo = PrototypeAttachment.photo(id: "p", source: .asset("Photo"), label: "Photo")
         let video = PrototypeAttachment.video(id: "v", url: nil, thumbnail: .asset("Video"), duration: 1)
         let file = PrototypeAttachment.file(id: "f", name: "Notes.pdf", size: 10, url: nil)
@@ -400,15 +426,44 @@ struct PrototypeChatModelTests {
         let location = PrototypeAttachment.location(id: "o", name: "Park", address: "Main Street")
         let contact = PrototypeAttachment.contact(id: "c", personID: "maya-chen")
 
-        #expect(photo.listPreview == .photo)
-        #expect(video.listPreview == .video)
-        #expect(file.listPreview == .file("Notes.pdf"))
-        #expect(voice.listPreview == .voiceMessage)
-        #expect(link.listPreview == .link)
-        #expect(gif.listPreview == .gif)
-        #expect(sticker.listPreview == .sticker)
-        #expect(location.listPreview == .location)
-        #expect(contact.listPreview == .contact("Contact"))
+        #expect(photo.listPreview(people: people) == .photo)
+        #expect(video.listPreview(people: people) == .video)
+        #expect(file.listPreview(people: people) == .file("Notes.pdf"))
+        #expect(voice.listPreview(people: people) == .voiceMessage)
+        #expect(link.listPreview(people: people) == .link)
+        #expect(gif.listPreview(people: people) == .gif)
+        #expect(sticker.listPreview(people: people) == .sticker)
+        #expect(location.listPreview(people: people) == .location)
+        #expect(contact.listPreview(people: people) == .contact("Maya Chen"))
+    }
+
+    @Test("Calendar-date fixtures have plausible message times and Support keeps its stable row date")
+    func fixtureDateFidelity() throws {
+        let calendar = Calendar.autoupdatingCurrent
+        let now = try #require(
+            calendar.date(from: DateComponents(year: 2026, month: 8, day: 8, hour: 18))
+        )
+        let chats = PrototypeChatFixtures.chats(
+            profileID: "marmota",
+            relayURLs: ["wss://relay.example.com"],
+            now: now
+        )
+        let calendarDateIDs = Set(
+            ChatListFixtures.populated
+                .filter { $0.timestamp.contains("/") }
+                .map(\.id)
+        )
+        let datedMessages = chats
+            .filter { calendarDateIDs.contains($0.id) }
+            .flatMap(\.messages)
+        #expect(!datedMessages.isEmpty)
+        #expect(datedMessages.allSatisfy { calendar.component(.hour, from: $0.sentAt) != 0 })
+
+        let support = try #require(chats.first { $0.id == ChatListFixtures.supportChatID })
+        #expect(
+            support.row(people: PrototypeChatFixtures.people(), currentProfileID: "marmota", now: now)
+                .timestamp == "Thursday"
+        )
     }
 
     @Test("Date separators cover relative, recent, and full-date states")

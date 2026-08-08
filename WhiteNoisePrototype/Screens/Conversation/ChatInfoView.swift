@@ -75,7 +75,10 @@ private struct DirectChatInfoView: View {
 
             Section {
                 Button("Search", systemImage: "magnifyingglass", action: onSearch)
-                Button(person.isFollowing ? "Unfollow" : "Follow", systemImage: "person.badge.plus") {
+                Button(
+                    person.isFollowing ? "Unfollow" : "Follow",
+                    systemImage: person.isFollowing ? "person.badge.minus" : "person.badge.plus"
+                ) {
                     profile.people[personIndex].isFollowing.toggle()
                 }
                 Button("Add to Group", systemImage: "person.2.badge.plus") { isShowingAddToGroup = true }
@@ -497,7 +500,7 @@ private struct AddPeopleToGroupView: View {
     private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
     private var currentIDs: Set<String> { Set(profile.chats[chatIndex].members.map(\.personID)) }
     private var filteredPeople: [PrototypePerson] {
-        profile.people.filter {
+        profile.selectableChatPeople.filter {
             !currentIDs.contains($0.id) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) || $0.publicKey.localizedCaseInsensitiveContains(query))
         }
     }

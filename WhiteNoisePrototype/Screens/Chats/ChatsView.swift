@@ -42,6 +42,7 @@ struct ChatsView: View {
     @State private var searchText: String
     @State private var isSearchMounted = false
     @State private var isSearchPresented = false
+    @State private var isShowingOnlyAdminAlert = false
     @FocusState private var isSearchFocused: Bool
 
     let onOpenSettings: () -> Void
@@ -114,6 +115,11 @@ struct ChatsView: View {
                     action: markAllChatsRead
                 )
             )
+            .alert("Can’t Leave Group", isPresented: $isShowingOnlyAdminAlert) {
+                Button("Done") {}
+            } message: {
+                Text("You’re the only admin in this group. Make another member an admin before you leave.")
+            }
     }
 
     @ViewBuilder
@@ -193,7 +199,12 @@ struct ChatsView: View {
     }
 
     private func leaveChat(_ id: String) {
-        updateChat(id: id) { _ = $0.leave(currentProfileID: profile.id) }
+        guard let index = profile.chats.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        if !profile.chats[index].leave(currentProfileID: profile.id) {
+            isShowingOnlyAdminAlert = true
+        }
     }
 
     private func deleteChat(_ id: String) {
@@ -253,9 +264,10 @@ struct ChatsView: View {
                 }
             }
         } label: {
-            filterMenuLabel.accessibilityLabel("Filter Chats")
+            filterMenuLabel.accessibilityHidden(true)
         }
         .menuIndicator(.hidden)
+        .accessibilityLabel("Filter Chats")
         .accessibilityValue(scope.title)
     }
 

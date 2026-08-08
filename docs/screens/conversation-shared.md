@@ -28,7 +28,12 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Native context menus own Reply, Copy, Share, Delete, and the supported
   reactions: ❤, 😀, 👍, 👎, 🤣, 🔥, and 🦫.
 - Search matches text, sender names, file names, and attachment labels. Reply
-  quotes scroll to the original or show a stable unavailable state.
+  quotes scroll to the original or show a stable unavailable state. Search
+  results visibly emphasize every matching term without relying on color.
+- Inline emphasis uses native attributed text. Links and mentions retain the
+  approved adaptive monochrome bubble palette while adding an underline;
+  mentions also use semibold type. VoiceOver reads the rendered words rather
+  than Markdown punctuation.
 
 ## Composer and media
 
@@ -40,8 +45,9 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   and files use temporary app-owned copies only.
 - The attachment strip supports removal before sending. Messages may combine
   text, images, videos, and files. Media opens a paged viewer; videos use
-  `VideoPlayer`, files use Quick Look where supported, and sharing uses the
-  system share sheet.
+  `VideoPlayer`, images use native `UIScrollView` pinch, pan, and double-tap
+  zoom, files use Quick Look where supported, and sharing uses the system share
+  sheet.
 - Pressing and holding the empty-composer waveform replaces the input with a
   visible elapsed timer and cancellation guidance while the waveform animates;
   dragging away cancels; releasing sends the same bundled locally generated
@@ -49,6 +55,9 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   permission. VoiceOver has an explicit start/stop alternative that does not
   depend on a continuous hold.
 - Only one audio or video item plays at once and playback stops on navigation.
+- A voice bubble does not impose a fixed outer width. Its progress and duration
+  reflow as one adaptive unit so longer localized or accessibility-sized time
+  labels never collapse into a one-character column.
 - Location, contact, GIF, sticker, and deterministic link preview are polished
   showcase renderers, not composer options.
 - In groups, typing `@` offers matching members; inserted mentions are styled
@@ -78,6 +87,15 @@ the macOS Samantha text-to-speech voice reading the original phrase **Meet me
 by the old bridge.** It was transcoded locally to a short 16 kHz mono MP3 and
 embedded in the app. No recording or copyrighted audio was downloaded, and no
 speech synthesizer or microphone API is used at runtime.
+
+## Showcase document and video provenance
+
+The four PDF fixtures contain original local prototype notes generated on
+2026-08-08 and bundled solely to exercise Quick Look. `ChatTrailClip.mp4` is an
+original eight-second local motion treatment generated from the already
+documented bundled pebble artwork. The app performs no runtime download, and
+every showcased file and video has usable local data rather than a decorative
+dead affordance.
 
 ## Governing sources
 

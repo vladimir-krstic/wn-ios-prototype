@@ -1,5 +1,7 @@
 import Foundation
 
+private final class PrototypeChatFixtureBundleToken {}
+
 enum PrototypeChatFixtures {
     static let groupIDs: Set<String> = [
         "nostr-devs", "marmots", "weekend-walks", "product-circle",
@@ -62,7 +64,7 @@ enum PrototypeChatFixtures {
             case ChatListFixtures.fiatjafChatID:
                 chat.timeline = fiatjafTimeline(profileID: profileID, now: now)
             case ChatListFixtures.supportChatID:
-                chat.timeline = [supportNotice(now: now)]
+                chat.timeline = [supportNotice(now: seedDate(for: row.timestamp, now: now))]
                 chat.emptyPreview = "Ask a question, report a problem, or share a suggestion."
             default:
                 break
@@ -159,8 +161,8 @@ enum PrototypeChatFixtures {
         )
         let video = PrototypeAttachment.video(
             id: "maya-video",
-            url: nil,
-            thumbnail: .asset("FiatjafMediaBadger"),
+            url: showcaseVideoURL,
+            thumbnail: .asset("ProfileAvatarPebble"),
             duration: 8
         )
 
@@ -190,7 +192,7 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "maya-9b", authorID: profileID, sentAt: mediaDay.addingTimeInterval(660), text: "That movement makes the sequence much clearer.", replyToMessageID: "maya-9")),
             .message(PrototypeMessage(id: "maya-9c", authorID: profileID, sentAt: mediaDay.addingTimeInterval(750), text: "This pairing is probably the strongest.", attachments: [photo, video])),
 
-            .message(PrototypeMessage(id: "maya-10", authorID: "maya-chen", sentAt: yesterday, text: "Here are the notes from our last pass.", attachments: [.file(id: "maya-file", name: "Weekend Notes.pdf", size: 284_000, url: nil)])),
+            .message(PrototypeMessage(id: "maya-10", authorID: "maya-chen", sentAt: yesterday, text: "Here are the notes from our last pass.", attachments: [bundledFile(id: "maya-file", name: "Weekend Notes.pdf", resourceName: "WeekendNotes")])),
             .message(PrototypeMessage(id: "maya-11", authorID: profileID, sentAt: yesterday.addingTimeInterval(120), attachments: [.voice(id: "maya-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
             .message(PrototypeMessage(id: "maya-12", authorID: "maya-chen", sentAt: yesterday.addingTimeInterval(240), text: "This is the reference I mentioned.", attachments: [.link(id: "maya-link", title: "White Noise", domain: "whitenoise.chat", summary: "Private, resilient messaging for people and groups.", image: .asset("WhiteNoiseMark"))])),
 
@@ -261,18 +263,18 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "week-msg-15", authorID: profileID, sentAt: yesterday.addingTimeInterval(120), text: "Yes, and the forecast looks clear.", replyToMessageID: "week-msg-14")),
             .message(PrototypeMessage(id: "week-msg-16", authorID: "nora-bennett", sentAt: yesterday.addingTimeInterval(240), text: "Then let’s keep the changing details here instead of in the description.", replyToMessageID: "week-msg-15")),
             .message(PrototypeMessage(id: "week-msg-17", authorID: "maya-chen", sentAt: yesterday.addingTimeInterval(360), text: "This clip shows the narrow section.", attachments: [
-                .video(id: "week-video", url: nil, thumbnail: .asset("FiatjafMediaBadger"), duration: 9),
+                .video(id: "week-video", url: showcaseVideoURL, thumbnail: .asset("ProfileAvatarPebble"), duration: 8),
             ])),
             .message(PrototypeMessage(id: "week-msg-18", authorID: profileID, sentAt: yesterday.addingTimeInterval(480), text: "And here’s the bridge beside it.", attachments: [
                 gallery[0],
-                .video(id: "week-mixed-video", url: nil, thumbnail: .asset("FiatjafMediaMarmot"), duration: 7),
+                .video(id: "week-mixed-video", url: showcaseVideoURL, thumbnail: .asset("ProfileAvatarPebble"), duration: 8),
             ], replyToMessageID: "week-msg-17")),
 
             .message(PrototypeMessage(id: "week-msg-19", authorID: "leo-martins", sentAt: today, attachments: [.gif(id: "week-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")], reactions: [PrototypeReaction(emoji: "🤣", personIDs: [profileID, "maya-chen"])])),
             .message(PrototypeMessage(id: "week-msg-20", authorID: profileID, sentAt: today.addingTimeInterval(120), attachments: [.sticker(id: "week-sticker", assetName: "FiatjafMediaFox", label: "Friendly fox")], reactions: [PrototypeReaction(emoji: "🦫", personIDs: ["elias-moreno"])])),
             .message(PrototypeMessage(id: "week-msg-21", authorID: "maya-chen", sentAt: today.addingTimeInterval(240), text: "Not the steep shortcut—this entrance.", attachments: [.location(id: "week-location", name: "Riverside Trail", address: "North entrance by the footbridge")], reactions: [PrototypeReaction(emoji: "👎", personIDs: [profileID, "nora-bennett"])])),
             .message(PrototypeMessage(id: "week-msg-22", authorID: "elias-moreno", sentAt: today.addingTimeInterval(360), attachments: [.contact(id: "week-contact", personID: "avery-stone")])),
-            .message(PrototypeMessage(id: "week-msg-23", authorID: "nora-bennett", sentAt: today.addingTimeInterval(480), attachments: [.file(id: "week-file", name: "Trail Plan.pdf", size: 420_000, url: nil)])),
+            .message(PrototypeMessage(id: "week-msg-23", authorID: "nora-bennett", sentAt: today.addingTimeInterval(480), attachments: [bundledFile(id: "week-file", name: "Trail Plan.pdf", resourceName: "TrailPlan")])),
             .message(PrototypeMessage(id: "week-msg-24", authorID: profileID, sentAt: today.addingTimeInterval(600), attachments: [.voice(id: "week-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
             .message(PrototypeMessage(id: "week-msg-25", authorID: "leo-martins", sentAt: today.addingTimeInterval(720), text: "I’m stepping out, but I hope the walk goes well.")),
             .event(PrototypeTimelineEvent(id: "week-event-left", date: today.addingTimeInterval(840), kind: .left(personID: "leo-martins"))),
@@ -328,11 +330,17 @@ enum PrototypeChatFixtures {
                 .photo(id: "\(chatID)-photo-\(index)", source: .asset(assets[index % assets.count]), label: "Photo \(index + 1)")
             }
         case .video:
-            return [.video(id: "\(chatID)-video", url: nil, thumbnail: .asset("FiatjafMediaBadger"), duration: 8)]
+            return [.video(id: "\(chatID)-video", url: showcaseVideoURL, thumbnail: .asset("ProfileAvatarPebble"), duration: 8)]
         case .voiceMessage:
             return [.voice(id: "\(chatID)-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)]
         case let .file(name):
-            return [.file(id: "\(chatID)-file", name: name, size: 320_000, url: nil)]
+            let resourceName = switch name {
+            case "Project Brief.pdf": "ProjectBrief"
+            case "Project Notes.pdf": "ProjectNotes"
+            case "Trail Plan.pdf": "TrailPlan"
+            default: "WeekendNotes"
+            }
+            return [bundledFile(id: "\(chatID)-file", name: name, resourceName: resourceName)]
         case .location:
             return [.location(id: "\(chatID)-location", name: "Riverside Trail", address: "North entrance by the footbridge")]
         case let .contact(name):
@@ -370,8 +378,36 @@ enum PrototypeChatFixtures {
         parser.locale = Locale(identifier: "en_US_POSIX")
         parser.calendar = calendar
         parser.dateFormat = "M/d/yy"
-        if let parsed = parser.date(from: label) { return parsed }
+        if let parsed = parser.date(from: label) {
+            let day = calendar.component(.day, from: parsed)
+            let hour = 9 + day % 10
+            let minute = (day * 7 % 4) * 15
+            return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: parsed)
+                ?? parsed
+        }
         return now.addingTimeInterval(-7 * 86_400)
+    }
+
+    private static var showcaseVideoURL: URL? {
+        resourceURL(name: "ChatTrailClip", fileExtension: "mp4")
+    }
+
+    private static func bundledFile(
+        id: String,
+        name: String,
+        resourceName: String
+    ) -> PrototypeAttachment {
+        let url = resourceURL(name: resourceName, fileExtension: "pdf")
+        let size = url.flatMap { url in
+            try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+        } ?? 0
+        return .file(id: id, name: name, size: size, url: url)
+    }
+
+    private static func resourceURL(name: String, fileExtension: String) -> URL? {
+        let owningBundle = Bundle(for: PrototypeChatFixtureBundleToken.self)
+        return owningBundle.url(forResource: name, withExtension: fileExtension)
+            ?? Bundle.main.url(forResource: name, withExtension: fileExtension)
     }
 
     private static func about(for id: String) -> String {

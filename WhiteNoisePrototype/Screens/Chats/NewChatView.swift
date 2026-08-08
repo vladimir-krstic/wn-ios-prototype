@@ -34,8 +34,8 @@ struct NewChatView: View {
 
     private var filteredPeople: [PrototypePerson] {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return profile.people }
-        return profile.people.filter {
+        guard !value.isEmpty else { return profile.selectableChatPeople }
+        return profile.selectableChatPeople.filter {
             $0.name.localizedCaseInsensitiveContains(value)
                 || $0.publicKey.localizedCaseInsensitiveContains(value)
         }
@@ -220,10 +220,12 @@ struct NewGroupView: View {
         }
     }
 
-    private var selectedPeople: [PrototypePerson] { profile.people.filter { selectedIDs.contains($0.id) } }
+    private var selectedPeople: [PrototypePerson] {
+        profile.selectableChatPeople.filter { selectedIDs.contains($0.id) }
+    }
     private var filteredPeople: [PrototypePerson] {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return profile.people.filter {
+        return profile.selectableChatPeople.filter {
             value.isEmpty || $0.name.localizedCaseInsensitiveContains(value)
                 || $0.publicKey.localizedCaseInsensitiveContains(value)
         }
@@ -302,7 +304,9 @@ struct NewGroupSetupView: View {
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var selectedPeople: [PrototypePerson] { profile.people.filter { selectedPersonIDs.contains($0.id) } }
+    private var selectedPeople: [PrototypePerson] {
+        profile.selectableChatPeople.filter { selectedPersonIDs.contains($0.id) }
+    }
     private var currentWebChoice: AvatarWebImageChoice? {
         guard case let .asset(name) = avatar else { return nil }
         return AvatarWebImageCatalog.choices.first { $0.assetName == name }

@@ -71,6 +71,12 @@ support native swipe actions.
   message or typed group event; a draft temporarily supersedes that projection.
   Deleting the latest message reveals the preceding valid activity instead of
   leaving stale duplicated row data.
+- Opening a conversation through any route clears its unread count and manual
+  unread reminder in the authoritative profile-owned chat. The Chats and Unread
+  projections reflect that change immediately on return.
+- Calendar-date fixtures retain deterministic, plausible times of day instead
+  of resolving to midnight. White Noise Support retains its stable Thursday
+  fixture date, and Contact previews resolve the referenced person's name.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
 - Nostr Devs and Radia Perlman are the only initially pinned chats. Their older timestamps make the pin-driven ordering explicit while leaving recent unpinned activity chronological beneath them.
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
@@ -117,6 +123,10 @@ The complete ten-person legacy marketing cast now forms the uninterrupted hero b
 - Muting opens **Mute Notifications** with Signal’s current duration set: 1 hour, 8 hours, 1 day, 1 week, and Always. Unmute applies immediately.
 - Archive and Unarchive apply immediately and move the row between the native filtered projections. Existing mute state is preserved while archived and returns if the chat is restored.
 - Leaving clears unread and mute state, replaces the preview with **You left this chat.**, and shows `rectangle.portrait.and.arrow.right` beside the chat name.
+- Attempting to leave from the chat list while the active profile is the sole
+  admin leaves state untouched and presents **Can’t Leave Group** with **You’re
+  the only admin in this group. Make another member an admin before you
+  leave.** This matches Group Info's role protection.
 - The fixed **Book Club** fixture starts in the voluntary-left state, appears in Left, and shows **You left this chat.**
 - The fixed **Quiet Studio Group** fixture starts in the removed state, appears in Left, and shows **You were removed from this chat.** with the same ended-membership symbol.
 - After membership ends, Delete replaces Leave and remains paired with Archive or Unarchive. Delete opens a destructive confirmation dialog, then removes the chat from every projection.

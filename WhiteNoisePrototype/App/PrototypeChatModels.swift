@@ -148,7 +148,7 @@ enum PrototypeAttachment: Equatable, Identifiable {
         }
     }
 
-    var listPreview: ChatListItem.AttachmentPreview {
+    func listPreview(people: [PrototypePerson]) -> ChatListItem.AttachmentPreview {
         switch self {
         case .photo: .photo
         case .video: .video
@@ -158,7 +158,8 @@ enum PrototypeAttachment: Equatable, Identifiable {
         case .gif: .gif
         case .sticker: .sticker
         case .location: .location
-        case .contact: .contact("Contact")
+        case let .contact(_, personID):
+            .contact(people.first { $0.id == personID }?.name ?? "Contact")
         }
     }
 }
@@ -362,7 +363,7 @@ struct PrototypeChat: Identifiable, Equatable {
                    }) {
                     attachmentPreview = .photos(message.attachments.count)
                 } else {
-                    attachmentPreview = message.attachments.first?.listPreview
+                    attachmentPreview = message.attachments.first?.listPreview(people: people)
                 }
                 previewMessage = message
             case let .event(event):

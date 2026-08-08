@@ -30,6 +30,8 @@ states own presentation and interaction.
   presentation.
 - Back or Cancel before creation makes no mutation.
 - The active profile never appears as a selectable person.
+- White Noise Support is a service destination, not a person. It never appears
+  in New Chat, New Group, or Add People results and cannot be added to a group.
 - Selection state is visible, spoken, and not color-only. Avatar-only actions
   have explicit labels.
 - Without an available profile Chat Messages relay, Chats keeps the accepted

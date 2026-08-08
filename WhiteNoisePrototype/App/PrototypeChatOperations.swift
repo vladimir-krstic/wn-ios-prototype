@@ -1,6 +1,10 @@
 import Foundation
 
 extension PrototypeProfile {
+    var selectableChatPeople: [PrototypePerson] {
+        people.filter { $0.id != ChatListFixtures.supportChatID }
+    }
+
     mutating func openOrCreateSupportChat(now: Date = .now) -> String? {
         if chats.contains(where: { $0.id == ChatListFixtures.supportChatID }) {
             return ChatListFixtures.supportChatID
@@ -87,7 +91,10 @@ extension PrototypeProfile {
     ) -> String? {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let uniqueIDs = selectedPersonIDs.reduce(into: [String]()) { result, id in
-            if id != self.id, people.contains(where: { $0.id == id }), !result.contains(id) {
+            if id != self.id,
+               id != ChatListFixtures.supportChatID,
+               people.contains(where: { $0.id == id }),
+               !result.contains(id) {
                 result.append(id)
             }
         }

@@ -167,17 +167,37 @@ struct PrototypeMessageBubble: View {
     }
 
     private var attributedMessageText: AttributedString {
-        var markdown = message.text
+        attributedText(message.text)
+    }
+
+    private func attributedText(_ text: String) -> AttributedString {
+        var markdown = text
         for person in people {
             markdown = markdown.replacingOccurrences(
                 of: "@\(person.name)",
                 with: "[@\(person.name)](whitenoise-person://\(person.id))"
             )
         }
-        return (try? AttributedString(
+        var attributed = (try? AttributedString(
             markdown: markdown,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(message.text)
+        )) ?? AttributedString(text)
+        let links = attributed.runs.compactMap { run -> (Range<AttributedString.Index>, URL)? in
+            guard let link = run.link else { return nil }
+            return (run.range, link)
+        }
+        for (range, link) in links {
+            attributed[range].foregroundColor = messageColor.foregroundColor
+            attributed[range].underlineStyle = Text.LineStyle(pattern: .solid)
+            if link.scheme == "whitenoise-person" {
+                attributed[range].font = .body.weight(.semibold)
+            }
+        }
+        return attributed
+    }
+
+    private func plainText(_ text: String) -> String {
+        String(attributedText(text).characters)
     }
 
     private var replyQuote: some View {
@@ -204,7 +224,7 @@ struct PrototypeMessageBubble: View {
     private var replyPreview: String {
         guard let resolvedReply else { return "Message unavailable" }
         if resolvedReply.isDeleted { return "Message deleted" }
-        if !resolvedReply.text.isEmpty { return resolvedReply.text }
+        if !resolvedReply.text.isEmpty { return plainText(resolvedReply.text) }
         return resolvedReply.attachments.first?.accessibilityLabel ?? "Message"
     }
 
@@ -306,7 +326,7 @@ struct PrototypeMessageBubble: View {
         let sender = outgoing ? profileName : (author?.name ?? "Unknown")
         let content = message.isDeleted
             ? deletedText
-            : ([message.text] + message.attachments.map(\.accessibilityLabel))
+            : ([plainText(message.text)] + message.attachments.map(\.accessibilityLabel))
                 .filter { !$0.isEmpty }.joined(separator: ", ")
         let reactions = message.reactions.isEmpty ? "" : ", reactions: " + message.reactions.map(\.emoji).joined(separator: ", ")
         let reply = message.replyToMessageID == nil
@@ -582,12 +602,15 @@ private struct PrototypeVoiceBubble: View {
             .buttonStyle(.plain)
             .accessibilityLabel(isPlaying ? "Pause" : "Play")
             .accessibilityIdentifier("voice.\(id).toggle")
-            ProgressView(value: elapsed, total: max(duration, 0.1))
-                .frame(width: 120)
-            Text("\(prototypeDurationString(elapsed)) / \(prototypeDurationString(duration))")
-                .font(.caption.monospacedDigit())
+            VStack(alignment: .leading, spacing: 5) {
+                ProgressView(value: elapsed, total: max(duration, 0.1))
+                    .frame(minWidth: 120)
+                Text("\(prototypeDurationString(elapsed)) / \(prototypeDurationString(duration))")
+                    .font(.caption.monospacedDigit())
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
         }
-        .frame(width: 220)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Voice message, \(prototypeDurationString(elapsed)) of \(prototypeDurationString(duration))"

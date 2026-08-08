@@ -195,7 +195,7 @@ enum ChatListFixtures {
         ChatListItem(
             id: "weekend-walks",
             title: "Weekend Walks",
-            avatar: .monogram("W"),
+            avatar: .asset("ProfileAvatarPebble"),
             preview: "Saturday morning works for me.",
             previewAuthor: "Nora",
             timestamp: "Sunday",

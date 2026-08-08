@@ -225,29 +225,95 @@ private struct PrototypeVideoPage: View {
 
 private struct ZoomablePrototypeImage: View {
     let source: PrototypeImageSource
-    @State private var scale: CGFloat = 1
-    @State private var settledScale: CGFloat = 1
 
     var body: some View {
-        PrototypeImageSourceView(source: source)
-            .scaledToFit()
-            .scaleEffect(scale)
-            .gesture(
-                MagnifyGesture()
-                    .onChanged { value in
-                        scale = min(max(settledScale * value.magnification, 1), 5)
-                    }
-                    .onEnded { _ in
-                        settledScale = scale
-                    }
-            )
-            .onTapGesture(count: 2) {
-                withAnimation(.snappy) {
-                    scale = scale > 1 ? 1 : 2
-                    settledScale = scale
-                }
-            }
-            .clipped()
+        PrototypeZoomScrollView(source: source)
             .accessibilityHint("Pinch or double-tap to zoom.")
+    }
+}
+
+private struct PrototypeZoomScrollView: UIViewRepresentable {
+    let source: PrototypeImageSource
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        let imageView = UIImageView()
+        var currentSource: PrototypeImageSource?
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            imageView
+        }
+
+        @objc func toggleZoom(_ recognizer: UITapGestureRecognizer) {
+            guard let scrollView = recognizer.view as? UIScrollView else { return }
+            if scrollView.zoomScale > scrollView.minimumZoomScale {
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+                return
+            }
+
+            let point = recognizer.location(in: imageView)
+            let targetScale = min(2, scrollView.maximumZoomScale)
+            let width = scrollView.bounds.width / targetScale
+            let height = scrollView.bounds.height / targetScale
+            scrollView.zoom(
+                to: CGRect(
+                    x: point.x - width / 2,
+                    y: point.y - height / 2,
+                    width: width,
+                    height: height
+                ),
+                animated: true
+            )
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.delegate = context.coordinator
+        scrollView.minimumZoomScale = 1
+        scrollView.maximumZoomScale = 5
+        scrollView.bouncesZoom = true
+        scrollView.backgroundColor = .black
+
+        let imageView = context.coordinator.imageView
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.contentMode = .scaleAspectFit
+        imageView.isAccessibilityElement = false
+        scrollView.addSubview(imageView)
+        NSLayoutConstraint.activate([
+            imageView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            imageView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            imageView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            imageView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            imageView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+        ])
+
+        let doubleTap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.toggleZoom(_:))
+        )
+        doubleTap.numberOfTapsRequired = 2
+        scrollView.addGestureRecognizer(doubleTap)
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        guard context.coordinator.currentSource != source else { return }
+        context.coordinator.currentSource = source
+        context.coordinator.imageView.image = image(for: source)
+        scrollView.setZoomScale(scrollView.minimumZoomScale, animated: false)
+    }
+
+    private func image(for source: PrototypeImageSource) -> UIImage? {
+        switch source {
+        case let .asset(name):
+            UIImage(named: name)
+        case let .data(data):
+            PrototypePreparedImageCache.image(from: data)
+        }
     }
 }
