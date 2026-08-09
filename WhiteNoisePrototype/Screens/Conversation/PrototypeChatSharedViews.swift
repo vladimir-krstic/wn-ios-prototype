@@ -196,6 +196,17 @@ struct PrototypeMediaViewer: View {
                 }
                 .accessibilityLabel("Video unavailable")
             }
+        case let .gif(_, assetName, label):
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .accessibilityLabel("GIF, \(label)")
+        case let .sticker(_, assetName, label):
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .padding()
+                .accessibilityLabel("Sticker, \(label)")
         default:
             ContentUnavailableView("Preview Unavailable", systemImage: "doc")
         }

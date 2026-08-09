@@ -2,9 +2,22 @@
 
 ## Purpose and hierarchy
 
-**Group Info** presents the photo, name, description, member count, Search,
-notifications, Archive, Chat Relays, members, admin editing, adding people, and
-Leave Group. Member rows push **Group Member**.
+**Group Info** presents the photo, name, description, member count, quick
+notification and Search actions, shared-content categories, group management,
+and Leave Group. Member rows push **Group Member**.
+
+- **Mute** or **Unmute**, **Disappearing Messages**, and **Search** appear as
+  one centered quick-action group directly below the group identity. They are
+  icon-only visually, retain explicit accessibility names, and the
+  disappearing-message menu announces its current value.
+- One scrolling `List` replaces the rejected category tabs and pager.
+  **Photos**, **Links**, and **Documents** appear as disclosure rows in one
+  grouped container and push focused shared-content destinations.
+- **Relays** and **Developer Tools** appear in the next grouped container.
+  Members and permitted management actions follow. The final group contains
+  **Archive** or **Unarchive** and destructive **Leave Group**.
+- Media, links, documents, relays, members, and settings derive from and mutate
+  the same authoritative group chat as the conversation and chat row.
 
 ## Permissions and mutations
 
@@ -27,11 +40,12 @@ Leave Group. Member rows push **Group Member**.
 
 ## Chat Relays
 
-Chat Info and Group Info both push **Chat Relays**. The page says **Messages in
-this chat use these relays.** It lists the chat's independent `wss://` URLs,
-adds normalized nonduplicate values, and removes values after consequence-aware
-confirmation. Removing the final relay is allowed after stating that sending
-will stop; history remains available and adding a relay restores sending.
+Chat Info and Group Info both expose **Relays** as a disclosure destination. It says
+**Messages in this chat use these relays.**, lists the chat's independent
+`wss://` URLs, adds normalized nonduplicate values, and removes values after
+consequence-aware confirmation. Removing the final relay is allowed after
+stating that sending will stop; history remains available and adding a relay
+restores sending.
 
 ## Native components and accessibility
 
@@ -43,6 +57,9 @@ visible and spoken. Destructive actions are never gesture-only.
 
 - [Forms](https://developer.apple.com/documentation/swiftui/form)
 - [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack)
+- [List](https://developer.apple.com/documentation/swiftui/list)
+- [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink)
+- [Menus](https://developer.apple.com/design/human-interface-guidelines/menus)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts)
 - [Confirmation dialogs](https://developer.apple.com/documentation/swiftui/view/confirmationdialog)

@@ -1,4 +1,5 @@
 import PhotosUI
+import QuickLook
 import SwiftUI
 
 struct ChatInfoView: View {
@@ -35,85 +36,104 @@ private struct DirectChatInfoView: View {
     let chatID: String
     let onSearch: () -> Void
 
-    @State private var isShowingBlockConfirmation = false
-    @State private var isShowingAddToGroup = false
+    @Environment(\.dismiss) private var dismiss
+    @State private var isShowingContact = false
+    @State private var isShowingLeaveConfirmation = false
 
     var body: some View {
         List {
-            Section {
-                VStack(spacing: 12) {
-                    PrototypeChatAvatarView(avatar: person.avatar, size: 88)
-                    Text(person.name).font(.title2.bold())
-                    Button {
-                        UIPasteboard.general.string = person.publicKey
-                    } label: {
-                        Label(person.shortPublicKey, systemImage: "doc.on.doc")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .frame(maxWidth: .infinity)
+            identityHeader
+                .listRowInsets(.init(top: 24, leading: 16, bottom: 12, trailing: 16))
                 .listRowBackground(Color.clear)
-            }
+                .listRowSeparator(.hidden)
 
-            if !person.about.isEmpty {
-                Section("About") {
-                    Text(person.about)
-                }
-            }
-
-            if !person.nostrAddress.isEmpty || !person.lightningAddress.isEmpty {
-                Section("Addresses") {
-                    if !person.nostrAddress.isEmpty {
-                        LabeledContent("Nostr", value: person.nostrAddress)
-                    }
-                    if !person.lightningAddress.isEmpty {
-                        LabeledContent("Lightning", value: person.lightningAddress)
-                    }
-                }
-            }
+            ChatInfoSharedContentLinks(profile: $profile, chatID: chatID)
+            ChatInfoTechnicalLinks(profile: $profile, chatID: chatID)
 
             Section {
-                Button("Search", systemImage: "magnifyingglass", action: onSearch)
                 Button(
-                    person.isFollowing ? "Unfollow" : "Follow",
-                    systemImage: person.isFollowing ? "person.badge.minus" : "person.badge.plus"
+                    chat.listState.isArchived ? "Unarchive" : "Archive",
+                    systemImage: "archivebox"
                 ) {
-                    profile.people[personIndex].isFollowing.toggle()
-                }
-                Button("Add to Group", systemImage: "person.2.badge.plus") { isShowingAddToGroup = true }
-            }
-
-            Section {
-                muteMenu
-                Button(chat.listState.isArchived ? "Unarchive" : "Archive", systemImage: "archivebox") {
                     updateChat { $0.listState.isArchived.toggle() }
                 }
-                NavigationLink {
-                    ChatRelaysView(profile: $profile, chatID: chatID)
-                } label: {
-                    Label("Chat Relays", systemImage: "network")
-                }
-            }
 
-            Section {
-                Button(person.isBlocked ? "Unblock" : "Block", role: person.isBlocked ? nil : .destructive) {
-                    if person.isBlocked { profile.people[personIndex].isBlocked = false }
-                    else { isShowingBlockConfirmation = true }
+                if chat.listState.membershipState == .active {
+                    Button(
+                        "Leave Chat",
+                        systemImage: "rectangle.portrait.and.arrow.right",
+                        role: .destructive
+                    ) {
+                        isShowingLeaveConfirmation = true
+                    }
                 }
             }
         }
         .navigationTitle("Chat Info")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Block \(person.name)?", isPresented: $isShowingBlockConfirmation, titleVisibility: .visible) {
-            Button("Block", role: .destructive) { profile.people[personIndex].isBlocked = true }
+        .navigationDestination(isPresented: $isShowingContact) {
+            PersonProfileView(
+                profile: $profile,
+                settings: $settings,
+                personID: person.id,
+                onMessagePerson: { _ in dismiss() }
+            )
+        }
+        .confirmationDialog(
+            "Leave \(person.name)?",
+            isPresented: $isShowingLeaveConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Leave Chat", role: .destructive, action: leaveChat)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("You’ll keep the chat history, but you won’t be able to send messages until you unblock them.")
+            Text(
+                "You’ll stop receiving new messages. This chat will remain "
+                    + "on this device as read-only history until you delete it."
+            )
         }
-        .sheet(isPresented: $isShowingAddToGroup) {
-            NavigationStack { AddPersonToGroupView(profile: $profile, personID: person.id) }
+    }
+
+    private var identityHeader: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 10) {
+                PrototypeChatAvatarView(avatar: person.avatar, size: 104)
+                Text(person.name)
+                    .font(.title2.bold())
+                    .multilineTextAlignment(.center)
+            }
+
+            HStack(spacing: 20) {
+                ChatInfoQuickAction {
+                    Button {
+                        isShowingContact = true
+                    } label: {
+                        ChatInfoQuickActionIcon(systemName: "person.crop.circle")
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .accessibilityLabel("Contact")
+                }
+
+                ChatInfoQuickAction {
+                    muteMenu
+                }
+
+                ChatInfoQuickAction {
+                    disappearingMessagesMenu
+                }
+
+                ChatInfoQuickAction {
+                    Button(action: onSearch) {
+                        ChatInfoQuickActionIcon(systemName: "magnifyingglass")
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .accessibilityLabel("Search")
+                }
+            }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
@@ -124,6 +144,33 @@ private struct DirectChatInfoView: View {
     }
     private var personIndex: Int { profile.people.firstIndex { $0.id == personID }! }
     private var person: PrototypePerson { profile.people[personIndex] }
+    private var muteActionTitle: String {
+        chat.listState.muteDuration == nil ? "Mute" : "Unmute"
+    }
+
+    private var disappearingMessagesMenu: some View {
+        Menu {
+            Picker("Disappearing Messages", selection: disappearingMessageDuration) {
+                ForEach(PrototypeDisappearingMessageDuration.allCases) { duration in
+                    Text(duration.title).tag(duration)
+                }
+            }
+        } label: {
+            ChatInfoQuickActionIcon(systemName: "timer")
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("Disappearing Messages")
+        .accessibilityValue(chat.disappearingMessageDuration.title)
+    }
+
+    private var disappearingMessageDuration: Binding<PrototypeDisappearingMessageDuration> {
+        Binding {
+            chat.disappearingMessageDuration
+        } set: { duration in
+            updateChat { $0.disappearingMessageDuration = duration }
+        }
+    }
 
     private var muteMenu: some View {
         Menu {
@@ -135,11 +182,22 @@ private struct DirectChatInfoView: View {
                 }
             }
         } label: {
-            Label(chat.listState.muteDuration == nil ? "Mute Notifications" : "Unmute Notifications", systemImage: "bell.slash")
+            ChatInfoQuickActionIcon(
+                systemName: chat.listState.muteDuration == nil ? "bell.slash" : "bell"
+            )
         }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel(muteActionTitle)
     }
 
-    private func updateChat(_ mutation: (inout PrototypeChat) -> Void) { mutation(&profile.chats[chatIndex]) }
+    private func updateChat(_ mutation: (inout PrototypeChat) -> Void) {
+        mutation(&profile.chats[chatIndex])
+    }
+
+    private func leaveChat() {
+        updateChat { _ = $0.leave(currentProfileID: profile.id) }
+    }
 }
 
 private struct GroupInfoView: View {
@@ -153,31 +211,13 @@ private struct GroupInfoView: View {
 
     var body: some View {
         List {
-            Section {
-                VStack(spacing: 10) {
-                    PrototypeChatAvatarView(avatar: chat.avatar, size: 88)
-                    Text(chat.groupName).font(.title2.bold())
-                    if !chat.groupDescription.isEmpty {
-                        Text(chat.groupDescription).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    }
-                    Text("\(chat.members.count) members").font(.footnote).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
+            identityHeader
+                .listRowInsets(.init(top: 24, leading: 16, bottom: 12, trailing: 16))
                 .listRowBackground(Color.clear)
-            }
+                .listRowSeparator(.hidden)
 
-            Section {
-                Button("Search", systemImage: "magnifyingglass", action: onSearch)
-                muteMenu
-                Button(chat.listState.isArchived ? "Unarchive" : "Archive", systemImage: "archivebox") {
-                    updateChat { $0.listState.isArchived.toggle() }
-                }
-                NavigationLink {
-                    ChatRelaysView(profile: $profile, chatID: chatID)
-                } label: {
-                    Label("Chat Relays", systemImage: "network")
-                }
-            }
+            ChatInfoSharedContentLinks(profile: $profile, chatID: chatID)
+            ChatInfoTechnicalLinks(profile: $profile, chatID: chatID)
 
             Section("Members") {
                 ForEach(chat.members) { member in
@@ -194,7 +234,9 @@ private struct GroupInfoView: View {
                             Text(memberName(member.personID))
                             Spacer()
                             if member.role == .admin {
-                                Text("Admin").font(.caption).foregroundStyle(.secondary)
+                                Text("Admin")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -217,18 +259,36 @@ private struct GroupInfoView: View {
                 }
             }
 
-            if chat.listState.membershipState == .active {
-                Section {
-                    Button("Leave Group", role: .destructive) {
-                        if isOnlyAdmin { isShowingOnlyAdminAlert = true }
-                        else { isShowingLeaveConfirmation = true }
+            Section {
+                Button(
+                    chat.listState.isArchived ? "Unarchive" : "Archive",
+                    systemImage: "archivebox"
+                ) {
+                    updateChat { $0.listState.isArchived.toggle() }
+                }
+
+                if chat.listState.membershipState == .active {
+                    Button(
+                        "Leave Group",
+                        systemImage: "rectangle.portrait.and.arrow.right",
+                        role: .destructive
+                    ) {
+                        if isOnlyAdmin {
+                            isShowingOnlyAdminAlert = true
+                        } else {
+                            isShowingLeaveConfirmation = true
+                        }
                     }
                 }
             }
         }
         .navigationTitle("Group Info")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Leave \(chat.groupName)?", isPresented: $isShowingLeaveConfirmation, titleVisibility: .visible) {
+        .confirmationDialog(
+            "Leave \(chat.groupName)?",
+            isPresented: $isShowingLeaveConfirmation,
+            titleVisibility: .visible
+        ) {
             Button("Leave Group", role: .destructive, action: leaveGroup)
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -241,18 +301,98 @@ private struct GroupInfoView: View {
         }
     }
 
+    private var identityHeader: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 10) {
+                PrototypeChatAvatarView(avatar: chat.avatar, size: 104)
+                Text(chat.groupName)
+                    .font(.title2.bold())
+                    .multilineTextAlignment(.center)
+                if !chat.groupDescription.isEmpty {
+                    Text(chat.groupDescription)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                Text("\(chat.members.count) members")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 28) {
+                ChatInfoQuickAction {
+                    muteMenu
+                }
+
+                ChatInfoQuickAction {
+                    disappearingMessagesMenu
+                }
+
+                ChatInfoQuickAction {
+                    Button(action: onSearch) {
+                        ChatInfoQuickActionIcon(systemName: "magnifyingglass")
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .accessibilityLabel("Search")
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
     private var chat: PrototypeChat { profile.chats[chatIndex] }
-    private var canManage: Bool { chat.listState.membershipState == .active && chat.isCurrentProfileAdmin(profile.id) }
-    private var isOnlyAdmin: Bool { canManage && chat.members.filter { $0.role == .admin }.count == 1 }
-
-    @ViewBuilder private func memberAvatar(_ id: String) -> some View {
-        if id == profile.id { ProfileAvatarView(profile: profile, size: 36) }
-        else { PrototypeChatAvatarView(avatar: profile.people.first { $0.id == id }?.avatar ?? .monogram("?"), size: 36) }
+    private var canManage: Bool {
+        chat.listState.membershipState == .active
+            && chat.isCurrentProfileAdmin(profile.id)
     }
+    private var isOnlyAdmin: Bool {
+        canManage && chat.members.filter { $0.role == .admin }.count == 1
+    }
+    private var muteActionTitle: String {
+        chat.listState.muteDuration == nil ? "Mute" : "Unmute"
+    }
+
+    @ViewBuilder
+    private func memberAvatar(_ id: String) -> some View {
+        if id == profile.id {
+            ProfileAvatarView(profile: profile, size: 36)
+        } else {
+            PrototypeChatAvatarView(
+                avatar: profile.people.first { $0.id == id }?.avatar ?? .monogram("?"),
+                size: 36
+            )
+        }
+    }
+
     private func memberName(_ id: String) -> String {
         id == profile.id ? "You" : (profile.people.first { $0.id == id }?.name ?? "Unknown")
     }
+
+    private var disappearingMessagesMenu: some View {
+        Menu {
+            Picker("Disappearing Messages", selection: disappearingMessageDuration) {
+                ForEach(PrototypeDisappearingMessageDuration.allCases) { duration in
+                    Text(duration.title).tag(duration)
+                }
+            }
+        } label: {
+            ChatInfoQuickActionIcon(systemName: "timer")
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("Disappearing Messages")
+        .accessibilityValue(chat.disappearingMessageDuration.title)
+    }
+
+    private var disappearingMessageDuration: Binding<PrototypeDisappearingMessageDuration> {
+        Binding {
+            chat.disappearingMessageDuration
+        } set: { duration in
+            updateChat { $0.disappearingMessageDuration = duration }
+        }
+    }
+
     private var muteMenu: some View {
         Menu {
             if chat.listState.muteDuration != nil {
@@ -263,16 +403,421 @@ private struct GroupInfoView: View {
                 }
             }
         } label: {
-            Label(chat.listState.muteDuration == nil ? "Mute Notifications" : "Unmute Notifications", systemImage: "bell.slash")
+            ChatInfoQuickActionIcon(
+                systemName: chat.listState.muteDuration == nil ? "bell.slash" : "bell"
+            )
         }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel(muteActionTitle)
     }
-    private func updateChat(_ mutation: (inout PrototypeChat) -> Void) { mutation(&profile.chats[chatIndex]) }
+
+    private func updateChat(_ mutation: (inout PrototypeChat) -> Void) {
+        mutation(&profile.chats[chatIndex])
+    }
+
     private func leaveGroup() {
         updateChat { _ = $0.leave(currentProfileID: profile.id) }
     }
 }
 
-struct ChatRelaysView: View {
+private enum ChatInfoSharedContent: String, CaseIterable, Identifiable {
+    case photos = "Photos"
+    case links = "Links"
+    case documents = "Documents"
+
+    var id: Self { self }
+
+    var systemImage: String {
+        switch self {
+        case .photos: "photo.on.rectangle"
+        case .links: "link"
+        case .documents: "doc"
+        }
+    }
+}
+
+private struct ChatInfoQuickAction<Control: View>: View {
+    let control: Control
+
+    init(@ViewBuilder control: () -> Control) {
+        self.control = control()
+    }
+
+    var body: some View {
+        control
+    }
+}
+
+private struct ChatInfoQuickActionIcon: View {
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.title3)
+            .frame(width: 44, height: 44)
+    }
+}
+
+private struct ChatInfoSharedContentLinks: View {
+    @Binding var profile: PrototypeProfile
+    let chatID: String
+
+    var body: some View {
+        Section {
+            ForEach(ChatInfoSharedContent.allCases) { category in
+                NavigationLink {
+                    ChatInfoSharedContentView(
+                        profile: $profile,
+                        chatID: chatID,
+                        category: category
+                    )
+                } label: {
+                    Label(category.rawValue, systemImage: category.systemImage)
+                }
+            }
+        }
+    }
+}
+
+private struct ChatInfoTechnicalLinks: View {
+    @Binding var profile: PrototypeProfile
+    let chatID: String
+
+    var body: some View {
+        Section {
+            NavigationLink {
+                ChatRelaysView(profile: $profile, chatID: chatID)
+            } label: {
+                Label("Relays", systemImage: "network")
+            }
+
+            NavigationLink {
+                DeveloperToolsPrototypeView(
+                    developerTools: $profile.developerTools,
+                    profile: profile
+                )
+            } label: {
+                Label("Developer Tools", systemImage: "wrench.and.screwdriver")
+            }
+        }
+    }
+}
+
+private struct ChatInfoSharedContentView: View {
+    @Binding var profile: PrototypeProfile
+    let chatID: String
+    let category: ChatInfoSharedContent
+    @State private var mediaSelection: PrototypeMediaSelection?
+    @State private var quickLookURL: URL?
+
+    var body: some View {
+        List {
+            ChatInfoSharedCategorySections(
+                profile: $profile,
+                chatID: chatID,
+                category: category,
+                mediaSelection: $mediaSelection,
+                quickLookURL: $quickLookURL
+            )
+        }
+        .navigationTitle(category.rawValue)
+        .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $mediaSelection) {
+            PrototypeMediaViewer(selection: $0)
+        }
+        .quickLookPreview($quickLookURL)
+    }
+}
+
+private struct ChatInfoSharedCategorySections: View {
+    @Binding var profile: PrototypeProfile
+    let chatID: String
+    let category: ChatInfoSharedContent
+    @Binding var mediaSelection: PrototypeMediaSelection?
+    @Binding var quickLookURL: URL?
+
+    var body: some View {
+        switch category {
+        case .photos:
+            ChatInfoMediaSection(attachments: mediaAttachments) { index in
+                mediaSelection = PrototypeMediaSelection(
+                    id: "\(chatID)-info-media-\(UUID().uuidString)",
+                    attachments: mediaAttachments,
+                    initialIndex: index
+                )
+            }
+        case .links:
+            ChatInfoLinksSection(attachments: linkAttachments)
+        case .documents:
+            ChatInfoDocumentsSection(attachments: documentAttachments) { url in
+                quickLookURL = url
+            }
+        }
+    }
+
+    private var chat: PrototypeChat {
+        profile.chats.first { $0.id == chatID }!
+    }
+    private var attachments: [PrototypeAttachment] {
+        chat.messages
+            .filter { !$0.isDeleted }
+            .flatMap(\.attachments)
+    }
+    private var mediaAttachments: [PrototypeAttachment] {
+        attachments.filter {
+            switch $0 {
+            case .photo, .video, .gif, .sticker: true
+            default: false
+            }
+        }
+    }
+    private var linkAttachments: [PrototypeAttachment] {
+        attachments.filter {
+            if case .link = $0 { return true }
+            return false
+        }
+    }
+    private var documentAttachments: [PrototypeAttachment] {
+        attachments.filter {
+            if case .file = $0 { return true }
+            return false
+        }
+    }
+}
+
+private struct ChatInfoMediaSection: View {
+    let attachments: [PrototypeAttachment]
+    let onOpen: (Int) -> Void
+    private let columns = [GridItem(.adaptive(minimum: 92), spacing: 3)]
+
+    var body: some View {
+        Section {
+            if attachments.isEmpty {
+                ContentUnavailableView(
+                    "No Photos",
+                    systemImage: "photo.on.rectangle",
+                    description: Text("Photos and videos shared in this chat will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                LazyVGrid(columns: columns, spacing: 3) {
+                    ForEach(Array(attachments.enumerated()), id: \.element.id) { index, attachment in
+                        Button {
+                            onOpen(index)
+                        } label: {
+                            mediaTile(attachment)
+                                .frame(maxWidth: .infinity)
+                                .aspectRatio(1, contentMode: .fit)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(
+                            "\(attachment.accessibilityLabel), \(index + 1) of \(attachments.count)"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func mediaTile(_ attachment: PrototypeAttachment) -> some View {
+        ZStack {
+            Color(uiColor: .secondarySystemBackground)
+            switch attachment {
+            case let .photo(_, source, _):
+                PrototypeImageSourceView(source: source)
+                    .scaledToFill()
+            case let .video(_, _, thumbnail, duration):
+                PrototypeImageSourceView(source: thumbnail)
+                    .scaledToFill()
+                Image(systemName: "play.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white)
+                    .shadow(radius: 2)
+                Text(prototypeDurationString(duration))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(4)
+                    .background(.black.opacity(0.55), in: .capsule)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(5)
+            case let .gif(_, assetName, _):
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+                Text("GIF")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .padding(4)
+                    .background(.black.opacity(0.55), in: .capsule)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(5)
+            case let .sticker(_, assetName, _):
+                Image(assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(8)
+            default:
+                EmptyView()
+            }
+        }
+        .clipped()
+        .clipShape(.rect(cornerRadius: 10))
+    }
+}
+
+private struct ChatInfoLinksSection: View {
+    let attachments: [PrototypeAttachment]
+
+    var body: some View {
+        Section {
+            if attachments.isEmpty {
+                ContentUnavailableView(
+                    "No Links",
+                    systemImage: "link",
+                    description: Text("Links shared in this chat will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(attachments) { attachment in
+                    if case let .link(_, title, domain, summary, image) = attachment {
+                        if let destination = chatInfoLinkDestination(domain: domain) {
+                            Link(destination: destination) {
+                                ChatInfoLinkRow(
+                                    title: title,
+                                    domain: domain,
+                                    summary: summary,
+                                    image: image
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            ChatInfoLinkRow(
+                                title: title,
+                                domain: domain,
+                                summary: summary,
+                                image: image
+                            )
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Link unavailable, \(title), \(domain)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ChatInfoLinkRow: View {
+    let title: String
+    let domain: String
+    let summary: String
+    let image: PrototypeImageSource?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let image {
+                PrototypeImageSourceView(source: image)
+                    .scaledToFill()
+                    .frame(width: 56, height: 56)
+                    .clipped()
+                    .clipShape(.rect(cornerRadius: 8))
+            } else {
+                Image(systemName: "link")
+                    .font(.title3)
+                    .frame(width: 56, height: 56)
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    .clipShape(.rect(cornerRadius: 8))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(domain)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ChatInfoDocumentsSection: View {
+    let attachments: [PrototypeAttachment]
+    let onOpen: (URL) -> Void
+
+    var body: some View {
+        Section {
+            if attachments.isEmpty {
+                ContentUnavailableView(
+                    "No Documents",
+                    systemImage: "doc",
+                    description: Text("Documents shared in this chat will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(attachments) { attachment in
+                    if case let .file(_, name, size, url) = attachment {
+                        if let url {
+                            Button {
+                                onOpen(url)
+                            } label: {
+                                ChatInfoDocumentRow(name: name, size: size, isAvailable: true)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Opens a preview.")
+                        } else {
+                            ChatInfoDocumentRow(name: name, size: size, isAvailable: false)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel("Document, \(name), unavailable")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ChatInfoDocumentRow: View {
+    let name: String
+    let size: Int
+    let isAvailable: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "doc.fill")
+                .font(.title2)
+                .frame(width: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(chatInfoFileMetadata(name: name, size: size))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: isAvailable ? "chevron.right" : "exclamationmark.triangle")
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ChatInfoRelaysSections: View {
     @Binding var profile: PrototypeProfile
     let chatID: String
     @State private var newRelay = ""
@@ -280,7 +825,7 @@ struct ChatRelaysView: View {
     @State private var relayPendingRemoval: String?
 
     var body: some View {
-        Form {
+        Group {
             Section {
                 Text("Messages in this chat use these relays.")
                     .foregroundStyle(.secondary)
@@ -289,9 +834,12 @@ struct ChatRelaysView: View {
             Section("Relays") {
                 ForEach(chat.routing.relayURLs, id: \.self) { relay in
                     HStack {
-                        Text(relay).textSelection(.enabled)
+                        Text(relay)
+                            .textSelection(.enabled)
                         Spacer()
-                        Button(role: .destructive) { relayPendingRemoval = relay } label: {
+                        Button(role: .destructive) {
+                            relayPendingRemoval = relay
+                        } label: {
                             Image(systemName: "minus.circle.fill")
                         }
                         .buttonStyle(.plain)
@@ -307,14 +855,14 @@ struct ChatRelaysView: View {
                     .keyboardType(.URL)
                     .accessibilityIdentifier("chat-relays.input")
                 if let validationMessage {
-                    Text(validationMessage).font(.footnote).foregroundStyle(.red)
+                    Text(validationMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
                 }
                 Button("Add Relay", action: addRelay)
                     .disabled(newRelay.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .navigationTitle("Chat Relays")
-        .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
             chat.routing.relayURLs.count == 1 ? "Remove Final Relay?" : "Remove Relay?",
             isPresented: Binding(
@@ -323,8 +871,12 @@ struct ChatRelaysView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Remove Relay", role: .destructive) { removePendingRelay() }
-            Button("Cancel", role: .cancel) { relayPendingRemoval = nil }
+            Button("Remove Relay", role: .destructive) {
+                removePendingRelay()
+            }
+            Button("Cancel", role: .cancel) {
+                relayPendingRemoval = nil
+            }
         } message: {
             if chat.routing.relayURLs.count == 1 {
                 Text("Sending will stop until you add a Chat Relay.")
@@ -353,6 +905,33 @@ struct ChatRelaysView: View {
         guard let relayPendingRemoval else { return }
         profile.chats[chatIndex].routing.remove(relayPendingRemoval)
         self.relayPendingRemoval = nil
+    }
+}
+
+private func chatInfoLinkDestination(domain: String) -> URL? {
+    guard !domain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          let url = URL(string: "https://\(domain)"),
+          url.host?.isEmpty == false
+    else { return nil }
+    return url
+}
+
+private func chatInfoFileMetadata(name: String, size: Int) -> String {
+    let fileType = URL(fileURLWithPath: name).pathExtension.uppercased()
+    let formattedSize = size.formatted(.byteCount(style: .file))
+    return fileType.isEmpty ? formattedSize : "\(fileType) • \(formattedSize)"
+}
+
+struct ChatRelaysView: View {
+    @Binding var profile: PrototypeProfile
+    let chatID: String
+
+    var body: some View {
+        Form {
+            ChatInfoRelaysSections(profile: $profile, chatID: chatID)
+        }
+        .navigationTitle("Chat Relays")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

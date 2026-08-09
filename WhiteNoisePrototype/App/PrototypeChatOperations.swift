@@ -306,13 +306,15 @@ extension PrototypeChat {
     }
 
     mutating func leave(currentProfileID: String, now: Date = .now) -> Bool {
-        guard isGroup, listState.membershipState == .active else { return false }
-        if isCurrentProfileAdmin(currentProfileID),
-           members.filter({ $0.role == .admin }).count == 1 {
-            return false
+        guard listState.membershipState == .active else { return false }
+        if isGroup {
+            if isCurrentProfileAdmin(currentProfileID),
+               members.filter({ $0.role == .admin }).count == 1 {
+                return false
+            }
+            appendEvent(.left(personID: currentProfileID), now: now)
+            members.removeAll { $0.personID == currentProfileID }
         }
-        appendEvent(.left(personID: currentProfileID), now: now)
-        members.removeAll { $0.personID == currentProfileID }
         listState.membershipState = .left
         listState.unreadCount = 0
         listState.isMarkedUnread = false

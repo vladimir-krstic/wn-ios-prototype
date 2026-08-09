@@ -278,6 +278,24 @@ struct PrototypeChatListState: Equatable {
     var activityDate: Date = .now
 }
 
+enum PrototypeDisappearingMessageDuration: String, CaseIterable, Identifiable {
+    case off
+    case oneDay
+    case oneWeek
+    case fourWeeks
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .off: "Off"
+        case .oneDay: "1 Day"
+        case .oneWeek: "1 Week"
+        case .fourWeeks: "4 Weeks"
+        }
+    }
+}
+
 struct PrototypeChat: Identifiable, Equatable {
     let id: String
     var kind: PrototypeChatKind
@@ -291,6 +309,7 @@ struct PrototypeChat: Identifiable, Equatable {
     var draft: String
     var replyToMessageID: String?
     var listState: PrototypeChatListState
+    var disappearingMessageDuration = PrototypeDisappearingMessageDuration.off
 
     var isGroup: Bool {
         if case .group = kind { return true }
