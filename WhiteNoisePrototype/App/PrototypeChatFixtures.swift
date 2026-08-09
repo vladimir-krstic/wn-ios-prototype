@@ -109,9 +109,19 @@ enum PrototypeChatFixtures {
             if row.membershipState == .active {
                 members = [PrototypeGroupMember(personID: profileID, role: currentRole)]
             }
-            let currentMemberIDs = row.id == "weekend-walks"
+            var currentMemberIDs = row.id == "weekend-walks"
                 ? ["maya-chen", "mina-park", "elias-moreno", "nora-bennett"]
                 : ["maya-chen", "mina-park", "elias-moreno", "nora-bennett", "leo-martins"]
+
+            switch row.id {
+            case "nostr-devs":
+                currentMemberIDs += ["radia-perlman", "david-chaum"]
+            case "marmots", "project-files":
+                currentMemberIDs.append("radia-perlman")
+            default:
+                break
+            }
+
             for personID in currentMemberIDs {
                 let role: PrototypeGroupRole = row.id == "product-circle" && personID == "maya-chen"
                     ? .admin

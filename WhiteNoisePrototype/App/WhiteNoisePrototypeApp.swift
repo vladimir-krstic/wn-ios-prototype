@@ -195,7 +195,7 @@ private struct PrototypeRootView: View {
         guard let chatID = profile.openOrCreateDirectChat(personID: personID) else {
             return
         }
-        openCreatedChat(chatID, updatedProfile: profile)
+        finishChatCreation(chatID, updatedProfile: profile)
     }
 
     private func createGroup(
@@ -213,7 +213,7 @@ private struct PrototypeRootView: View {
         ) else {
             return
         }
-        openCreatedChat(chatID, updatedProfile: profile)
+        finishChatCreation(chatID, updatedProfile: profile)
     }
 
     private func replaceChat(
@@ -228,12 +228,12 @@ private struct PrototypeRootView: View {
         activeProfileBinding.wrappedValue = profile
     }
 
-    private func openCreatedChat(
+    private func finishChatCreation(
         _ chatID: String,
         updatedProfile: PrototypeProfile
     ) {
         activeProfileBinding.wrappedValue = updatedProfile
-        chatsPath.append(.conversation(chatID))
+        chatsPath = [.conversation(chatID)]
     }
 
     private func completeInitialSignIn() {

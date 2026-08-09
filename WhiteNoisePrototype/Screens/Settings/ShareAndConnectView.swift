@@ -9,9 +9,6 @@ struct ShareAndConnectView: View {
         var id: Self { self }
     }
 
-    @State private var copied = false
-    @State private var copyFeedbackTrigger = 0
-    @State private var copyResetTask: Task<Void, Never>?
     @State private var mode = Mode.share
 
     let profile: PrototypeProfile
@@ -77,15 +74,6 @@ struct ShareAndConnectView: View {
                 }
             }
         }
-        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
-        .onChange(of: mode) { _, newMode in
-            if newMode == .scan {
-                resetCopyFeedback()
-            }
-        }
-        .onDisappear {
-            resetCopyFeedback()
-        }
     }
 
     private var shareContent: some View {
@@ -105,55 +93,15 @@ struct ShareAndConnectView: View {
     }
 
     private var profileHeader: some View {
-        VStack(spacing: 8) {
-            profileAvatar
-
-            Text(profile.name)
-                .font(.title2.weight(.semibold))
-
-            copyPublicKeyButton
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top)
-    }
-
-    private var copyPublicKeyButton: some View {
-        Button(action: copyPublicKey) {
-            CompactCopyValueLabel(
-                value: compactPublicKey,
-                isCopied: copied
-            )
-            .padding(.bottom, 14)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(
-            copied ? "Public key copied" : "Copy public key"
-        )
-        .accessibilityValue(profile.shortPublicKey)
-    }
-
-    private var compactPublicKey: String {
-        guard profile.publicKey.count > 19 else {
-            return profile.publicKey
-        }
-
-        return "\(profile.publicKey.prefix(14))…\(profile.publicKey.suffix(4))"
-    }
-
-    private var profileAvatar: some View {
-        GeometryReader { geometry in
+        ProfileIdentityHeader(
+            name: profile.name,
+            publicKey: profile.publicKey
+        ) { size in
             ProfileAvatarView(
                 profile: profile,
-                size: geometry.size.width
+                size: size
             )
         }
-        .aspectRatio(1, contentMode: .fit)
-        .containerRelativeFrame(
-            .horizontal,
-            count: 3,
-            span: 1,
-            spacing: 0
-        )
     }
 
     @ViewBuilder
@@ -184,31 +132,4 @@ struct ShareAndConnectView: View {
         "\(profile.name) on White Noise\n\(profile.publicKey)"
     }
 
-    private func copyPublicKey() {
-        UIPasteboard.general.string = profile.publicKey
-        copied = true
-        copyFeedbackTrigger += 1
-        UIAccessibility.post(
-            notification: .announcement,
-            argument: "Public key copied"
-        )
-
-        copyResetTask?.cancel()
-        copyResetTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(2))
-
-            guard !Task.isCancelled else {
-                return
-            }
-
-            copied = false
-            copyResetTask = nil
-        }
-    }
-
-    private func resetCopyFeedback() {
-        copyResetTask?.cancel()
-        copyResetTask = nil
-        copied = false
-    }
 }

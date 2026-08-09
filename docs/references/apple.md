@@ -77,7 +77,8 @@ pattern in the screen brief.
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
 | [Settings](https://developer.apple.com/design/human-interface-guidelines/settings) | Settings hierarchy, restraint, and system preference respect | Adding or reorganizing a preference | Settings, Developer Tools | 2026-08-06 |
-| [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) | Row hierarchy, selection, editing, disclosure, and scanning | Designing list content or row interactions | Chats, relays, profiles | 2026-08-03 |
+| [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) | Row hierarchy, selection, editing, disclosure, and scanning | Designing list content or row interactions | Chats, relays, profiles, chat creation | 2026-08-09 |
+| [Label](https://developer.apple.com/documentation/swiftui/label) | Standard icon-and-title composition in lists and navigation rows | Pairing a concise action label with an SF Symbol | Chat creation | 2026-08-09 |
 | [Form](https://developer.apple.com/documentation/swiftui/form) | Native grouped data entry and settings structure | Building editable fields or preference groups | Sign Up, Settings, Developer Tools | 2026-08-06 |
 | [Disclosure controls](https://developer.apple.com/design/human-interface-guidelines/disclosure-controls) | Progressive disclosure, labels, and revealed detail | Deciding whether technical detail belongs inline or in a destination | Developer Tools | 2026-08-06 |
 | [List](https://developer.apple.com/documentation/swiftui/list) | Native rows, scrolling, separators, selection, and deletion | Implementing standard single-column collections | Settings, switcher | 2026-07-31 |
@@ -132,7 +133,10 @@ system.
 | [Text fields HIG](https://developer.apple.com/design/human-interface-guidelines/text-fields) | Field purpose, labels, affordances, and validation | Designing any text-entry experience | Onboarding, conversation, Settings | 2026-07-31 |
 | [TextField](https://developer.apple.com/documentation/swiftui/textfield) | Native editable text, focus, submission, and multiline entry | Adding ordinary text entry | Sign Up, conversation, Settings | 2026-07-31 |
 | [SecureField](https://developer.apple.com/documentation/swiftui/securefield) | Native obscured sensitive entry | Entering private keys or backup passwords | Sign In, Profile Keys | 2026-07-31 |
-| [Focus](https://developer.apple.com/documentation/swiftui/focus) | SwiftUI focus state, movement, and focused values | Coordinating keyboard focus or restoration | Sign In, Sign Up, conversation | 2026-07-31 |
+| [Focus](https://developer.apple.com/documentation/swiftui/focus) | SwiftUI focus state, movement, and focused values | Coordinating keyboard focus or restoration | Sign In, Sign Up, conversation, chat creation | 2026-08-09 |
+| [scrollDismissesKeyboard](https://developer.apple.com/documentation/swiftui/scrolldismisseskeyboardmode/interactively) | Interactive keyboard dismissal driven by scrolling | Letting a form scroll the software keyboard away | Chat creation | 2026-08-09 |
+| [UIGestureRecognizerDelegate](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate) | Filtering the touches seen by a bounded UIKit gesture | Adding approved tap-outside keyboard dismissal without intercepting text inputs | Chat creation | 2026-08-09 |
+| [cancelsTouchesInView](https://developer.apple.com/documentation/uikit/uigesturerecognizer/cancelstouchesinview) | Preserving delivery of recognized touches to their views | Keeping buttons and navigation active while a background tap ends editing | Chat creation | 2026-08-09 |
 | [disabled](https://developer.apple.com/documentation/swiftui/view/disabled(_:)) | Native disabled interaction and accessibility state | Preventing an action until its requirements are met | Onboarding and forms | 2026-07-31 |
 | [isEnabled](https://developer.apple.com/documentation/swiftui/environmentvalues/isenabled) | Reading enabled state from the environment | Adapting a local component to system-disabled behavior | Onboarding controls | 2026-07-31 |
 | [TextFieldStyle](https://developer.apple.com/documentation/swiftui/textfieldstyle) | System-provided field styles | Evaluating whether a standard field treatment fits | Sign In, forms | 2026-07-31 |
@@ -152,7 +156,7 @@ system.
 
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
-| [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars) | SwiftUI toolbar placement, content, and customization | Adding or reorganizing navigation and action controls | Chats, conversation, Share & Connect, Developer Tools | 2026-08-06 |
+| [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars) | SwiftUI toolbar placement, content, and customization | Adding or reorganizing navigation and action controls | Chats, conversation, chat creation, Share & Connect, Developer Tools | 2026-08-09 |
 | [Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) | System-first adoption of Apple’s current visual design | Adding or reviewing glass, bars, or controls | Toolbars, onboarding, composer | 2026-07-31 |
 | [Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views) | Custom glass only when native components do not fit | Implementing an approved custom glass exception | Conversation composer | 2026-07-31 |
 | [GlassButtonStyle](https://developer.apple.com/documentation/swiftui/glassbuttonstyle) | Native secondary glass buttons | Styling an approved secondary action | Onboarding, scanner recovery | 2026-07-31 |
@@ -164,12 +168,15 @@ system.
 | [safeAreaInset](https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:)) | Content inset by a view at a safe-area edge | Placing persistent content without covering a scroll view | Conversation | 2026-08-03 |
 | [ignoresSafeArea](https://developer.apple.com/documentation/swiftui/view/ignoressafearea(_:edges:)) | Intentional extension beyond safe areas | Making an approved background or camera preview full-bleed | Chats, QR scanning | 2026-07-31 |
 | [Adjusting layout with the keyboard layout guide](https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide) | System-managed layout that follows the complete docked keyboard region | Placing an opaque backing above image results and directly beneath the system keyboard | Sign Up, Profile | 2026-08-07 |
-| [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview) | Native scroll container behavior and indicators | Building custom scrolling content within a bounded surface | Conversation, Developer Tools | 2026-08-06 |
+| [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview) | Native scroll container behavior and indicators | Building custom scrolling content within a bounded surface | Conversation, chat creation, Developer Tools | 2026-08-09 |
+| [listSectionMargins](https://developer.apple.com/documentation/swiftui/view/listsectionmargins(_:_:)) | Per-section margins within a native List | Allowing an uncontained selected-people strip to use the full viewport | Chat creation | 2026-08-09 |
+| [contentMargins](https://developer.apple.com/documentation/swiftui/view/contentmargins(_:for:)) | Margins for scroll content independently of its viewport | Preserving the selected strip's resting content alignment while allowing edge-to-edge scrolling | Chat creation | 2026-08-09 |
+| [defaultScrollAnchor](https://developer.apple.com/documentation/swiftui/view/defaultscrollanchor(_:for:)) | Initial and role-specific scroll positioning | Keeping a horizontal selection strip initially aligned to its leading edge | Chat creation | 2026-08-09 |
 | [LazyVStack](https://developer.apple.com/documentation/swiftui/lazyvstack) | Lazy vertical layout in a scroll view | Rendering a prototype message timeline | Conversation | 2026-07-31 |
 | [ScrollEdgeEffectStyle](https://developer.apple.com/documentation/swiftui/scrolledgeffectstyle) | Native transitions between scrolling content and controls | Choosing hard, soft, or automatic scroll-edge behavior | Chats, conversation | 2026-07-31 |
 | [Motion](https://developer.apple.com/design/human-interface-guidelines/motion) | Purposeful, comfortable, system-consistent motion | Adding or reviewing animation or transition behavior | All animated flows | 2026-07-31 |
 | [SensoryFeedback](https://developer.apple.com/documentation/swiftui/sensoryfeedback) | Semantic system haptic feedback | Confirming a meaningful result or threshold | Copy, selection, success | 2026-07-31 |
-| [SF Symbols HIG](https://developer.apple.com/design/human-interface-guidelines/sf-symbols) | Symbol selection, variants, rendering, localization, and effects | Choosing an interface icon | All screens | 2026-07-31 |
+| [SF Symbols HIG](https://developer.apple.com/design/human-interface-guidelines/sf-symbols) | Symbol selection, variants, rendering, localization, and effects | Choosing an interface icon | All screens | 2026-08-09 |
 | [SF Symbols](https://developer.apple.com/sf-symbols/) | Current symbol browser and availability resources | Verifying a symbol and platform support | All screens | 2026-07-31 |
 | [symbolEffect](https://developer.apple.com/documentation/swiftui/view/symboleffect(_:options:isactive:)) | System-owned animated SF Symbol effects and Reduce Motion adaptation | Indicating an active live process without custom animation | Developer Tools | 2026-08-06 |
 
@@ -177,9 +184,9 @@ system.
 
 | Source | Governs | Open when | Current areas | Verified |
 | --- | --- | --- | --- | --- |
-| [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker) | Privacy-preserving system photo selection | Selecting an avatar or message image | Sign Up, Profile, conversation | 2026-07-31 |
+| [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker) | Privacy-preserving system photo selection | Selecting an avatar or message image | Sign Up, Profile, chat creation, conversation | 2026-08-09 |
 | [Bringing Photos picker to your SwiftUI app](https://developer.apple.com/documentation/photokit/bringing-photos-picker-to-your-swiftui-app) | End-to-end SwiftUI photo-picker integration | Implementing selection, loading, and state handling | Sign Up, Profile | 2026-07-31 |
-| [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:)) | System file selection | Importing an image or chat file | Sign Up, conversation | 2026-07-31 |
+| [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:)) | System file selection | Importing an image or chat file | Sign Up, Profile, chat creation, conversation | 2026-08-09 |
 | [fileExporter](https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:)) | System destination picker for exported files | Saving a private-key or encrypted-backup document without a custom browser | Profile Keys | 2026-08-03 |
 | [FileDocument](https://developer.apple.com/documentation/swiftui/filedocument) | Value-type serialization for exported documents | Preparing deterministic key-export content for `fileExporter` | Profile Keys | 2026-08-03 |
 | [File management](https://developer.apple.com/design/human-interface-guidelines/file-management) | Familiar Files destinations and system-owned save behavior | Designing a file export or save flow | Profile Keys | 2026-08-03 |

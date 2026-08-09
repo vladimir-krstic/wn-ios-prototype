@@ -20,7 +20,7 @@ struct PrototypeChatAvatarView: View {
 
     var body: some View {
         ZStack {
-            Circle().fill(Color(uiColor: .secondarySystemFill))
+            Circle().fill(Color(uiColor: .systemGray5))
             switch avatar {
             case let .asset(name):
                 Image(name).resizable().scaledToFill()

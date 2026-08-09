@@ -1,5 +1,7 @@
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
+import UIKit
 
 struct NewChatView: View {
     @Binding var profile: PrototypeProfile
@@ -10,7 +12,7 @@ struct NewChatView: View {
         List {
             Section {
                 NavigationLink(value: ChatsRoute.newGroup) {
-                    Label("New Group", systemImage: "person.3")
+                    Label("New Group", systemImage: "person.2")
                 }
             }
 
@@ -72,42 +74,67 @@ struct PersonProfileView: View {
     let onMessagePerson: (String) -> Void
 
     @State private var isShowingBlockConfirmation = false
-    @State private var isShowingAddToGroup = false
 
     var body: some View {
         List {
             Section {
-                VStack(spacing: 12) {
-                    PrototypeChatAvatarView(avatar: person.avatar, size: 88)
-                    Text(person.name).font(.title2.bold())
-                    Button {
-                        UIPasteboard.general.string = person.publicKey
-                    } label: {
-                        Label(person.shortPublicKey, systemImage: "doc.on.doc")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
+                ProfileIdentityHeader(
+                    name: person.name,
+                    publicKey: person.publicKey,
+                    about: person.about.isEmpty ? nil : person.about
+                ) { size in
+                    PrototypeChatAvatarView(
+                        avatar: person.avatar,
+                        size: size
+                    )
                 }
-                .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
             }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
 
-            if !person.about.isEmpty {
-                Section("About") { Text(person.about) }
-            }
+            Section {
+                NavigationLink {
+                    GroupsInCommonView(
+                        profile: $profile,
+                        settings: $settings,
+                        personID: personID
+                    )
+                } label: {
+                    GroupsInCommonLabel(groups: sharedGroups)
+                }
 
-            if !person.nostrAddress.isEmpty || !person.lightningAddress.isEmpty {
-                Section("Addresses") {
-                    if !person.nostrAddress.isEmpty { LabeledContent("Nostr", value: person.nostrAddress) }
-                    if !person.lightningAddress.isEmpty { LabeledContent("Lightning", value: person.lightningAddress) }
+                Button(
+                    person.isFollowing ? "Remove Contact" : "Add Contact",
+                    systemImage: person.isFollowing ? "person.badge.minus" : "person.badge.plus"
+                ) {
+                    toggleContact()
+                }
+
+                Button(role: person.isBlocked ? nil : .destructive) {
+                    if person.isBlocked { setBlocked(false) } else { isShowingBlockConfirmation = true }
+                } label: {
+                    Label(
+                        person.isBlocked ? "Unblock" : "Block",
+                        systemImage: person.isBlocked
+                            ? "person.crop.circle.badge.checkmark"
+                            : "person.crop.circle.badge.xmark"
+                    )
+                    .foregroundStyle(person.isBlocked ? Color.primary : Color.red)
                 }
             }
 
             Section {
-                Button(person.isFollowing ? "Unfollow" : "Follow") { toggleFollow() }
-                Button("Add to Group", systemImage: "person.badge.plus") { isShowingAddToGroup = true }
                 if canOpenDirectChat {
-                    Button("Message", systemImage: "message") { onMessagePerson(personID) }
+                    Button {
+                        onMessagePerson(personID)
+                    } label: {
+                        Label("Message", systemImage: "plus.bubble")
+                            .symbolRenderingMode(.monochrome)
+                            .foregroundStyle(Color(uiColor: .systemBackground))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.large)
                 } else {
                     NavigationLink {
                         RelaysPrototypeView(configuration: $profile.relayConfiguration)
@@ -116,29 +143,19 @@ struct PersonProfileView: View {
                     }
                 }
             }
-
-            Section {
-                Button(person.isBlocked ? "Unblock" : "Block", role: person.isBlocked ? nil : .destructive) {
-                    if person.isBlocked { setBlocked(false) } else { isShowingBlockConfirmation = true }
-                }
-            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
         }
         .navigationTitle(person.name)
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog(
+        .alert(
             "Block \(person.name)?",
-            isPresented: $isShowingBlockConfirmation,
-            titleVisibility: .visible
+            isPresented: $isShowingBlockConfirmation
         ) {
-            Button("Block", role: .destructive) { setBlocked(true) }
             Button("Cancel", role: .cancel) {}
+            Button("Block", role: .destructive) { setBlocked(true) }
         } message: {
             Text("You’ll keep the chat history, but you won’t be able to send messages until you unblock them.")
-        }
-        .sheet(isPresented: $isShowingAddToGroup) {
-            NavigationStack {
-                AddPersonToGroupView(profile: $profile, personID: personID)
-            }
         }
     }
 
@@ -154,8 +171,11 @@ struct PersonProfileView: View {
         existingDirectChatID != nil
             || !profile.relayConfiguration.availableChatMessageRelayURLs.isEmpty
     }
+    private var sharedGroups: [PrototypeChat] {
+        profile.groupsShared(with: personID)
+    }
 
-    private func toggleFollow() { profile.people[personIndex].isFollowing.toggle() }
+    private func toggleContact() { profile.people[personIndex].isFollowing.toggle() }
     private func setBlocked(_ blocked: Bool) { profile.people[personIndex].isBlocked = blocked }
 
 }
@@ -164,42 +184,68 @@ struct NewGroupView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
     @State private var query = ""
-    @State private var selectedIDs: Set<String> = []
+    @State private var selectedIDs: [String] = []
 
     var body: some View {
         List {
             if !selectedPeople.isEmpty {
-                Section("Selected") {
+                Section {
                     ScrollView(.horizontal) {
-                        HStack {
+                        LazyHStack(alignment: .top, spacing: 10) {
                             ForEach(selectedPeople) { person in
-                                Button { selectedIDs.remove(person.id) } label: {
-                                    VStack {
-                                        PrototypeChatAvatarView(avatar: person.avatar, size: 48)
-                                            .overlay(alignment: .topTrailing) {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .symbolRenderingMode(.palette)
-                                                    .foregroundStyle(.white, .black)
-                                                    .offset(x: 4, y: -4)
-                                            }
-                                        Text(person.name).font(.caption).lineLimit(1)
+                                Button { removeSelection(person.id) } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        ZStack(alignment: .topTrailing) {
+                                            PrototypeChatAvatarView(
+                                                avatar: person.avatar,
+                                                size: 64
+                                            )
+                                            .frame(
+                                                width: 72,
+                                                height: 72,
+                                                alignment: .bottomLeading
+                                            )
+
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.title3)
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.white, .black)
+                                                .offset(x: -6, y: 6)
+                                                .accessibilityHidden(true)
+                                        }
+                                        .frame(width: 72, height: 72)
+
+                                        Text(person.name)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                            .frame(width: 72)
                                     }
-                                    .frame(width: 72)
+                                    .frame(width: 72, alignment: .leading)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Remove \(person.name)")
+                                .accessibilityHint("Removes this person from the group.")
                             }
                         }
+                        .padding(.vertical, 4)
                     }
+                    .contentMargins(.horizontal, 20, for: .scrollContent)
+                    .defaultScrollAnchor(.leading, for: .initialOffset)
                     .scrollIndicators(.hidden)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                } header: {
+                    Text("Selected")
+                        .padding(.horizontal, 20)
                 }
+                .listSectionMargins([.horizontal, .bottom], 0)
             }
 
             Section {
                 ForEach(filteredPeople) { person in
                     Button {
-                        if selectedIDs.contains(person.id) { selectedIDs.remove(person.id) }
-                        else { selectedIDs.insert(person.id) }
+                        toggleSelection(person.id)
                     } label: {
                         PersonRow(person: person, showsCheckmark: selectedIDs.contains(person.id))
                     }
@@ -221,7 +267,9 @@ struct NewGroupView: View {
     }
 
     private var selectedPeople: [PrototypePerson] {
-        profile.selectableChatPeople.filter { selectedIDs.contains($0.id) }
+        selectedIDs.compactMap { id in
+            profile.selectableChatPeople.first { $0.id == id }
+        }
     }
     private var filteredPeople: [PrototypePerson] {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -229,6 +277,18 @@ struct NewGroupView: View {
             value.isEmpty || $0.name.localizedCaseInsensitiveContains(value)
                 || $0.publicKey.localizedCaseInsensitiveContains(value)
         }
+    }
+
+    private func toggleSelection(_ personID: String) {
+        if selectedIDs.contains(personID) {
+            removeSelection(personID)
+        } else {
+            selectedIDs.append(personID)
+        }
+    }
+
+    private func removeSelection(_ personID: String) {
+        selectedIDs.removeAll { $0 == personID }
     }
 }
 
@@ -240,97 +300,450 @@ struct NewGroupSetupView: View {
 
     @State private var name = ""
     @State private var description = ""
-    @State private var avatar: ChatListItem.Avatar = .systemSymbol("person.3.fill")
+    @State private var selectedAvatar: ChatListItem.Avatar?
+    @State private var avatarImage: UIImage?
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var isWebPickerPresented = false
+    @State private var importedPhotoURL: URL?
+    @State private var selectedWebChoice: AvatarWebImageChoice?
+    @State private var isPhotosPickerPresented = false
+    @State private var isFileImporterPresented = false
+    @State private var isWebImagePickerPresented = false
+    @State private var photoError: String?
+    @State private var photoPreparationID: UUID?
+
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case name
+        case description
+    }
 
     var body: some View {
         Form {
-            Section {
-                VStack(spacing: 10) {
-                    PrototypeChatAvatarView(avatar: avatar, size: 92)
-                    Menu {
-                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                            Label("Choose Photo", systemImage: "photo.on.rectangle")
-                        }
-                        Button { isWebPickerPresented = true } label: {
-                            Label("Find Image on Web", systemImage: "globe")
-                        }
-                        if avatar != .systemSymbol("person.3.fill") {
-                            Button("Remove Photo", systemImage: "trash", role: .destructive) {
-                                avatar = .systemSymbol("person.3.fill")
-                            }
-                        }
-                    } label: {
-                        Text(avatar == .systemSymbol("person.3.fill") ? "Add Photo" : "Change Photo")
-                    }
-                }
+            avatarSection
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
-            }
+                .listRowSeparator(.hidden)
 
             Section("Group Details") {
                 TextField("Group Name", text: $name)
+                    .textContentType(.organizationName)
+                    .submitLabel(.next)
+                    .focused($focusedField, equals: .name)
+                    .onSubmit { focusedField = .description }
                     .accessibilityIdentifier("new-group.name")
-                TextField("Description (Optional)", text: $description, axis: .vertical).lineLimit(2...5)
+                TextField(
+                    "Description (Optional)",
+                    text: $description,
+                    axis: .vertical
+                )
+                .lineLimit(2...5)
+                .focused($focusedField, equals: .description)
             }
 
             Section("People") {
                 ForEach(selectedPeople) { PersonRow(person: $0) }
             }
-
-            Section {
-                Button("Create Group") { createGroup() }
-                    .frame(maxWidth: .infinity)
-                    .disabled(trimmedName.isEmpty)
-            }
         }
+        .formStyle(.grouped)
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Set Up Group")
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: selectedPhotoItem) {
-            guard let item = selectedPhotoItem,
-                  let data = try? await item.loadTransferable(type: Data.self),
-                  let prepared = await ConversationImageProcessor.preparedDataAsync(from: data)
-            else { return }
-            avatar = .imageData(prepared)
-            selectedPhotoItem = nil
-        }
-        .sheet(isPresented: $isWebPickerPresented) {
-            AvatarWebImagePickerView(currentChoice: currentWebChoice) { choice in
-                avatar = .asset(choice.assetName)
-                isWebPickerPresented = false
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Create", action: createGroup)
+                    .buttonStyle(.glassProminent)
+                    .disabled(trimmedName.isEmpty || isPreparingPhoto)
+                    .accessibilityIdentifier("new-group.create")
             }
         }
+        .fileImporter(
+            isPresented: $isFileImporterPresented,
+            allowedContentTypes: [.image]
+        ) { result in
+            handleImportedFile(result)
+        }
+        .photosPicker(
+            isPresented: $isPhotosPickerPresented,
+            selection: $selectedPhotoItem,
+            matching: .images
+        )
+        .task(id: selectedPhotoItem) {
+            guard let selectedPhotoItem else { return }
+            await prepareSelectedPhoto(selectedPhotoItem)
+        }
+        .task(id: importedPhotoURL) {
+            guard let importedPhotoURL else { return }
+            await prepareImportedPhoto(importedPhotoURL)
+        }
+        .sheet(isPresented: $isWebImagePickerPresented) {
+            AvatarWebImagePickerView(
+                currentChoice: selectedWebChoice,
+                onUseImage: useWebImage
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .background {
+            GroupSetupKeyboardDismissInstaller {
+                focusedField = nil
+            }
+        }
+    }
+
+    private var avatarSection: some View {
+        VStack(spacing: 0) {
+            ProfileEditorAvatarView(
+                name: name,
+                image: avatarImage,
+                emptySystemImage: "person.2",
+                accessibilityName: "Group photo"
+            )
+            .containerRelativeFrame(
+                .horizontal,
+                count: 3,
+                span: 1,
+                spacing: 0
+            )
+
+            avatarMenu
+                .padding(.top)
+
+            if isPreparingPhoto {
+                ProgressView("Preparing Photo")
+                    .font(.footnote)
+                    .padding(.top)
+            }
+
+            if let photoError {
+                Text(photoError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.top)
+            }
+        }
+    }
+
+    private var avatarMenu: some View {
+        Menu {
+            Button {
+                isPhotosPickerPresented = true
+            } label: {
+                Label(
+                    "Choose from Photos",
+                    systemImage: "photo.on.rectangle"
+                )
+            }
+
+            Button {
+                isFileImporterPresented = true
+            } label: {
+                Label("Choose from Files", systemImage: "folder")
+            }
+
+            Button {
+                isWebImagePickerPresented = true
+            } label: {
+                Label("Find Image on Web", systemImage: "globe")
+            }
+
+            if selectedAvatar != nil {
+                Divider()
+
+                Button(role: .destructive) {
+                    removePhoto()
+                } label: {
+                    Label {
+                        Text("Remove Photo")
+                    } icon: {
+                        Image(uiImage: destructiveTrashSymbol)
+                    }
+                }
+            }
+        } label: {
+            Text(selectedAvatar == nil ? "Add Photo" : "Change Photo")
+        }
+        .buttonStyle(.glass)
+        .disabled(isPreparingPhoto)
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var selectedPeople: [PrototypePerson] {
         profile.selectableChatPeople.filter { selectedPersonIDs.contains($0.id) }
     }
-    private var currentWebChoice: AvatarWebImageChoice? {
-        guard case let .asset(name) = avatar else { return nil }
-        return AvatarWebImageCatalog.choices.first { $0.assetName == name }
+
+    private var destructiveTrashSymbol: UIImage {
+        UIImage(systemName: "trash")?
+            .withTintColor(.systemRed, renderingMode: .alwaysOriginal)
+            ?? UIImage()
+    }
+
+    private var isPreparingPhoto: Bool {
+        photoPreparationID != nil
     }
 
     private func createGroup() {
-        onCreateGroup(trimmedName, description, avatar, selectedPersonIDs)
+        guard !trimmedName.isEmpty, !isPreparingPhoto else { return }
+        focusedField = nil
+        onCreateGroup(
+            trimmedName,
+            description,
+            selectedAvatar ?? .monogram(prototypeGroupMonogram(trimmedName)),
+            selectedPersonIDs
+        )
+    }
+
+    private func prepareSelectedPhoto(
+        _ selectedPhotoItem: PhotosPickerItem
+    ) async {
+        let preparationID = UUID()
+        photoPreparationID = preparationID
+        photoError = nil
+        defer { finishPhotoPreparation(preparationID) }
+
+        do {
+            guard
+                let data = try await selectedPhotoItem.loadTransferable(
+                    type: Data.self
+                ),
+                let preparedData = await ProfileAvatarImageProcessor
+                    .preparedDataAsync(from: data),
+                !Task.isCancelled,
+                photoPreparationID == preparationID,
+                let image = UIImage(data: preparedData)
+            else {
+                if !Task.isCancelled,
+                   photoPreparationID == preparationID {
+                    showPhotoError()
+                }
+                return
+            }
+
+            avatarImage = image
+            selectedAvatar = .imageData(preparedData)
+            selectedWebChoice = nil
+            self.selectedPhotoItem = nil
+            importedPhotoURL = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if photoPreparationID == preparationID {
+                showPhotoError()
+            }
+        }
+    }
+
+    private func handleImportedFile(_ result: Result<URL, Error>) {
+        switch result {
+        case let .success(url):
+            importedPhotoURL = url
+        case .failure:
+            showPhotoError()
+        }
+    }
+
+    private func prepareImportedPhoto(_ url: URL) async {
+        let preparationID = UUID()
+        photoPreparationID = preparationID
+        photoError = nil
+
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+            finishPhotoPreparation(preparationID)
+        }
+
+        do {
+            guard
+                let preparedData = try await ProfileAvatarImageProcessor
+                    .preparedData(contentsOf: url),
+                !Task.isCancelled,
+                photoPreparationID == preparationID,
+                let image = UIImage(data: preparedData)
+            else {
+                if !Task.isCancelled,
+                   photoPreparationID == preparationID {
+                    showPhotoError()
+                }
+                return
+            }
+
+            avatarImage = image
+            selectedAvatar = .imageData(preparedData)
+            selectedWebChoice = nil
+            selectedPhotoItem = nil
+            importedPhotoURL = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if photoPreparationID == preparationID {
+                showPhotoError()
+            }
+        }
+    }
+
+    private func useWebImage(_ choice: AvatarWebImageChoice) {
+        cancelPhotoPreparation()
+        guard let image = UIImage(named: choice.assetName) else {
+            showPhotoError()
+            return
+        }
+
+        avatarImage = image
+        selectedAvatar = .asset(choice.assetName)
+        selectedWebChoice = choice
+        selectedPhotoItem = nil
+        importedPhotoURL = nil
+        photoError = nil
+    }
+
+    private func removePhoto() {
+        cancelPhotoPreparation()
+        avatarImage = nil
+        selectedAvatar = nil
+        selectedWebChoice = nil
+        selectedPhotoItem = nil
+        importedPhotoURL = nil
+        photoError = nil
+    }
+
+    private func showPhotoError() {
+        selectedPhotoItem = nil
+        importedPhotoURL = nil
+        photoError = "Couldn't use that photo. Choose another image and try again."
+    }
+
+    private func finishPhotoPreparation(_ preparationID: UUID) {
+        if photoPreparationID == preparationID {
+            photoPreparationID = nil
+        }
+    }
+
+    private func cancelPhotoPreparation() {
+        photoPreparationID = nil
+    }
+}
+
+func prototypeGroupMonogram(_ name: String) -> String {
+    name
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .first
+        .map { String($0).uppercased() }
+        ?? ""
+}
+
+private struct GroupSetupKeyboardDismissInstaller: UIViewRepresentable {
+    let onDismiss: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDismiss: onDismiss)
+    }
+
+    func makeUIView(context: Context) -> WindowObserverView {
+        let view = WindowObserverView()
+        view.isUserInteractionEnabled = false
+        let coordinator = context.coordinator
+        view.onWindowChange = { window in
+            coordinator.install(in: window)
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: WindowObserverView, context: Context) {
+        context.coordinator.onDismiss = onDismiss
+        context.coordinator.install(in: uiView.window)
+    }
+
+    static func dismantleUIView(
+        _ uiView: WindowObserverView,
+        coordinator: Coordinator
+    ) {
+        uiView.onWindowChange = nil
+        coordinator.uninstall()
+    }
+
+    final class WindowObserverView: UIView {
+        var onWindowChange: ((UIWindow?) -> Void)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onWindowChange?(window)
+        }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var onDismiss: () -> Void
+        weak var installedWindow: UIWindow?
+
+        private lazy var recognizer: UITapGestureRecognizer = {
+            let recognizer = UITapGestureRecognizer(
+                target: self,
+                action: #selector(handleTap)
+            )
+            recognizer.cancelsTouchesInView = false
+            recognizer.delegate = self
+            return recognizer
+        }()
+
+        init(onDismiss: @escaping () -> Void) {
+            self.onDismiss = onDismiss
+        }
+
+        func install(in window: UIWindow?) {
+            guard installedWindow !== window else { return }
+            uninstall()
+            window?.addGestureRecognizer(recognizer)
+            installedWindow = window
+        }
+
+        func uninstall() {
+            installedWindow?.removeGestureRecognizer(recognizer)
+            installedWindow = nil
+        }
+
+        @objc private func handleTap() {
+            onDismiss()
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldReceive touch: UITouch
+        ) -> Bool {
+            var touchedView = touch.view
+            while let view = touchedView {
+                if view is UITextField || view is UITextView {
+                    return false
+                }
+                touchedView = view.superview
+            }
+            return true
+        }
     }
 }
 
 struct AddPersonToGroupView: View {
     @Binding var profile: PrototypeProfile
     let personID: String
+    var title = "Add to Group"
     @Environment(\.dismiss) private var dismiss
+    @State private var pendingGroupID: String?
 
     var body: some View {
-        List(availableGroups) { chat in
-            Button(chat.groupName) {
-                guard let index = profile.chats.firstIndex(where: { $0.id == chat.id }) else { return }
-                _ = profile.chats[index].addMembers(
-                    personIDs: [personID],
-                    actorID: profile.id
-                )
-                dismiss()
+        List {
+            Section {
+                ForEach(availableGroups) { chat in
+                    Button {
+                        pendingGroupID = chat.id
+                    } label: {
+                        GroupSummaryRow(chat: chat)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Adds this person to the group.")
+                }
             }
         }
         .overlay {
@@ -338,11 +751,68 @@ struct AddPersonToGroupView: View {
                 ContentUnavailableView("No Available Groups", systemImage: "person.3")
             }
         }
-        .navigationTitle("Add to Group")
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
         }
+        .alert(
+            "Add \(personName) to \(pendingGroupName)?",
+            isPresented: isShowingAddConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Add", action: confirmAddition)
+        } message: {
+            Text("They’ll be added as a member of this group.")
+        }
+    }
+
+    private var isShowingAddConfirmation: Binding<Bool> {
+        Binding(
+            get: { pendingGroupID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingGroupID = nil
+                }
+            }
+        )
+    }
+
+    private var personName: String {
+        profile.people.first { $0.id == personID }?.name ?? "This person"
+    }
+
+    private var pendingGroupName: String {
+        guard let pendingGroupID else { return "this group" }
+        return profile.chats.first { $0.id == pendingGroupID }?.groupName
+            ?? "this group"
+    }
+
+    private func confirmAddition() {
+        guard
+            let pendingGroupID,
+            let index = profile.chats.firstIndex(where: { $0.id == pendingGroupID })
+        else {
+            self.pendingGroupID = nil
+            return
+        }
+
+        let groupName = profile.chats[index].groupName
+        guard profile.chats[index].addMembers(
+            personIDs: [personID],
+            actorID: profile.id
+        ) else {
+            self.pendingGroupID = nil
+            return
+        }
+
+        self.pendingGroupID = nil
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: "\(personName) added to \(groupName)"
+        )
+        dismiss()
     }
 
     private var availableGroups: [PrototypeChat] {
@@ -351,5 +821,175 @@ struct AddPersonToGroupView: View {
                 && $0.isCurrentProfileAdmin(profile.id)
                 && !$0.members.contains(where: { $0.personID == personID })
         }
+    }
+}
+
+private struct GroupsInCommonView: View {
+    @Binding var profile: PrototypeProfile
+    @Binding var settings: PrototypeSettingsState
+    let personID: String
+    @State private var isShowingAddToGroup = false
+
+    var body: some View {
+        List {
+            Section {
+                if sharedGroups.isEmpty {
+                    Text("No groups in common.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(sharedGroups) { chat in
+                        NavigationLink {
+                            ConversationView(
+                                profile: $profile,
+                                settings: $settings,
+                                chatID: chat.id
+                            )
+                        } label: {
+                            GroupSummaryRow(chat: chat)
+                        }
+                    }
+                }
+
+                Button(
+                    "Add to Another Group",
+                    systemImage: "person.2.badge.plus"
+                ) {
+                    isShowingAddToGroup = true
+                }
+            }
+        }
+        .navigationTitle("Groups in Common")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isShowingAddToGroup) {
+            NavigationStack {
+                AddPersonToGroupView(
+                    profile: $profile,
+                    personID: personID,
+                    title: "Add to Another Group"
+                )
+            }
+        }
+    }
+
+    private var sharedGroups: [PrototypeChat] {
+        profile.groupsShared(with: personID)
+    }
+}
+
+private struct GroupsInCommonLabel: View {
+    let groups: [PrototypeChat]
+
+    var body: some View {
+        HStack {
+            GroupAvatarStack(groups: groups)
+
+            Text("Groups in Common")
+                .lineLimit(1)
+                .layoutPriority(1)
+
+            Spacer()
+        }
+        .foregroundStyle(.primary)
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(accessibilityValue)
+    }
+
+    private var accessibilityValue: String {
+        switch groups.count {
+        case 0:
+            "No groups in common"
+        case 1:
+            "1 group in common"
+        default:
+            "\(groups.count) groups in common"
+        }
+    }
+}
+
+private struct GroupAvatarStack: View {
+    let groups: [PrototypeChat]
+
+    var body: some View {
+        HStack(spacing: -10) {
+            if groups.isEmpty {
+                Image(systemName: "person.2")
+                    .font(.caption.weight(.semibold))
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Color(uiColor: .systemGray5),
+                        in: Circle()
+                    )
+                    .groupStackOutline()
+            } else {
+                ForEach(groups.prefix(3)) { chat in
+                    PrototypeChatAvatarView(
+                        avatar: chat.avatar,
+                        size: 32
+                    )
+                    .groupStackOutline()
+                }
+
+                if groups.count > 3 {
+                    Text("+\(groups.count - 3)")
+                        .font(.caption2.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            Color(uiColor: .systemGray5),
+                            in: Circle()
+                        )
+                        .groupStackOutline()
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private extension View {
+    func groupStackOutline() -> some View {
+        overlay {
+            Circle()
+                .stroke(
+                    Color(uiColor: .secondarySystemGroupedBackground),
+                    lineWidth: 2
+                )
+        }
+    }
+}
+
+private struct GroupSummaryRow: View {
+    let chat: PrototypeChat
+
+    var body: some View {
+        HStack {
+            PrototypeChatAvatarView(
+                avatar: chat.avatar,
+                size: 56
+            )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(chat.groupName)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Text(memberCountLabel)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+        }
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var memberCountLabel: String {
+        chat.members.count == 1
+            ? "1 member"
+            : "\(chat.members.count) members"
     }
 }

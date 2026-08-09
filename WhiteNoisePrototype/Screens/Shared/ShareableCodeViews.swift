@@ -58,3 +58,109 @@ struct CompactCopyValueLabel: View {
         .contentShape(Rectangle())
     }
 }
+
+struct ProfileIdentityHeader<Avatar: View>: View {
+    let name: String
+    let publicKey: String
+    let about: String?
+
+    private let avatar: (CGFloat) -> Avatar
+
+    @State private var copied = false
+    @State private var copyFeedbackTrigger = 0
+    @State private var copyResetTask: Task<Void, Never>?
+
+    init(
+        name: String,
+        publicKey: String,
+        about: String? = nil,
+        @ViewBuilder avatar: @escaping (CGFloat) -> Avatar
+    ) {
+        self.name = name
+        self.publicKey = publicKey
+        self.about = about
+        self.avatar = avatar
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            GeometryReader { geometry in
+                avatar(geometry.size.width)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .containerRelativeFrame(
+                .horizontal,
+                count: 3,
+                span: 1,
+                spacing: 0
+            )
+
+            Text(name)
+                .font(.title2.weight(.semibold))
+
+            if let about {
+                Text(about)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+            }
+
+            Button(action: copyPublicKey) {
+                CompactCopyValueLabel(
+                    value: compactPublicKey,
+                    isCopied: copied
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                copied ? "Public key copied" : "Copy public key"
+            )
+            .accessibilityValue(compactPublicKey)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top)
+        .padding(.bottom, 14)
+        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
+        .onDisappear {
+            resetCopyFeedback()
+        }
+    }
+
+    private var compactPublicKey: String {
+        guard publicKey.count > 19 else {
+            return publicKey
+        }
+
+        return "\(publicKey.prefix(14))…\(publicKey.suffix(4))"
+    }
+
+    private func copyPublicKey() {
+        UIPasteboard.general.string = publicKey
+        copied = true
+        copyFeedbackTrigger += 1
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: "Public key copied"
+        )
+
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            copied = false
+            copyResetTask = nil
+        }
+    }
+
+    private func resetCopyFeedback() {
+        copyResetTask?.cancel()
+        copyResetTask = nil
+        copied = false
+    }
+}

@@ -5,6 +5,15 @@ extension PrototypeProfile {
         people.filter { $0.id != ChatListFixtures.supportChatID }
     }
 
+    func groupsShared(with personID: String) -> [PrototypeChat] {
+        chats.filter { chat in
+            chat.isGroup
+                && chat.listState.membershipState == .active
+                && chat.members.contains(where: { $0.personID == id })
+                && chat.members.contains(where: { $0.personID == personID })
+        }
+    }
+
     mutating func openOrCreateSupportChat(now: Date = .now) -> String? {
         if chats.contains(where: { $0.id == ChatListFixtures.supportChatID }) {
             return ChatListFixtures.supportChatID

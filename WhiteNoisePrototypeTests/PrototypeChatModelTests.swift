@@ -4,6 +4,14 @@ import Testing
 
 @Suite("Authoritative chat model")
 struct PrototypeChatModelTests {
+    @Test("Group monograms use the first group-name letter")
+    func groupMonograms() {
+        #expect(prototypeGroupMonogram("") == "")
+        #expect(prototypeGroupMonogram("Weekend") == "W")
+        #expect(prototypeGroupMonogram(" Weekend   Walks ") == "W")
+        #expect(prototypeGroupMonogram("river trail plans") == "R")
+    }
+
     @Test("Direct chats are deduplicated and copy relays once")
     func directChatDeduplication() throws {
         var profile = PrototypeProfile.pebble
@@ -121,6 +129,28 @@ struct PrototypeChatModelTests {
                 $0.authorID == profile.id || personIDs.contains($0.authorID)
             })
         }
+    }
+
+    @Test("Groups in common require active membership for both profiles")
+    func groupsInCommon() throws {
+        var profile = PrototypeProfile.marmota
+
+        #expect(
+            profile.groupsShared(with: "radia-perlman").map(\.id)
+                == ["nostr-devs", "marmots", "project-files"]
+        )
+        #expect(profile.groupsShared(with: "david-chaum").map(\.id) == ["nostr-devs"])
+        #expect(profile.groupsShared(with: "maya-chen").count > 3)
+
+        let sharedGroupID = try #require(
+            profile.groupsShared(with: "david-chaum").first?.id
+        )
+        let index = try #require(
+            profile.chats.firstIndex { $0.id == sharedGroupID }
+        )
+        profile.chats[index].listState.membershipState = .left
+
+        #expect(profile.groupsShared(with: "david-chaum").isEmpty)
     }
 
     @Test("Row previews derive from messages, deletion, failure, and ended membership")

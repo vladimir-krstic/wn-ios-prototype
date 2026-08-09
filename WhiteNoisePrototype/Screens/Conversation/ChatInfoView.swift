@@ -575,7 +575,7 @@ struct GroupMemberView: View {
                     Button(person.isFollowing ? "Unfollow" : "Follow") {
                         profile.people[personIndex].isFollowing.toggle()
                     }
-                    Button("Add to Another Group", systemImage: "person.badge.plus") { isShowingAddToGroup = true }
+                    Button("Add to Another Group", systemImage: "person.2.badge.plus") { isShowingAddToGroup = true }
                 }
             }
 

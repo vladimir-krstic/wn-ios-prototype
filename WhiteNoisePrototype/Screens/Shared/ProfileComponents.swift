@@ -54,12 +54,18 @@ struct ProfileEditorAvatarView: View {
 
     let name: String
     let image: UIImage?
+    var emptySystemImage: String? = nil
+    var accessibilityName = "Profile photo"
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Circle()
-                    .fill(Color("AccentColor"))
+                    .fill(
+                        showsEmptySystemImage
+                            ? Color(uiColor: .secondarySystemFill)
+                            : Color("AccentColor")
+                    )
 
                 if let image {
                     Image(uiImage: image)
@@ -69,6 +75,10 @@ struct ProfileEditorAvatarView: View {
                             width: geometry.size.width,
                             height: geometry.size.height
                         )
+                } else if let emptySystemImage, showsEmptySystemImage {
+                    Image(systemName: emptySystemImage)
+                        .font(.largeTitle)
+                        .foregroundStyle(.primary)
                 } else {
                     Text(initial)
                         .font(.largeTitle)
@@ -89,18 +99,24 @@ struct ProfileEditorAvatarView: View {
         .aspectRatio(1, contentMode: .fit)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            image == nil
-                ? "Profile photo, \(initial)"
-                : "Profile photo"
+            image == nil && !showsEmptySystemImage
+                ? "\(accessibilityName), \(initial)"
+                : accessibilityName
         )
     }
 
     private var initial: String {
-        name
+        return name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .first
             .map { String($0).uppercased() }
             ?? "?"
+    }
+
+    private var showsEmptySystemImage: Bool {
+        image == nil
+            && emptySystemImage != nil
+            && name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 
