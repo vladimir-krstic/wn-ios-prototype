@@ -223,7 +223,7 @@ struct ConversationView: View {
                 HStack(spacing: 8) {
                     PrototypeChatAvatarView(
                         avatar: chat.resolvedAvatar(people: profile.people),
-                        size: 30
+                        size: 44
                     )
                     VStack(alignment: .leading, spacing: 0) {
                         Text(chat.title(people: profile.people))
@@ -238,15 +238,6 @@ struct ConversationView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens chat information.")
             .accessibilityIdentifier("conversation.info")
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                isShowingSearch = true
-            } label: {
-                Label("Search", systemImage: "magnifyingglass")
-                    .labelStyle(.iconOnly)
-            }
         }
     }
 

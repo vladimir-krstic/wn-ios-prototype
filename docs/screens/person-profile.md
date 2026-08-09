@@ -8,7 +8,8 @@ the common relationship and conversation actions clear.
 ## Navigation and copy
 
 - A person profile is pushed from New Chat, member lists, and other chat entry
-  points. Its navigation title is the person's name.
+  points. Its navigation title is **User Profile**, describing the destination
+  without repeating the person's name from the identity header.
 - The identity header is the same shared presentation used on **Share &
   Connect**: a circular avatar occupying one third of the available width, the
   person's name beneath it, and a compact copyable `npub` capsule.

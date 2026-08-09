@@ -78,7 +78,9 @@ support native swipe actions.
   of resolving to midnight. White Noise Support retains its stable Thursday
   fixture date, and Contact previews resolve the referenced person's name.
 - Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
-- Nostr Devs and Radia Perlman are the only initially pinned chats. Their older timestamps make the pin-driven ordering explicit while leaving recent unpinned activity chronological beneath them.
+- Maya Chen and Weekend Walks are the only initially pinned chats, keeping the
+  complete direct and group showcase conversations immediately reachable.
+  Unpinned activity retains its deterministic relative order beneath them.
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
 - Book Club starts in the voluntary-left state and shows **You left this chat.** Quiet Studio Group remains the removed fixture and shows **You were removed from this chat.** Both appear in Chats and Left as retained read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
@@ -96,18 +98,21 @@ The normal populated Marmota profile is also the screenshot-ready Chats hero. It
 
 The first visible block is fixed:
 
-1. **Nostr Devs** — pinned, Yesterday — **Tim:** Marmot draft merged. Time to test the new flow.
-2. **Radia Perlman** — pinned, Sunday — Let the network heal itself; loops (and censors) break.
-3. **Hal Finney** — Now — Running bitcoin… still amazes me how far we’ve come.
-4. **Judith “St. Jude” Milhon** — 2m, unread 2 — Hacking means finding clever ways around dumb rules.
-5. **Marmots** — 9m, unread 99+ — **Jude:** Big plans—or no plans at all!
-6. **Whitfield Diffie** — 1h — **You:** Key exchange since ’76—still my favorite handshake.
-7. **Richard Stallman** — 8h, muted — Free as in freedom, not as in beer. Keep your keys libre.
-8. **Eric Hughes** — Yesterday, unread 12 — Cypherpunks still write code. Ship the patch?
-9. **David Chaum** — Saturday — Privacy is necessary for an open society in the electronic age.
-10. **Satoshi Nakamoto** — Friday — Chancellor on Brink of Second Bailout for Banks.
+1. **Maya Chen** — pinned, unread 1 — Can you send the latest version when you have a moment?
+2. **Weekend Walks** — pinned, unread 12 — **Nora:** Saturday morning works for me.
+3. **Nostr Devs** — Yesterday — **Tim:** Marmot draft merged. Time to test the new flow.
+4. **Radia Perlman** — Sunday — Let the network heal itself; loops (and censors) break.
+5. **Hal Finney** — Now — Running bitcoin… still amazes me how far we’ve come.
+6. **Judith “St. Jude” Milhon** — 2m, unread 2 — Hacking means finding clever ways around dumb rules.
+7. **Marmots** — 9m, unread 99+ — **Jude:** Big plans—or no plans at all!
+8. **Whitfield Diffie** — 1h — **You:** Key exchange since ’76—still my favorite handshake.
+9. **Richard Stallman** — 8h, muted — Free as in freedom, not as in beer. Keep your keys libre.
+10. **Eric Hughes** — Yesterday, unread 12 — Cypherpunks still write code. Ship the patch?
 
-The complete ten-person legacy marketing cast now forms the uninterrupted hero block. Mina Park, Theo Grant, and every other fictional test conversation remain in older activity for interaction coverage and search. The Nora Bennett failed-send fixture remains available below the hero viewport. No fictional portrait, failed-send, left-chat, or removed-chat treatment appears in the initial App Store capture.
+The complete direct and group showcase conversations now lead the list, followed
+by the deterministic legacy marketing sequence. Mina Park, Theo Grant, and the
+remaining test conversations stay reachable in older activity and search. The
+Nora Bennett failed-send fixture remains below the initial viewport.
 
 ## Swipe actions
 
@@ -277,11 +282,16 @@ They are not platform authority and are not required to implement this screen.
 - Numeric unread, mute, draft, and failed states are visibly distinct.
 - Single-digit Unread and Failed appear optically equal in the shared status region.
 - The visible fixtures include one-digit, two-digit, and capped **99+** unread values.
-- The App Store hero shows exactly three unread treatments: Judith at **2**, Eric Hughes at **12**, and Marmots capped at **99+**.
+- The App Store hero shows five unread treatments: Maya Chen at **1**,
+  Weekend Walks at **12**, Judith at **2**, Eric Hughes at **12**, and Marmots
+  capped at **99+**.
 - Mute appears beside the chat name; the timestamp shares that top row.
-- Fixtures demonstrate time, Yesterday, weekday, and date timestamp variants. The unpinned sequence is chronological; the two deliberately older pinned chats remain above it.
-- Nostr Devs and Radia Perlman are the only initially pinned chats, and Maya Chen is not pinned.
-- The first App Store viewport contains only the legacy marketing cast, with pinned, unread, group-author, outgoing, and muted treatments and no fictional portrait, failed-send, left-chat, or removed-chat treatment.
+- Fixtures demonstrate time, Yesterday, weekday, and date timestamp variants.
+  The unpinned sequence retains its deterministic relative order; Maya Chen and
+  Weekend Walks remain above it as the only initially pinned chats.
+- The first App Store viewport begins with the direct and group showcase pair,
+  followed by the legacy marketing sequence; failed-send, left-chat, and
+  removed-chat treatments remain outside the initial viewport.
 - Every original conversation remains searchable and reachable after adding the ten legacy marketing conversations.
 - The active list contains all ten documented attachment-preview treatments.
 - Both onboarding paths open the populated account.

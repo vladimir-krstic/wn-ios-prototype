@@ -7,6 +7,12 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 
 ## Timeline
 
+- The principal toolbar item is the single entry point to Chat Info or Group
+  Info. It uses a 44-point avatar beside the conversation title and, for a
+  group, its member count. The system principal placement centers this combined
+  identity control in the navigation bar. Search is not duplicated as a
+  trailing conversation-toolbar action; it remains available inside the
+  applicable info screen.
 - Messages use stable identities in a `ScrollViewReader`, `ScrollView`, and
   `LazyVStack`. Incoming content is leading; outgoing content is trailing.
   Opening a conversation settles on the true newest timeline entry after the

@@ -146,7 +146,7 @@ struct PersonProfileView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
         }
-        .navigationTitle(person.name)
+        .navigationTitle("User Profile")
         .navigationBarTitleDisplayMode(.inline)
         .alert(
             "Block \(person.name)?",
