@@ -236,24 +236,31 @@ struct PrototypeMessage: Identifiable, Equatable {
     var isDeleted: Bool { deletionState != .none }
 }
 
-enum PrototypeGroupEventKind: Equatable {
-    case created(actorID: String)
-    case added(actorID: String, personIDs: [String])
-    case joined(personID: String)
-    case left(personID: String)
-    case removed(actorID: String, personID: String)
-    case madeAdmin(actorID: String, personID: String)
-    case removedAdmin(actorID: String, personID: String)
-    case changedName(actorID: String, name: String)
-    case changedPhoto(actorID: String)
-    case changedDescription(actorID: String)
-    case removedDescription(actorID: String)
+enum PrototypeChatEventKind: Equatable {
+    case directChatStarted(actorID: String)
+    case directChatLeft
+    case groupCreated(actorID: String)
+    case membersAdded(actorID: String, personIDs: [String])
+    case memberJoined(personID: String)
+    case memberLeft(personID: String)
+    case memberRemoved(actorID: String, personID: String)
+    case adminGranted(actorID: String, personID: String)
+    case adminRevoked(actorID: String, personID: String)
+    case groupNameChanged(actorID: String, name: String)
+    case groupPhotoChanged(actorID: String)
+    case groupPhotoRemoved(actorID: String)
+    case groupDescriptionChanged(actorID: String)
+    case groupDescriptionRemoved(actorID: String)
+    case disappearingMessagesChanged(
+        actorID: String,
+        duration: PrototypeDisappearingMessageDuration
+    )
 }
 
 struct PrototypeTimelineEvent: Identifiable, Equatable {
     let id: String
     let date: Date
-    let kind: PrototypeGroupEventKind
+    let kind: PrototypeChatEventKind
 }
 
 struct PrototypeTimelineNotice: Identifiable, Equatable {
@@ -402,10 +409,9 @@ struct PrototypeChat: Identifiable, Equatable {
                 }
                 previewMessage = message
             case let .event(event):
-                previewText = PrototypeGroupEventFormatter.text(
+                previewText = PrototypeChatEventFormatter.text(
                     for: event.kind,
                     profileID: currentProfileID,
-                    profileName: "You",
                     people: people
                 )
                 previewAuthor = nil
@@ -470,7 +476,7 @@ struct PrototypeChat: Identifiable, Equatable {
         listState.isMarkedUnread = false
     }
 
-    mutating func appendEvent(_ kind: PrototypeGroupEventKind, now: Date = .now) {
+    mutating func appendEvent(_ kind: PrototypeChatEventKind, now: Date = .now) {
         timeline.append(
             .event(
                 PrototypeTimelineEvent(

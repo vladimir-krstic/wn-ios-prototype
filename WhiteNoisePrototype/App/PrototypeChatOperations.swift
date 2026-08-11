@@ -26,7 +26,7 @@ extension PrototypeProfile {
             people.append(
                 PrototypePerson(
                     id: ChatListFixtures.supportChatID,
-                    name: "White Noise Support",
+                    name: ChatListFixtures.supportChat.title,
                     about: "Help with White Noise.",
                     avatar: .systemSymbol("questionmark.bubble")
                 )
@@ -36,7 +36,7 @@ extension PrototypeProfile {
         let support = PrototypeChat(
             id: ChatListFixtures.supportChatID,
             kind: .direct(personID: ChatListFixtures.supportChatID),
-            groupName: "White Noise Support",
+            groupName: ChatListFixtures.supportChat.title,
             groupDescription: "",
             avatar: .systemSymbol("questionmark.bubble"),
             members: [],
@@ -47,8 +47,10 @@ extension PrototypeProfile {
             replyToMessageID: nil,
             listState: PrototypeChatListState(activityDate: now)
         )
-        let insertion = chats.firstIndex { $0.id == ChatListFixtures.fiatjafChatID }
+        let insertion = chats.firstIndex { $0.id == "catalog-direct-archived" }
             .map { chats.index(after: $0) }
+            ?? chats.firstIndex { $0.id == ChatListFixtures.fiatjafChatID }
+                .map { chats.index(after: $0) }
             ?? chats.startIndex
         chats.insert(support, at: insertion)
         return support.id
@@ -79,8 +81,16 @@ extension PrototypeProfile {
             avatar: person.avatar,
             members: [],
             routing: PrototypeChatRouting(relayURLs: relayURLs),
-            timeline: [],
-            emptyPreview: "No messages yet.",
+            timeline: [
+                .event(
+                    PrototypeTimelineEvent(
+                        id: "\(id)-event-direct-started",
+                        date: now,
+                        kind: .directChatStarted(actorID: self.id)
+                    )
+                )
+            ],
+            emptyPreview: "You started the chat.",
             draft: "",
             replyToMessageID: nil,
             listState: PrototypeChatListState(activityDate: now)
@@ -126,7 +136,7 @@ extension PrototypeProfile {
             replyToMessageID: nil,
             listState: PrototypeChatListState(activityDate: now)
         )
-        group.appendEvent(.created(actorID: self.id), now: now)
+        group.appendEvent(.groupCreated(actorID: self.id), now: now)
         let insertion = chats.firstIndex { !$0.listState.isPinned } ?? chats.endIndex
         chats.insert(group, at: insertion)
         return id
@@ -179,7 +189,7 @@ extension PrototypeChat {
         }
         guard !additions.isEmpty else { return false }
         members += additions.map { PrototypeGroupMember(personID: $0, role: .member) }
-        appendEvent(.added(actorID: actorID, personIDs: additions), now: now)
+        appendEvent(.membersAdded(actorID: actorID, personIDs: additions), now: now)
         return true
     }
 
@@ -193,7 +203,7 @@ extension PrototypeChat {
               members[index].role == .member
         else { return false }
         members[index].role = .admin
-        appendEvent(.madeAdmin(actorID: actorID, personID: personID), now: now)
+        appendEvent(.adminGranted(actorID: actorID, personID: personID), now: now)
         return true
     }
 
@@ -208,7 +218,7 @@ extension PrototypeChat {
               members.filter({ $0.role == .admin }).count > 1
         else { return false }
         members[index].role = .member
-        appendEvent(.removedAdmin(actorID: actorID, personID: personID), now: now)
+        appendEvent(.adminRevoked(actorID: actorID, personID: personID), now: now)
         return true
     }
 
@@ -222,7 +232,27 @@ extension PrototypeChat {
               let index = members.firstIndex(where: { $0.personID == personID })
         else { return false }
         members.remove(at: index)
-        appendEvent(.removed(actorID: actorID, personID: personID), now: now)
+        appendEvent(.memberRemoved(actorID: actorID, personID: personID), now: now)
+        return true
+    }
+
+    @discardableResult
+    mutating func updateGroupPhoto(
+        _ newAvatar: ChatListItem.Avatar,
+        actorID: String,
+        now: Date = .now
+    ) -> Bool {
+        guard canManageGroup(currentProfileID: actorID), avatar != newAvatar else {
+            return false
+        }
+        let removedPhoto = avatar.isPhoto && !newAvatar.isPhoto
+        avatar = newAvatar
+        appendEvent(
+            removedPhoto
+                ? .groupPhotoRemoved(actorID: actorID)
+                : .groupPhotoChanged(actorID: actorID),
+            now: now
+        )
         return true
     }
 
@@ -305,6 +335,21 @@ extension PrototypeChat {
         }
     }
 
+    @discardableResult
+    mutating func setDisappearingMessages(
+        _ duration: PrototypeDisappearingMessageDuration,
+        actorID: String,
+        now: Date = .now
+    ) -> Bool {
+        guard duration != disappearingMessageDuration else { return false }
+        disappearingMessageDuration = duration
+        appendEvent(
+            .disappearingMessagesChanged(actorID: actorID, duration: duration),
+            now: now
+        )
+        return true
+    }
+
     mutating func leave(currentProfileID: String, now: Date = .now) -> Bool {
         guard listState.membershipState == .active else { return false }
         if isGroup {
@@ -312,8 +357,10 @@ extension PrototypeChat {
                members.filter({ $0.role == .admin }).count == 1 {
                 return false
             }
-            appendEvent(.left(personID: currentProfileID), now: now)
+            appendEvent(.memberLeft(personID: currentProfileID), now: now)
             members.removeAll { $0.personID == currentProfileID }
+        } else {
+            appendEvent(.directChatLeft, now: now)
         }
         listState.membershipState = .left
         listState.unreadCount = 0
@@ -332,6 +379,15 @@ extension PrototypeChat {
         else { return }
         mutation(&message)
         timeline[index] = .message(message)
+    }
+}
+
+private extension ChatListItem.Avatar {
+    var isPhoto: Bool {
+        switch self {
+        case .asset, .imageData: true
+        case .monogram, .systemSymbol: false
+        }
     }
 }
 

@@ -191,9 +191,11 @@ struct ChatListItem: Identifiable, Equatable {
     var visiblePreview: String {
         switch membershipState {
         case .left:
-            return "You left this chat."
+            return isGroup ? "You left this group." : "You left this chat."
         case .removed:
-            return "You were removed from this chat."
+            return isGroup
+                ? "You were removed from this group."
+                : "You were removed from this chat."
         case .active:
             break
         }

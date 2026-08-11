@@ -4,6 +4,9 @@ private final class PrototypeChatFixtureBundleToken {}
 
 enum PrototypeChatFixtures {
     static let groupIDs: Set<String> = [
+        "catalog-group-messages", "catalog-group-events",
+        "catalog-group-member", "catalog-group-sole-admin",
+        "catalog-group-left", "catalog-group-removed",
         "nostr-devs", "marmots", "weekend-walks", "product-circle",
         "book-club", "quiet-studio", "project-files", "neighborhood",
         "reading-list", "family-group", "sticker-swap", "road-trip",
@@ -21,7 +24,8 @@ enum PrototypeChatFixtures {
                     about: about(for: row.id),
                     nostrAddress: "\(row.id)@whitenoise.example",
                     avatar: row.avatar,
-                    isFollowing: row.id != "satoshi-nakamoto"
+                    isFollowing: row.id != "satoshi-nakamoto",
+                    isBlocked: row.id == "catalog-direct-blocked"
                 )
             )
         }
@@ -57,6 +61,70 @@ enum PrototypeChatFixtures {
                 now: now
             )
             switch row.id {
+            case "catalog-direct-text":
+                chat.timeline = directTextTimeline(profileID: profileID, now: now)
+            case "catalog-direct-replies":
+                chat.timeline = directRepliesTimeline(profileID: profileID, now: now)
+            case "catalog-direct-reactions":
+                chat.timeline = directReactionsTimeline(profileID: profileID, now: now)
+            case "catalog-direct-new-draft":
+                chat.timeline = directNewChatTimeline(profileID: profileID, now: now)
+            case "catalog-media-photo-video":
+                chat.timeline = mediaTimeline(profileID: profileID, now: now)
+            case "catalog-media-rich":
+                chat.timeline = richContentTimeline(profileID: profileID, now: now)
+            case "catalog-voice":
+                chat.timeline = voiceTimeline(profileID: profileID, now: now)
+            case "catalog-group-messages":
+                chat.members = groupMessageMembers(profileID: profileID)
+                chat.timeline = groupMessagesTimeline(profileID: profileID, now: now)
+            case "catalog-group-events":
+                chat.members = groupEventMembers(profileID: profileID)
+                chat.timeline = groupEventsTimeline(profileID: profileID, now: now)
+                chat.groupDescription = ""
+                chat.disappearingMessageDuration = .off
+            case "catalog-group-member":
+                chat.members = groupMemberMembers(profileID: profileID)
+                chat.timeline = groupMemberTimeline(profileID: profileID, now: now)
+            case "catalog-group-sole-admin":
+                chat.members = soleAdminMembers(profileID: profileID)
+                chat.timeline = soleAdminTimeline(profileID: profileID, now: now)
+            case "catalog-direct-left":
+                chat.timeline = directLeftTimeline(profileID: profileID, now: now)
+            case "catalog-group-left":
+                chat.members = endedGroupMembers()
+                chat.timeline = groupLeftTimeline(profileID: profileID, now: now)
+            case "catalog-group-removed":
+                chat.members = endedGroupMembers()
+                chat.timeline = groupRemovedTimeline(profileID: profileID, now: now)
+            case "catalog-direct-blocked":
+                chat.timeline = recoveryTimeline(
+                    profileID: profileID,
+                    otherID: row.id,
+                    scenarioID: "STATE-05",
+                    label: "STATE-05 · History remains available while blocked",
+                    now: now
+                )
+            case "catalog-direct-missing-relays":
+                chat.routing = PrototypeChatRouting(
+                    relayURLs: [],
+                    defaultRelayURLs: relayURLs
+                )
+                chat.timeline = recoveryTimeline(
+                    profileID: profileID,
+                    otherID: row.id,
+                    scenarioID: "STATE-06",
+                    label: "STATE-06 · History remains available without chat relays",
+                    now: now
+                )
+            case "catalog-direct-archived":
+                chat.timeline = recoveryTimeline(
+                    profileID: profileID,
+                    otherID: row.id,
+                    scenarioID: "STATE-07",
+                    label: "STATE-07 · Active archived chat",
+                    now: now
+                )
             case "maya-chen":
                 chat.timeline = mayaTimeline(profileID: profileID, now: now)
             case "weekend-walks":
@@ -79,7 +147,7 @@ enum PrototypeChatFixtures {
     static func supportNotice(now: Date) -> PrototypeTimelineEntry {
         .notice(
             PrototypeTimelineNotice(
-                id: "white-noise-support-guidance",
+                id: "STATE-08",
                 date: now,
                 text: "How can we help? Ask a question, report a problem, or share a suggestion. We’ll reply here."
             )
@@ -148,7 +216,7 @@ enum PrototypeChatFixtures {
                         PrototypeTimelineEvent(
                             id: "\(row.id)-membership-left",
                             date: membershipEventDate,
-                            kind: .left(personID: profileID)
+                            kind: .memberLeft(personID: profileID)
                         )
                     ),
                 ]
@@ -159,7 +227,7 @@ enum PrototypeChatFixtures {
                         PrototypeTimelineEvent(
                             id: "\(row.id)-membership-removed",
                             date: membershipEventDate,
-                            kind: .removed(actorID: "maya-chen", personID: profileID)
+                            kind: .memberRemoved(actorID: "maya-chen", personID: profileID)
                         )
                     ),
                 ]
@@ -190,6 +258,413 @@ enum PrototypeChatFixtures {
                 activityDate: seedDate(for: row.timestamp, now: now)
             )
         )
+    }
+
+    private static func catalogDate(
+        daysAgo: Int,
+        hour: Int = 12,
+        now: Date
+    ) -> Date {
+        let calendar = Calendar.autoupdatingCurrent
+        let shifted = calendar.date(byAdding: .day, value: -daysAgo, to: now) ?? now
+        return calendar.date(bySettingHour: hour, minute: 0, second: 0, of: shifted) ?? shifted
+    }
+
+    private static func catalogEvent(
+        _ id: String,
+        date: Date,
+        kind: PrototypeChatEventKind
+    ) -> PrototypeTimelineEntry {
+        .event(PrototypeTimelineEvent(id: id, date: date, kind: kind))
+    }
+
+    private static func groupMessageMembers(profileID: String) -> [PrototypeGroupMember] {
+        [
+            PrototypeGroupMember(personID: profileID, role: .member),
+            PrototypeGroupMember(personID: "maya-chen", role: .admin),
+            PrototypeGroupMember(personID: "elias-moreno", role: .member),
+            PrototypeGroupMember(personID: "nora-bennett", role: .member),
+            PrototypeGroupMember(personID: "mina-park", role: .member),
+        ]
+    }
+
+    private static func groupEventMembers(profileID: String) -> [PrototypeGroupMember] {
+        [
+            PrototypeGroupMember(personID: profileID, role: .admin),
+            PrototypeGroupMember(personID: "maya-chen", role: .member),
+            PrototypeGroupMember(personID: "elias-moreno", role: .admin),
+            PrototypeGroupMember(personID: "mina-park", role: .member),
+        ]
+    }
+
+    private static func groupMemberMembers(profileID: String) -> [PrototypeGroupMember] {
+        [
+            PrototypeGroupMember(personID: profileID, role: .member),
+            PrototypeGroupMember(personID: "maya-chen", role: .admin),
+            PrototypeGroupMember(personID: "elias-moreno", role: .member),
+        ]
+    }
+
+    private static func soleAdminMembers(profileID: String) -> [PrototypeGroupMember] {
+        [
+            PrototypeGroupMember(personID: profileID, role: .admin),
+            PrototypeGroupMember(personID: "maya-chen", role: .member),
+            PrototypeGroupMember(personID: "elias-moreno", role: .member),
+        ]
+    }
+
+    private static func endedGroupMembers() -> [PrototypeGroupMember] {
+        [
+            PrototypeGroupMember(personID: "maya-chen", role: .admin),
+            PrototypeGroupMember(personID: "elias-moreno", role: .member),
+        ]
+    }
+
+    private static func directTextTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-direct-text"
+        let calendar = Calendar.autoupdatingCurrent
+        let priorYear = calendar.date(byAdding: .year, value: -1, to: now) ?? now.addingTimeInterval(-365 * 86_400)
+        let sameYear = catalogDate(daysAgo: 30, hour: 9, now: now)
+        let weekday = catalogDate(daysAgo: 4, hour: 10, now: now)
+        let yesterday = catalogDate(daysAgo: 1, hour: 11, now: now)
+        let today = catalogDate(daysAgo: 0, hour: 8, now: now)
+
+        return [
+            .message(PrototypeMessage(id: "TXT-01", authorID: otherID, sentAt: priorYear, text: "TXT-01 · Incoming short text")),
+            .message(PrototypeMessage(id: "TXT-02", authorID: profileID, sentAt: sameYear, text: "TXT-02 · Outgoing short text")),
+            .message(PrototypeMessage(id: "TXT-03", authorID: otherID, sentAt: weekday, text: "TXT-03 · Cluster start")),
+            .message(PrototypeMessage(id: "TXT-04", authorID: otherID, sentAt: weekday.addingTimeInterval(60), text: "TXT-04 · Cluster middle")),
+            .message(PrototypeMessage(id: "TXT-05", authorID: otherID, sentAt: weekday.addingTimeInterval(120), text: "TXT-05 · Cluster end")),
+            .message(PrototypeMessage(id: "CLUSTER-01", authorID: profileID, sentAt: weekday.addingTimeInterval(180), text: "CLUSTER-01 · Author change starts a new cluster")),
+            .message(PrototypeMessage(id: "CLUSTER-02", authorID: profileID, sentAt: weekday.addingTimeInterval(600), text: "CLUSTER-02 · More than five minutes starts a new cluster")),
+            .message(PrototypeMessage(id: "TXT-06", authorID: otherID, sentAt: yesterday, text: "TXT-06 · Multiline text\nSecond line\nThird line")),
+            .message(PrototypeMessage(id: "TXT-07", authorID: profileID, sentAt: yesterday.addingTimeInterval(90), text: "TXT-07 · Long wrapping text demonstrates how a message bubble grows across several lines while preserving readable padding and alignment at both edges of the conversation.")),
+            .message(PrototypeMessage(id: "TXT-08", authorID: otherID, sentAt: yesterday.addingTimeInterval(180), text: "TXT-08 · 👋🏽🎉")),
+            .message(PrototypeMessage(id: "CLUSTER-03", authorID: otherID, sentAt: today, text: "CLUSTER-03 · A new day starts a new cluster")),
+            .message(PrototypeMessage(id: "TXT-09", authorID: profileID, sentAt: today.addingTimeInterval(60), text: "TXT-09 · **Bold**, *emphasis*, and [White Noise](https://whitenoise.chat)")),
+            .message(PrototypeMessage(id: "TXT-10", authorID: otherID, sentAt: today.addingTimeInterval(120), text: "TXT-10 · https://developer.apple.com/design/human-interface-guidelines")),
+            .message(PrototypeMessage(id: "DLV-01", authorID: profileID, sentAt: today.addingTimeInterval(180), text: "DLV-01 · Sending outgoing message", deliveryState: .sending)),
+            .message(PrototypeMessage(id: "DLV-02", authorID: profileID, sentAt: today.addingTimeInterval(240), text: "DLV-02 · Sent outgoing message")),
+            .message(PrototypeMessage(id: "DLV-03", authorID: profileID, sentAt: today.addingTimeInterval(600), text: "DLV-03 · Failed outgoing message", deliveryState: .failed)),
+        ]
+    }
+
+    private static func directRepliesTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-direct-replies"
+        let start = now.addingTimeInterval(-7_200)
+        let photo = PrototypeAttachment.photo(
+            id: "RPL-02-photo",
+            source: .asset("FiatjafMediaFox"),
+            label: "Fox beside a tree"
+        )
+
+        return [
+            .message(PrototypeMessage(id: "RPL-01-source", authorID: otherID, sentAt: start, text: "RPL-01 source · Incoming text")),
+            .message(PrototypeMessage(id: "RPL-01", authorID: profileID, sentAt: start.addingTimeInterval(60), text: "RPL-01 · Outgoing reply to incoming text", replyToMessageID: "RPL-01-source")),
+            .message(PrototypeMessage(id: "RPL-02-source-caption", authorID: otherID, sentAt: start.addingTimeInterval(240), text: "RPL-02-source → next bubble · Outgoing attachment reply target")),
+            .message(PrototypeMessage(id: "RPL-02-source", authorID: profileID, sentAt: start.addingTimeInterval(300), attachments: [photo])),
+            .message(PrototypeMessage(id: "RPL-02", authorID: otherID, sentAt: start.addingTimeInterval(360), text: "RPL-02 · Incoming reply to outgoing attachment", replyToMessageID: "RPL-02-source")),
+            .message(PrototypeMessage(id: "DEL-02-caption", authorID: profileID, sentAt: start.addingTimeInterval(600), text: "DEL-02 → next bubble · Incoming deletion and deleted reply target")),
+            .message(PrototypeMessage(id: "DEL-02", authorID: otherID, sentAt: start.addingTimeInterval(660), deletionState: .deletedByOther)),
+            .message(PrototypeMessage(id: "RPL-03", authorID: profileID, sentAt: start.addingTimeInterval(720), text: "RPL-03 · Reply to deleted target", replyToMessageID: "DEL-02")),
+            .message(PrototypeMessage(id: "DEL-01-caption", authorID: otherID, sentAt: start.addingTimeInterval(900), text: "DEL-01 → next bubble · Outgoing deletion")),
+            .message(PrototypeMessage(id: "DEL-01", authorID: profileID, sentAt: start.addingTimeInterval(960), deletionState: .deletedByCurrentProfile)),
+            .message(PrototypeMessage(id: "RPL-04", authorID: otherID, sentAt: start.addingTimeInterval(1_200), text: "RPL-04 · Missing reply target", replyToMessageID: "RPL-missing")),
+        ]
+    }
+
+    private static func directReactionsTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-direct-reactions"
+        let start = now.addingTimeInterval(-9_000)
+        let emoji = PrototypeReaction.supportedEmoji
+        let actionPhoto = PrototypeAttachment.photo(
+            id: "ACT-photo",
+            source: .asset("FiatjafMediaBadger"),
+            label: "Badger in grass"
+        )
+
+        var result: [PrototypeTimelineEntry] = [
+            .message(PrototypeMessage(id: "RCT-01", authorID: otherID, sentAt: start, text: "RCT-01 · Single reaction from another person", reactions: [.init(emoji: "❤", personIDs: [otherID])])),
+            .message(PrototypeMessage(id: "RCT-02", authorID: profileID, sentAt: start.addingTimeInterval(60), text: "RCT-02 · Single selected reaction", reactions: [.init(emoji: "😀", personIDs: [profileID])])),
+            .message(PrototypeMessage(id: "RCT-03", authorID: otherID, sentAt: start.addingTimeInterval(120), text: "RCT-03 · Reaction count without current profile", reactions: [.init(emoji: "👍", personIDs: [otherID, "maya-chen"])])),
+            .message(PrototypeMessage(id: "RCT-04", authorID: profileID, sentAt: start.addingTimeInterval(180), text: "RCT-04 · Reaction count including current profile", reactions: [.init(emoji: "👎", personIDs: [profileID, otherID])])),
+            .message(PrototypeMessage(id: "RCT-05", authorID: otherID, sentAt: start.addingTimeInterval(240), text: "RCT-05 · Multiple reaction chips", reactions: [.init(emoji: "🤣", personIDs: [profileID]), .init(emoji: "🔥", personIDs: [otherID]), .init(emoji: "🦫", personIDs: [profileID, otherID])])),
+        ]
+
+        for (index, value) in emoji.enumerated() {
+            result.append(
+                .message(
+                    PrototypeMessage(
+                        id: "RCT-\(index + 6)",
+                        authorID: index.isMultiple(of: 2) ? otherID : profileID,
+                        sentAt: start.addingTimeInterval(TimeInterval(360 + index * 60)),
+                        text: "RCT-\(index + 6) · Supported reaction \(value)",
+                        reactions: [.init(emoji: value, personIDs: [otherID])]
+                    )
+                )
+            )
+        }
+
+        result += [
+            .message(PrototypeMessage(id: "ACT-01", authorID: otherID, sentAt: start.addingTimeInterval(900), text: "ACT-01 · Incoming text: React, Reply, Copy, Share")),
+            .message(PrototypeMessage(id: "ACT-02", authorID: profileID, sentAt: start.addingTimeInterval(960), text: "ACT-02 · Outgoing text: React, Reply, Copy, Share, Delete")),
+            .message(PrototypeMessage(id: "ACT-03-caption", authorID: profileID, sentAt: start.addingTimeInterval(1_080), text: "ACT-03 → next bubble · Incoming attachment-only: no Copy or Delete")),
+            .message(PrototypeMessage(id: "ACT-03", authorID: otherID, sentAt: start.addingTimeInterval(1_140), attachments: [actionPhoto])),
+            .message(PrototypeMessage(id: "ACT-04-caption", authorID: otherID, sentAt: start.addingTimeInterval(1_260), text: "ACT-04 → next bubble · Outgoing attachment-only: Delete, no Copy")),
+            .message(PrototypeMessage(id: "ACT-04", authorID: profileID, sentAt: start.addingTimeInterval(1_320), attachments: [actionPhoto])),
+            .message(PrototypeMessage(id: "ACT-05-caption", authorID: otherID, sentAt: start.addingTimeInterval(1_440), text: "ACT-05 → next bubble · Available file shares its file URL")),
+            .message(PrototypeMessage(id: "ACT-05", authorID: profileID, sentAt: start.addingTimeInterval(1_500), attachments: [bundledFile(id: "ACT-05-file", name: "Project Brief.pdf", resourceName: "ProjectBrief")])),
+        ]
+        return result
+    }
+
+    private static func directNewChatTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        [
+            catalogEvent(
+                "STATE-01",
+                date: now.addingTimeInterval(-300),
+                kind: .directChatStarted(actorID: profileID)
+            ),
+        ]
+    }
+
+    private static func mediaTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-media-photo-video"
+        let start = now.addingTimeInterval(-14_000)
+        func photo(_ id: String, _ asset: String, _ label: String) -> PrototypeAttachment {
+            .photo(id: id, source: .asset(asset), label: label)
+        }
+        let gallery = [
+            photo("MED-gallery-1", "FiatjafMediaFox", "Fox"),
+            photo("MED-gallery-2", "FiatjafMediaBadger", "Badger"),
+            photo("MED-gallery-3", "FiatjafMediaMarmot", "Marmot"),
+            photo("MED-gallery-4", "FiatjafMediaSloth", "Sloth"),
+            photo("MED-gallery-5", "FiatjafMediaOstrich", "Ostrich"),
+            photo("MED-gallery-6", "AvatarGardenClub", "Garden"),
+            photo("MED-gallery-7", "ProfileAvatarPebble", "River stones"),
+        ]
+        let video = PrototypeAttachment.video(
+            id: "MED-11-video",
+            url: showcaseVideoURL,
+            thumbnail: .asset("ProfileAvatarPebble"),
+            duration: 8
+        )
+
+        return [
+            .message(PrototypeMessage(id: "MED-01-caption", authorID: profileID, sentAt: start, text: "MED-01 → next bubble · Incoming photo-only")),
+            .message(PrototypeMessage(id: "MED-01", authorID: otherID, sentAt: start.addingTimeInterval(60), attachments: [gallery[0]])),
+            .message(PrototypeMessage(id: "MED-02-caption", authorID: otherID, sentAt: start.addingTimeInterval(180), text: "MED-02 → next bubble · Outgoing photo-only")),
+            .message(PrototypeMessage(id: "MED-02", authorID: profileID, sentAt: start.addingTimeInterval(240), attachments: [gallery[1]])),
+            .message(PrototypeMessage(id: "MED-03", authorID: otherID, sentAt: start.addingTimeInterval(360), text: "MED-03 · Photo with caption", attachments: [gallery[2]])),
+            .message(PrototypeMessage(id: "MED-04", authorID: profileID, sentAt: start.addingTimeInterval(540), text: "MED-04 · Gallery of 2", attachments: Array(gallery.prefix(2)))),
+            .message(PrototypeMessage(id: "MED-05", authorID: otherID, sentAt: start.addingTimeInterval(720), text: "MED-05 · Gallery of 3", attachments: Array(gallery.prefix(3)))),
+            .message(PrototypeMessage(id: "MED-06", authorID: profileID, sentAt: start.addingTimeInterval(900), text: "MED-06 · Gallery of 4", attachments: Array(gallery.prefix(4)))),
+            .message(PrototypeMessage(id: "MED-07", authorID: otherID, sentAt: start.addingTimeInterval(1_080), text: "MED-07 · Gallery of 5", attachments: Array(gallery.prefix(5)))),
+            .message(PrototypeMessage(id: "MED-08", authorID: profileID, sentAt: start.addingTimeInterval(1_260), text: "MED-08 · Gallery of 6", attachments: Array(gallery.prefix(6)))),
+            .message(PrototypeMessage(id: "MED-09", authorID: otherID, sentAt: start.addingTimeInterval(1_440), text: "MED-09 · Gallery of 7 with overflow", attachments: gallery)),
+            .message(PrototypeMessage(id: "MED-10", authorID: profileID, sentAt: start.addingTimeInterval(1_620), text: "MED-10 · Mixed photo and video grid", attachments: [gallery[0], video])),
+            .message(PrototypeMessage(id: "MED-11", authorID: otherID, sentAt: start.addingTimeInterval(1_800), text: "MED-11 · Available video with duration", attachments: [video])),
+            .message(PrototypeMessage(id: "MED-12", authorID: profileID, sentAt: start.addingTimeInterval(1_980), text: "MED-12 · Video without playable URL", attachments: [.video(id: "MED-12-video", url: nil, thumbnail: .asset("FiatjafMediaSloth"), duration: 42)])),
+            .message(PrototypeMessage(id: "MED-13", authorID: otherID, sentAt: start.addingTimeInterval(2_160), text: "MED-13 · Unavailable image fallback", attachments: [.photo(id: "MED-13-photo", source: .data(Data([0x00, 0x01, 0x02])), label: "Unavailable photo")])),
+        ]
+    }
+
+    private static func richContentTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-media-rich"
+        let start = now.addingTimeInterval(-15_000)
+        let availableFiles = [
+            bundledFile(id: "FILE-01-file", name: "Project Brief.pdf", resourceName: "ProjectBrief"),
+            bundledFile(id: "FILE-02-file", name: "Review Notes.docx", resourceName: "ProjectNotes"),
+            bundledFile(id: "FILE-03-file", name: "Budget.xlsx", resourceName: "WeekendNotes"),
+            bundledFile(id: "FILE-04-file", name: "Assets.zip", resourceName: "TrailPlan"),
+            bundledFile(id: "FILE-05-file", name: "Read Me.txt", resourceName: "ProjectBrief"),
+        ]
+
+        return [
+            .message(PrototypeMessage(id: "FILE-01", authorID: otherID, sentAt: start, text: "FILE-01 · Available PDF", attachments: [availableFiles[0]])),
+            .message(PrototypeMessage(id: "FILE-02", authorID: profileID, sentAt: start.addingTimeInterval(120), text: "FILE-02 · Available DOCX", attachments: [availableFiles[1]])),
+            .message(PrototypeMessage(id: "FILE-03", authorID: otherID, sentAt: start.addingTimeInterval(240), text: "FILE-03 · Available XLSX", attachments: [availableFiles[2]])),
+            .message(PrototypeMessage(id: "FILE-04", authorID: profileID, sentAt: start.addingTimeInterval(360), text: "FILE-04 · Available ZIP", attachments: [availableFiles[3]])),
+            .message(PrototypeMessage(id: "FILE-05", authorID: otherID, sentAt: start.addingTimeInterval(480), text: "FILE-05 · Available TXT", attachments: [availableFiles[4]])),
+            .message(PrototypeMessage(id: "FILE-06", authorID: profileID, sentAt: start.addingTimeInterval(600), text: "FILE-06 · Unavailable file", attachments: [.file(id: "FILE-06-file", name: "Unavailable.pdf", size: 240_000, url: nil)])),
+            .message(PrototypeMessage(id: "LINK-01", authorID: otherID, sentAt: start.addingTimeInterval(780), text: "LINK-01 · Link preview with image", attachments: [.link(id: "LINK-01-link", title: "Human Interface Guidelines", domain: "developer.apple.com", summary: "Guidance for designing clear experiences on Apple platforms.", image: .asset("ProfileAvatarOpenCircuit"))])),
+            .message(PrototypeMessage(id: "LINK-02", authorID: profileID, sentAt: start.addingTimeInterval(900), text: "LINK-02 · Link preview without image", attachments: [.link(id: "LINK-02-link", title: "White Noise", domain: "whitenoise.chat", summary: "Private, resilient conversations.", image: nil)])),
+            .message(PrototypeMessage(id: "LINK-03", authorID: otherID, sentAt: start.addingTimeInterval(1_020), text: "LINK-03 · Invalid destination", attachments: [.link(id: "LINK-03-link", title: "Unavailable preview", domain: "", summary: "This destination cannot be opened.", image: nil)])),
+            .message(PrototypeMessage(id: "RICH-01", authorID: profileID, sentAt: start.addingTimeInterval(1_200), text: "RICH-01 · GIF", attachments: [.gif(id: "RICH-01-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")])),
+            .message(PrototypeMessage(id: "RICH-02-caption", authorID: otherID, sentAt: start.addingTimeInterval(1_320), text: "RICH-02 → next bubble · Borderless sticker-only")),
+            .message(PrototypeMessage(id: "RICH-02", authorID: profileID, sentAt: start.addingTimeInterval(1_380), attachments: [.sticker(id: "RICH-02-sticker", assetName: "FiatjafMediaFox", label: "Friendly fox")])),
+            .message(PrototypeMessage(id: "RICH-03", authorID: otherID, sentAt: start.addingTimeInterval(1_500), text: "RICH-03 · Sticker with text", attachments: [.sticker(id: "RICH-03-sticker", assetName: "FiatjafMediaSloth", label: "Calm sloth")])),
+            .message(PrototypeMessage(id: "RICH-04", authorID: profileID, sentAt: start.addingTimeInterval(1_620), text: "RICH-04 · Location", attachments: [.location(id: "RICH-04-location", name: "Riverside Trail", address: "North entrance by the footbridge")])),
+            .message(PrototypeMessage(id: "RICH-05", authorID: otherID, sentAt: start.addingTimeInterval(1_740), text: "RICH-05 · Valid contact", attachments: [.contact(id: "RICH-05-contact", personID: "avery-stone")])),
+            .message(PrototypeMessage(id: "RICH-06", authorID: profileID, sentAt: start.addingTimeInterval(1_920), text: "RICH-06 · Stacked nonmedia attachments", attachments: [availableFiles[0], .link(id: "RICH-06-link", title: "White Noise", domain: "whitenoise.chat", summary: "A valid stacked link preview.", image: nil), .location(id: "RICH-06-location", name: "Central Station", address: "Main entrance")]))
+        ]
+    }
+
+    private static func voiceTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-voice"
+        let start = now.addingTimeInterval(-3_600)
+        return [
+            .message(PrototypeMessage(id: "VOICE-01-caption", authorID: profileID, sentAt: start, text: "VOICE-01 → next bubble · Incoming short voice message")),
+            .message(PrototypeMessage(id: "VOICE-01", authorID: otherID, sentAt: start.addingTimeInterval(60), attachments: [.voice(id: "VOICE-01-audio", resourceName: PrototypeVoiceSample.resourceName, duration: 7)])),
+            .message(PrototypeMessage(id: "VOICE-02-caption", authorID: otherID, sentAt: start.addingTimeInterval(180), text: "VOICE-02 → next bubble · Outgoing short voice message")),
+            .message(PrototypeMessage(id: "VOICE-02", authorID: profileID, sentAt: start.addingTimeInterval(240), attachments: [.voice(id: "VOICE-02-audio", resourceName: PrototypeVoiceSample.resourceName, duration: 18)])),
+            .message(PrototypeMessage(id: "VOICE-03-caption", authorID: profileID, sentAt: start.addingTimeInterval(360), text: "VOICE-03 → next bubble · Voice duration over one minute")),
+            .message(PrototypeMessage(id: "VOICE-03", authorID: otherID, sentAt: start.addingTimeInterval(420), attachments: [.voice(id: "VOICE-03-audio", resourceName: PrototypeVoiceSample.resourceName, duration: 82)])),
+        ]
+    }
+
+    private static func groupMessagesTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let old = catalogDate(daysAgo: 9, hour: 9, now: now)
+        let yesterday = catalogDate(daysAgo: 1, hour: 10, now: now)
+        let today = catalogDate(daysAgo: 0, hour: 9, now: now)
+        return [
+            catalogEvent("EVT-02", date: old, kind: .groupCreated(actorID: "maya-chen")),
+            catalogEvent("EVT-06", date: old.addingTimeInterval(60), kind: .memberJoined(personID: profileID)),
+            .message(PrototypeMessage(id: "GRP-01", authorID: "maya-chen", sentAt: old.addingTimeInterval(180), text: "GRP-01 · Incoming group cluster start")),
+            .message(PrototypeMessage(id: "GRP-02", authorID: "maya-chen", sentAt: old.addingTimeInterval(240), text: "GRP-02 · Same-author cluster end")),
+            .message(PrototypeMessage(id: "GRP-03", authorID: "elias-moreno", sentAt: old.addingTimeInterval(300), text: "GRP-03 · Author switch")),
+            .message(PrototypeMessage(id: "GRP-04", authorID: profileID, sentAt: old.addingTimeInterval(360), text: "GRP-04 · Outgoing interruption")),
+            .message(PrototypeMessage(id: "GRP-05", authorID: "elias-moreno", sentAt: old.addingTimeInterval(720), text: "GRP-05 · Five-minute cluster break")),
+            .message(PrototypeMessage(id: "MENTION-01", authorID: "maya-chen", sentAt: yesterday, text: "MENTION-01 · @Marmota please review this.")),
+            .message(PrototypeMessage(id: "MENTION-02", authorID: profileID, sentAt: yesterday.addingTimeInterval(120), text: "MENTION-02 · @Maya Chen has the latest version.")),
+            .message(PrototypeMessage(id: "MENTION-03", authorID: "nora-bennett", sentAt: yesterday.addingTimeInterval(240), text: "MENTION-03 · @Maya Chen and @Elias Moreno can compare notes.")),
+            .message(PrototypeMessage(id: "MENTION-04", authorID: "elias-moreno", sentAt: yesterday.addingTimeInterval(360), text: "MENTION-04 · @Unknown stays plain text.")),
+            .message(PrototypeMessage(id: "GRP-RPL-01-source", authorID: "maya-chen", sentAt: today, text: "GRP-RPL-01 source · Maya’s question")),
+            .message(PrototypeMessage(id: "GRP-RPL-01", authorID: "elias-moreno", sentAt: today.addingTimeInterval(60), text: "GRP-RPL-01 · Elias replies to Maya", replyToMessageID: "GRP-RPL-01-source")),
+            .message(PrototypeMessage(id: "GRP-RPL-02", authorID: "maya-chen", sentAt: today.addingTimeInterval(120), text: "GRP-RPL-02 · Maya replies to Elias", replyToMessageID: "GRP-RPL-01")),
+        ]
+    }
+
+    private static func groupEventsTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-40_000)
+        let minute: TimeInterval = 60
+        return [
+            catalogEvent("EVT-01", date: start, kind: .groupCreated(actorID: profileID)),
+            catalogEvent("EVT-03", date: start.addingTimeInterval(minute), kind: .membersAdded(actorID: profileID, personIDs: ["maya-chen"])),
+            catalogEvent("EVT-11", date: start.addingTimeInterval(2 * minute), kind: .adminGranted(actorID: profileID, personID: "maya-chen")),
+            catalogEvent("EVT-04", date: start.addingTimeInterval(3 * minute), kind: .membersAdded(actorID: "maya-chen", personIDs: ["elias-moreno", "nora-bennett", "leo-martins", "mina-park"])),
+            catalogEvent("EVT-05", date: start.addingTimeInterval(4 * minute), kind: .memberJoined(personID: "theo-grant")),
+            catalogEvent("EVT-07", date: start.addingTimeInterval(5 * minute), kind: .memberLeft(personID: "leo-martins")),
+            catalogEvent("EVT-08", date: start.addingTimeInterval(6 * minute), kind: .memberRemoved(actorID: profileID, personID: "nora-bennett")),
+            catalogEvent("EVT-09", date: start.addingTimeInterval(7 * minute), kind: .memberRemoved(actorID: "maya-chen", personID: "theo-grant")),
+            catalogEvent("EVT-14", date: start.addingTimeInterval(8 * minute), kind: .adminRevoked(actorID: "maya-chen", personID: profileID)),
+            catalogEvent("EVT-12", date: start.addingTimeInterval(9 * minute), kind: .adminGranted(actorID: "maya-chen", personID: profileID)),
+            catalogEvent("EVT-13", date: start.addingTimeInterval(10 * minute), kind: .adminRevoked(actorID: profileID, personID: "maya-chen")),
+            catalogEvent("EVT-12B", date: start.addingTimeInterval(11 * minute), kind: .adminGranted(actorID: profileID, personID: "elias-moreno")),
+            catalogEvent("EVT-15", date: start.addingTimeInterval(12 * minute), kind: .groupNameChanged(actorID: profileID, name: "Group — Events & Roles")),
+            catalogEvent("EVT-16", date: start.addingTimeInterval(13 * minute), kind: .groupPhotoChanged(actorID: "elias-moreno")),
+            catalogEvent("EVT-17", date: start.addingTimeInterval(14 * minute), kind: .groupPhotoRemoved(actorID: profileID)),
+            catalogEvent("EVT-18", date: start.addingTimeInterval(15 * minute), kind: .groupDescriptionChanged(actorID: "elias-moreno")),
+            catalogEvent("EVT-19", date: start.addingTimeInterval(16 * minute), kind: .groupDescriptionRemoved(actorID: profileID)),
+            .message(PrototypeMessage(id: "ROLE-01", authorID: profileID, sentAt: start.addingTimeInterval(990), text: "ROLE-01 · Admin: edit group identity, add people, manage roles, remove members, and leave.")),
+            catalogEvent("EVT-20", date: start.addingTimeInterval(17 * minute), kind: .disappearingMessagesChanged(actorID: profileID, duration: .oneDay)),
+            catalogEvent("EVT-21", date: start.addingTimeInterval(18 * minute), kind: .disappearingMessagesChanged(actorID: "elias-moreno", duration: .oneWeek)),
+            catalogEvent("EVT-22", date: start.addingTimeInterval(19 * minute), kind: .disappearingMessagesChanged(actorID: profileID, duration: .fourWeeks)),
+            catalogEvent("EVT-23", date: start.addingTimeInterval(20 * minute), kind: .disappearingMessagesChanged(actorID: "elias-moreno", duration: .off)),
+        ]
+    }
+
+    private static func groupMemberTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-4_000)
+        return [
+            catalogEvent("EVT-02-member", date: start, kind: .groupCreated(actorID: "maya-chen")),
+            catalogEvent("EVT-04-member", date: start.addingTimeInterval(60), kind: .membersAdded(actorID: "maya-chen", personIDs: [profileID, "elias-moreno"])),
+            .message(PrototypeMessage(id: "ROLE-02", authorID: "maya-chen", sentAt: start.addingTimeInterval(180), text: "ROLE-02 · Ordinary member: messaging, search, shared content, mute, archive, and leave remain available; admin controls are hidden.")),
+        ]
+    }
+
+    private static func soleAdminTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-3_000)
+        return [
+            catalogEvent("ROLE-03-created", date: start, kind: .groupCreated(actorID: profileID)),
+            catalogEvent("ROLE-03-added", date: start.addingTimeInterval(60), kind: .membersAdded(actorID: profileID, personIDs: ["maya-chen", "elias-moreno"])),
+            .message(PrototypeMessage(id: "ROLE-03", authorID: profileID, sentAt: start.addingTimeInterval(180), text: "ROLE-03 · Sole admin: promote another member before leaving the group.")),
+        ]
+    }
+
+    private static func directLeftTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-3_600)
+        return [
+            catalogEvent("STATE-02-started", date: start, kind: .directChatStarted(actorID: profileID)),
+            .message(PrototypeMessage(id: "STATE-02-message", authorID: "catalog-direct-left", sentAt: start.addingTimeInterval(120), text: "STATE-02 · Direct history remains readable after leaving.")),
+            catalogEvent("STATE-02", date: start.addingTimeInterval(240), kind: .directChatLeft),
+        ]
+    }
+
+    private static func groupLeftTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-3_600)
+        return [
+            catalogEvent("STATE-03-created", date: start, kind: .groupCreated(actorID: "maya-chen")),
+            catalogEvent("STATE-03-added", date: start.addingTimeInterval(60), kind: .membersAdded(actorID: "maya-chen", personIDs: [profileID, "elias-moreno"])),
+            .message(PrototypeMessage(id: "STATE-03-message", authorID: "maya-chen", sentAt: start.addingTimeInterval(180), text: "STATE-03 · Group history remains readable after leaving.")),
+            catalogEvent("STATE-03", date: start.addingTimeInterval(300), kind: .memberLeft(personID: profileID)),
+        ]
+    }
+
+    private static func groupRemovedTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-3_600)
+        return [
+            catalogEvent("STATE-04-created", date: start, kind: .groupCreated(actorID: "maya-chen")),
+            catalogEvent("STATE-04-added", date: start.addingTimeInterval(60), kind: .membersAdded(actorID: "maya-chen", personIDs: [profileID, "elias-moreno"])),
+            .message(PrototypeMessage(id: "STATE-04-message", authorID: "maya-chen", sentAt: start.addingTimeInterval(180), text: "STATE-04 · Group history remains readable after removal.")),
+            catalogEvent("EVT-10", date: start.addingTimeInterval(300), kind: .memberRemoved(actorID: "maya-chen", personID: profileID)),
+        ]
+    }
+
+    private static func recoveryTimeline(
+        profileID: String,
+        otherID: String,
+        scenarioID: String,
+        label: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-1_800)
+        return [
+            catalogEvent("\(scenarioID)-started", date: start, kind: .directChatStarted(actorID: profileID)),
+            .message(PrototypeMessage(id: scenarioID, authorID: otherID, sentAt: start.addingTimeInterval(120), text: label)),
+        ]
     }
 
     private static func mayaTimeline(profileID: String, now: Date) -> [PrototypeTimelineEntry] {
@@ -278,25 +753,25 @@ enum PrototypeChatFixtures {
         ]
 
         return [
-            .event(PrototypeTimelineEvent(id: "week-event-created", date: old, kind: .created(actorID: profileID))),
-            .event(PrototypeTimelineEvent(id: "week-event-added", date: old.addingTimeInterval(60), kind: .added(actorID: profileID, personIDs: ["maya-chen", "elias-moreno"]))),
+            .event(PrototypeTimelineEvent(id: "week-event-created", date: old, kind: .groupCreated(actorID: profileID))),
+            .event(PrototypeTimelineEvent(id: "week-event-added", date: old.addingTimeInterval(60), kind: .membersAdded(actorID: profileID, personIDs: ["maya-chen", "elias-moreno"]))),
             .message(PrototypeMessage(id: "week-msg-1", authorID: "maya-chen", sentAt: old.addingTimeInterval(180), text: "Thanks for setting this up.")),
             .message(PrototypeMessage(id: "week-msg-2", authorID: "elias-moreno", sentAt: old.addingTimeInterval(240), text: "I have a few easy routes we can try.")),
-            .event(PrototypeTimelineEvent(id: "week-event-added-one", date: old.addingTimeInterval(360), kind: .added(actorID: profileID, personIDs: ["nora-bennett"]))),
+            .event(PrototypeTimelineEvent(id: "week-event-added-one", date: old.addingTimeInterval(360), kind: .membersAdded(actorID: profileID, personIDs: ["nora-bennett"]))),
             .message(PrototypeMessage(id: "week-msg-3", authorID: "nora-bennett", sentAt: old.addingTimeInterval(480), text: "Welcome everyone. Let’s choose a route that works for the whole group.")),
-            .event(PrototypeTimelineEvent(id: "week-event-joined", date: old.addingTimeInterval(600), kind: .joined(personID: "mina-park"))),
+            .event(PrototypeTimelineEvent(id: "week-event-joined", date: old.addingTimeInterval(600), kind: .memberJoined(personID: "mina-park"))),
             .message(PrototypeMessage(id: "week-msg-4", authorID: "mina-park", sentAt: old.addingTimeInterval(720), text: "Glad I found the group.")),
             .message(PrototypeMessage(id: "week-msg-5", authorID: "mina-park", sentAt: old.addingTimeInterval(780), text: "Sunday mornings usually work for me.")),
-            .event(PrototypeTimelineEvent(id: "week-event-leo-joined", date: old.addingTimeInterval(900), kind: .joined(personID: "leo-martins"))),
+            .event(PrototypeTimelineEvent(id: "week-event-leo-joined", date: old.addingTimeInterval(900), kind: .memberJoined(personID: "leo-martins"))),
 
-            .event(PrototypeTimelineEvent(id: "week-event-name", date: earlyHistory, kind: .changedName(actorID: profileID, name: "Weekend Walks"))),
+            .event(PrototypeTimelineEvent(id: "week-event-name", date: earlyHistory, kind: .groupNameChanged(actorID: profileID, name: "Weekend Walks"))),
             .message(PrototypeMessage(id: "week-msg-6", authorID: "nora-bennett", sentAt: earlyHistory.addingTimeInterval(120), text: "Weekend Walks fits us better.")),
-            .event(PrototypeTimelineEvent(id: "week-event-photo", date: earlyHistory.addingTimeInterval(240), kind: .changedPhoto(actorID: profileID))),
+            .event(PrototypeTimelineEvent(id: "week-event-photo", date: earlyHistory.addingTimeInterval(240), kind: .groupPhotoChanged(actorID: profileID))),
             .message(PrototypeMessage(id: "week-msg-7", authorID: "maya-chen", sentAt: earlyHistory.addingTimeInterval(360), text: "That photo is from our first riverside route.")),
             .message(PrototypeMessage(id: "week-msg-8", authorID: "maya-chen", sentAt: earlyHistory.addingTimeInterval(420), text: "I still like that path best.")),
-            .event(PrototypeTimelineEvent(id: "week-event-description", date: earlyHistory.addingTimeInterval(540), kind: .changedDescription(actorID: profileID))),
+            .event(PrototypeTimelineEvent(id: "week-event-description", date: earlyHistory.addingTimeInterval(540), kind: .groupDescriptionChanged(actorID: profileID))),
 
-            .event(PrototypeTimelineEvent(id: "week-event-admin", date: weekday, kind: .madeAdmin(actorID: profileID, personID: "maya-chen"))),
+            .event(PrototypeTimelineEvent(id: "week-event-admin", date: weekday, kind: .adminGranted(actorID: profileID, personID: "maya-chen"))),
             .message(PrototypeMessage(id: "week-msg-9", authorID: "maya-chen", sentAt: weekday.addingTimeInterval(120), text: "I’ll organize the route options and meeting points.")),
             .message(PrototypeMessage(id: "week-msg-10", authorID: "elias-moreno", sentAt: weekday.addingTimeInterval(240), text: "Here are four from the west trail.", attachments: Array(gallery.prefix(4)), reactions: [PrototypeReaction(emoji: "👍", personIDs: [profileID])])),
             .message(PrototypeMessage(id: "week-msg-11", authorID: "mina-park", sentAt: weekday.addingTimeInterval(360), text: "And five from the lake loop.", attachments: Array(gallery.prefix(5)))),
@@ -306,9 +781,9 @@ enum PrototypeChatFixtures {
                 PrototypeReaction(emoji: "🔥", personIDs: ["mina-park"]),
             ])),
             .message(PrototypeMessage(id: "week-msg-13", authorID: "maya-chen", sentAt: weekday.addingTimeInterval(600), text: "I’m done with the route changes, so you can take admin back.")),
-            .event(PrototypeTimelineEvent(id: "week-event-admin-remove", date: weekday.addingTimeInterval(720), kind: .removedAdmin(actorID: profileID, personID: "maya-chen"))),
+            .event(PrototypeTimelineEvent(id: "week-event-admin-remove", date: weekday.addingTimeInterval(720), kind: .adminRevoked(actorID: profileID, personID: "maya-chen"))),
 
-            .event(PrototypeTimelineEvent(id: "week-event-description-remove", date: yesterday, kind: .removedDescription(actorID: profileID))),
+            .event(PrototypeTimelineEvent(id: "week-event-description-remove", date: yesterday, kind: .groupDescriptionRemoved(actorID: profileID))),
             .message(PrototypeMessage(id: "week-msg-14", authorID: "maya-chen", sentAt: yesterday, text: "@Marmota, does the riverside path work?")),
             .message(PrototypeMessage(id: "week-msg-15", authorID: profileID, sentAt: yesterday.addingTimeInterval(120), text: "Yes, and the forecast looks clear.", replyToMessageID: "week-msg-14")),
             .message(PrototypeMessage(id: "week-msg-16", authorID: "nora-bennett", sentAt: yesterday.addingTimeInterval(240), text: "Then let’s keep the changing details here instead of in the description.", replyToMessageID: "week-msg-15")),
@@ -327,10 +802,10 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "week-msg-23", authorID: "nora-bennett", sentAt: today.addingTimeInterval(480), attachments: [bundledFile(id: "week-file", name: "Trail Plan.pdf", resourceName: "TrailPlan")])),
             .message(PrototypeMessage(id: "week-msg-24", authorID: profileID, sentAt: today.addingTimeInterval(600), attachments: [.voice(id: "week-voice", resourceName: PrototypeVoiceSample.resourceName, duration: PrototypeVoiceSample.duration)])),
             .message(PrototypeMessage(id: "week-msg-25", authorID: "leo-martins", sentAt: today.addingTimeInterval(720), text: "I’m stepping out, but I hope the walk goes well.")),
-            .event(PrototypeTimelineEvent(id: "week-event-left", date: today.addingTimeInterval(840), kind: .left(personID: "leo-martins"))),
-            .event(PrototypeTimelineEvent(id: "week-event-theo-added", date: today.addingTimeInterval(900), kind: .added(actorID: profileID, personIDs: ["theo-grant"]))),
+            .event(PrototypeTimelineEvent(id: "week-event-left", date: today.addingTimeInterval(840), kind: .memberLeft(personID: "leo-martins"))),
+            .event(PrototypeTimelineEvent(id: "week-event-theo-added", date: today.addingTimeInterval(900), kind: .membersAdded(actorID: profileID, personIDs: ["theo-grant"]))),
             .message(PrototypeMessage(id: "week-msg-26", authorID: "theo-grant", sentAt: today.addingTimeInterval(960), text: "I won’t be joining this one.")),
-            .event(PrototypeTimelineEvent(id: "week-event-removed", date: today.addingTimeInterval(1_080), kind: .removed(actorID: profileID, personID: "theo-grant"))),
+            .event(PrototypeTimelineEvent(id: "week-event-removed", date: today.addingTimeInterval(1_080), kind: .memberRemoved(actorID: profileID, personID: "theo-grant"))),
             .message(PrototypeMessage(id: "week-msg-27", authorID: "nora-bennett", sentAt: today.addingTimeInterval(1_200), text: "Saturday morning works for me.")),
         ]
     }

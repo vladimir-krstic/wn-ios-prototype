@@ -327,10 +327,9 @@ struct ConversationView: View {
         switch entry {
         case let .event(event):
             Text(
-                PrototypeGroupEventFormatter.text(
+                PrototypeChatEventFormatter.text(
                     for: event.kind,
                     profileID: profile.id,
-                    profileName: profile.name,
                     people: profile.people
                 )
             )
@@ -749,7 +748,7 @@ struct ConversationView: View {
         switch recovery {
         case .left:
             membershipStatusLabel(
-                "You left this group.",
+                chat.isGroup ? "You left this group." : "You left this chat.",
                 systemImage: "rectangle.portrait.and.arrow.right"
             )
         case .removed:

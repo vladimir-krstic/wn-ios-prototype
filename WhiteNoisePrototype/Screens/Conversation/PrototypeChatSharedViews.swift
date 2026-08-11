@@ -66,53 +66,60 @@ struct PrototypeImageSourceView: View {
     }
 }
 
-enum PrototypeGroupEventFormatter {
+enum PrototypeChatEventFormatter {
     static func text(
-        for kind: PrototypeGroupEventKind,
+        for kind: PrototypeChatEventKind,
         profileID: String,
-        profileName: String,
         people: [PrototypePerson]
     ) -> String {
-        func name(_ id: String, subject: Bool = false) -> String {
-            if id == profileID { return subject ? "You" : "you" }
+        func name(_ id: String, capitalized: Bool = false) -> String {
+            if id == profileID { return capitalized ? "You" : "you" }
             return people.first { $0.id == id }?.name ?? id
         }
-        func actor(_ id: String) -> String { name(id, subject: true) }
-        func verb(_ id: String, you: String, other: String) -> String {
-            id == profileID ? you : other
-        }
+        func actor(_ id: String) -> String { name(id, capitalized: true) }
         func names(_ ids: [String]) -> String {
-            let values = ids.map { name($0, subject: true) }
+            let values = ids.map { name($0) }
             guard values.count > 1 else { return values.first ?? "" }
             return values.dropLast().joined(separator: ", ") + " and " + values.last!
         }
 
         switch kind {
-        case let .created(actorID):
-            return "\(actor(actorID)) \(verb(actorID, you: "created", other: "created")) the group."
-        case let .added(actorID, personIDs):
+        case let .directChatStarted(actorID):
+            return "\(actor(actorID)) started the chat."
+        case .directChatLeft:
+            return "You left the chat."
+        case let .groupCreated(actorID):
+            return "\(actor(actorID)) created the group."
+        case let .membersAdded(actorID, personIDs):
             return "\(actor(actorID)) added \(names(personIDs))."
-        case let .joined(personID):
+        case let .memberJoined(personID):
             return "\(actor(personID)) joined the group."
-        case let .left(personID):
+        case let .memberLeft(personID):
             return "\(actor(personID)) left the group."
-        case let .removed(actorID, personID):
+        case let .memberRemoved(actorID, personID):
             if personID == profileID {
                 return "\(actor(actorID)) removed you from the group."
             }
-            return "\(actor(actorID)) removed \(name(personID, subject: true))."
-        case let .madeAdmin(actorID, personID):
-            return "\(actor(actorID)) made \(name(personID, subject: true)) an admin."
-        case let .removedAdmin(actorID, personID):
-            return "\(actor(actorID)) removed \(name(personID, subject: true)) as an admin."
-        case let .changedName(actorID, value):
+            return "\(actor(actorID)) removed \(name(personID))."
+        case let .adminGranted(actorID, personID):
+            return "\(actor(actorID)) made \(name(personID)) an admin."
+        case let .adminRevoked(actorID, personID):
+            return "\(actor(actorID)) removed \(name(personID)) as an admin."
+        case let .groupNameChanged(actorID, value):
             return "\(actor(actorID)) changed the group name to \(value)."
-        case let .changedPhoto(actorID):
+        case let .groupPhotoChanged(actorID):
             return "\(actor(actorID)) changed the group photo."
-        case let .changedDescription(actorID):
+        case let .groupPhotoRemoved(actorID):
+            return "\(actor(actorID)) removed the group photo."
+        case let .groupDescriptionChanged(actorID):
             return "\(actor(actorID)) changed the group description."
-        case let .removedDescription(actorID):
+        case let .groupDescriptionRemoved(actorID):
             return "\(actor(actorID)) removed the group description."
+        case let .disappearingMessagesChanged(actorID, duration):
+            if duration == .off {
+                return "\(actor(actorID)) turned off disappearing messages."
+            }
+            return "\(actor(actorID)) set disappearing messages to \(duration.title)."
         }
     }
 }

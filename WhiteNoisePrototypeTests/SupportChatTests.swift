@@ -14,7 +14,7 @@ struct SupportChatTests {
         #expect(second == first)
         #expect(profile.chats.count == 1)
         #expect(profile.chats.first?.id == ChatListFixtures.supportChatID)
-        #expect(profile.chats.first?.timeline.first?.id == "white-noise-support-guidance")
+        #expect(profile.chats.first?.timeline.first?.id == "STATE-08")
         #expect(profile.chats.first?.messages.isEmpty == true)
     }
 
@@ -27,21 +27,26 @@ struct SupportChatTests {
         #expect(profile.chats.isEmpty)
     }
 
-    @Test("Support is inserted directly after Fiatjaf")
-    func supportFollowsFiatjaf() {
+    @Test("Support returns to its catalog position when recreated")
+    func supportReturnsToCatalogPosition() throws {
         var profile = PrototypeProfile.marmota
         profile.chats.removeAll { $0.id == ChatListFixtures.supportChatID }
 
         _ = profile.openOrCreateSupportChat()
 
-        let fiatjafIndex = profile.chats.firstIndex { chat in
-            chat.id == ChatListFixtures.fiatjafChatID
+        let archivedCatalogIndex = profile.chats.firstIndex { chat in
+            chat.id == "catalog-direct-archived"
         }
         let supportIndex = profile.chats.firstIndex { chat in
             chat.id == ChatListFixtures.supportChatID
         }
 
-        #expect(supportIndex == fiatjafIndex.map { $0 + 1 })
+        #expect(supportIndex == archivedCatalogIndex.map { $0 + 1 })
+        let recreatedSupportIndex = try #require(supportIndex)
+        #expect(
+            profile.chats[recreatedSupportIndex].title(people: profile.people)
+                == ChatListFixtures.supportChat.title
+        )
     }
 
     @Test("Appending a profile-owned message updates its chat preview")

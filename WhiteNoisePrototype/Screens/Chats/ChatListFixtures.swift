@@ -1,10 +1,30 @@
 enum ChatListFixtures {
     static let fiatjafChatID = "fiatjaf"
     static let supportChatID = "white-noise-support"
+    static let catalogChatIDs = [
+        "catalog-direct-text",
+        "catalog-direct-replies",
+        "catalog-direct-reactions",
+        "catalog-direct-new-draft",
+        "catalog-media-photo-video",
+        "catalog-media-rich",
+        "catalog-voice",
+        "catalog-group-messages",
+        "catalog-group-events",
+        "catalog-group-member",
+        "catalog-group-sole-admin",
+        "catalog-direct-left",
+        "catalog-group-left",
+        "catalog-group-removed",
+        "catalog-direct-blocked",
+        "catalog-direct-missing-relays",
+        "catalog-direct-archived",
+        supportChatID,
+    ]
 
     static let supportChat = ChatListItem(
         id: supportChatID,
-        title: "White Noise Support",
+        title: "Support — Timeline Notice",
         avatar: .systemSymbol("questionmark.bubble"),
         preview: "Ask a question, report a problem, or share a suggestion.",
         timestamp: "Thursday",
@@ -16,6 +36,110 @@ enum ChatListFixtures {
     )
 
     static let populated: [ChatListItem] = [
+        catalogItem(
+            id: "catalog-direct-text",
+            title: "Direct — Text & Delivery",
+            preview: "DLV-03 · Failed outgoing message",
+            pinned: true,
+            deliveryState: .failed
+        ),
+        catalogItem(
+            id: "catalog-direct-replies",
+            title: "Direct — Replies & Deletion",
+            preview: "RPL-04 · Missing reply target",
+            unreadCount: 3
+        ),
+        catalogItem(
+            id: "catalog-direct-reactions",
+            title: "Direct — Reactions & Actions",
+            preview: "ACT-05 · Share available file URL",
+            markedUnread: true
+        ),
+        catalogItem(
+            id: "catalog-direct-new-draft",
+            title: "Direct — New Chat & Draft",
+            preview: "STATE-01 · Unsent draft",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-media-photo-video",
+            title: "Media — Photos & Video",
+            preview: "MED-13 · Unavailable image fallback",
+            muted: true
+        ),
+        catalogItem(
+            id: "catalog-media-rich",
+            title: "Media — Files & Rich Content",
+            preview: "RICH-06 · Stacked attachments"
+        ),
+        catalogItem(
+            id: "catalog-voice",
+            title: "Voice Messages",
+            preview: "",
+            attachmentPreview: .voiceMessage
+        ),
+        catalogItem(
+            id: "catalog-group-messages",
+            title: "Group — Messages & Mentions",
+            preview: "GRP-RPL-02 · Cross-author reply",
+            previewAuthor: "Maya",
+            isGroup: true
+        ),
+        catalogItem(
+            id: "catalog-group-events",
+            title: "Group — Events & Roles",
+            preview: "Elias Moreno turned off disappearing messages.",
+            isGroup: true
+        ),
+        catalogItem(
+            id: "catalog-group-member",
+            title: "Group — Member Permissions",
+            preview: "ROLE-02 · Ordinary member permissions",
+            isGroup: true
+        ),
+        catalogItem(
+            id: "catalog-group-sole-admin",
+            title: "Group — Sole Admin",
+            preview: "ROLE-03 · Promote another admin before leaving",
+            isGroup: true
+        ),
+        catalogItem(
+            id: "catalog-direct-left",
+            title: "Direct — Left",
+            preview: "You left the chat.",
+            membershipState: .left
+        ),
+        catalogItem(
+            id: "catalog-group-left",
+            title: "Group — Left",
+            preview: "You left the group.",
+            isGroup: true,
+            membershipState: .left
+        ),
+        catalogItem(
+            id: "catalog-group-removed",
+            title: "Group — Removed",
+            preview: "Maya Chen removed you from the group.",
+            isGroup: true,
+            membershipState: .removed
+        ),
+        catalogItem(
+            id: "catalog-direct-blocked",
+            title: "Direct — Blocked",
+            preview: "STATE-05 · History remains available"
+        ),
+        catalogItem(
+            id: "catalog-direct-missing-relays",
+            title: "Direct — Missing Relays",
+            preview: "STATE-06 · Check Chat Relays"
+        ),
+        catalogItem(
+            id: "catalog-direct-archived",
+            title: "Direct — Archived",
+            preview: "STATE-07 · Unarchive from Chat Info",
+            archived: true
+        ),
+        supportChat,
         ChatListItem(
             id: "nostr-devs",
             title: "Nostr Devs",
@@ -152,7 +276,6 @@ enum ChatListFixtures {
             isDraft: false,
             deliveryState: .none
         ),
-        supportChat,
         ChatListItem(
             id: "mina-park",
             title: "Mina Park",
@@ -185,7 +308,7 @@ enum ChatListFixtures {
             preview: "Can you send the latest version when you have a moment?",
             timestamp: "Monday",
             isArchived: false,
-            isPinned: true,
+            isPinned: false,
             unreadCount: 1,
             isMuted: false,
             isDraft: false,
@@ -199,7 +322,7 @@ enum ChatListFixtures {
             previewAuthor: "Nora",
             timestamp: "Sunday",
             isArchived: false,
-            isPinned: true,
+            isPinned: false,
             unreadCount: 12,
             isMuted: false,
             isDraft: false,
@@ -513,5 +636,41 @@ enum ChatListFixtures {
     ]
 
     static let empty: [ChatListItem] = []
+
+    private static func catalogItem(
+        id: String,
+        title: String,
+        preview: String,
+        previewAuthor: String? = nil,
+        attachmentPreview: ChatListItem.AttachmentPreview? = nil,
+        isGroup: Bool = false,
+        membershipState: ChatListItem.MembershipState = .active,
+        archived: Bool = false,
+        pinned: Bool = false,
+        unreadCount: Int = 0,
+        markedUnread: Bool = false,
+        muted: Bool = false,
+        isDraft: Bool = false,
+        deliveryState: ChatListItem.DeliveryState = .none
+    ) -> ChatListItem {
+        ChatListItem(
+            id: id,
+            title: title,
+            avatar: .monogram(String(title.prefix(1))),
+            isGroup: isGroup,
+            preview: preview,
+            previewAuthor: previewAuthor,
+            attachmentPreview: attachmentPreview,
+            timestamp: "Now",
+            membershipState: membershipState,
+            isArchived: archived,
+            isPinned: pinned,
+            unreadCount: unreadCount,
+            isMarkedUnread: markedUnread,
+            isMuted: muted,
+            isDraft: isDraft,
+            deliveryState: deliveryState
+        )
+    }
 
 }

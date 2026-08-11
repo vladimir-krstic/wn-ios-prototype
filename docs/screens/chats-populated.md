@@ -23,7 +23,9 @@ support native swipe actions.
 - Delete confirmation title: **Delete “Chat Name” from this device?**
 - Delete confirmation message: **This permanently removes the chat and its messages from this device. Signing in again won’t restore them.**
 - Delete confirmation action: **Delete Chat**
-- Ended-membership previews: **You left this chat.**, **You were removed from this chat.**
+- Ended-membership previews use the correct noun: direct chats say **You left
+  this chat.**; groups say **You left this group.** or **You were removed from
+  this group.**
 - Empty and no-results copy remains defined by `chats-empty.md`.
 - Fixture names and messages are fictional and stable.
 
@@ -82,7 +84,10 @@ support native swipe actions.
   complete direct and group showcase conversations immediately reachable.
   Unpinned activity retains its deterministic relative order beneath them.
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
-- Book Club starts in the voluntary-left state and shows **You left this chat.** Quiet Studio Group remains the removed fixture and shows **You were removed from this chat.** Both appear in Chats and Left as retained read-only history.
+- Book Club starts in the voluntary-left state and shows **You left this
+  group.** Quiet Studio Group remains the removed fixture and shows **You were
+  removed from this group.** Both appear in Chats and Left as retained
+  read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
 - Fiatjaf uses the approved Figma avatar, appears in older active activity after
   the uninterrupted marketing hero block, and opens its accepted story through
@@ -127,13 +132,18 @@ Nora Bennett failed-send fixture remains below the initial viewport.
   archived rows never expose Mute or Unmute.
 - Muting opens **Mute Notifications** with Signal’s current duration set: 1 hour, 8 hours, 1 day, 1 week, and Always. Unmute applies immediately.
 - Archive and Unarchive apply immediately and move the row between the native filtered projections. Existing mute state is preserved while archived and returns if the chat is restored.
-- Leaving clears unread and mute state, replaces the preview with **You left this chat.**, and shows `rectangle.portrait.and.arrow.right` beside the chat name.
+- Leaving clears unread and mute state, replaces the preview with the matching
+  **You left this chat.** or **You left this group.** copy, and shows
+  `rectangle.portrait.and.arrow.right` beside the chat name.
 - Attempting to leave from the chat list while the active profile is the sole
   admin leaves state untouched and presents **Can’t Leave Group** with **You’re
   the only admin in this group. Make another member an admin before you
   leave.** This matches Group Info's role protection.
-- The fixed **Book Club** fixture starts in the voluntary-left state, appears in Left, and shows **You left this chat.**
-- The fixed **Quiet Studio Group** fixture starts in the removed state, appears in Left, and shows **You were removed from this chat.** with the same ended-membership symbol.
+- The fixed **Book Club** fixture starts in the voluntary-left state, appears
+  in Left, and shows **You left this group.**
+- The fixed **Quiet Studio Group** fixture starts in the removed state, appears
+  in Left, and shows **You were removed from this group.** with the same
+  ended-membership symbol.
 - After membership ends, Delete replaces Leave and remains paired with Archive or Unarchive. Delete opens a destructive confirmation dialog, then removes the chat from every projection.
 - Archived rows with unread content can be marked Read. Read archived rows cannot be manually marked Unread.
 - Read/Unread remains the first leading action, so a full leading swipe performs only that reversible toggle. Pin/Unpin requires tapping its revealed action. Full swipe remains disabled for the multi-action trailing edge.

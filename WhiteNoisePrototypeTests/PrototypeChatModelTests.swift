@@ -29,6 +29,12 @@ struct PrototypeChatModelTests {
         #expect(second == first)
         #expect(profile.chats.count == 1)
         #expect(profile.chats[0].routing.relayURLs == copiedRelays)
+        #expect(profile.chats[0].timeline.count == 1)
+        guard case let .event(startEvent)? = profile.chats[0].timeline.first else {
+            Issue.record("A new direct chat must begin with its inception event.")
+            return
+        }
+        #expect(startEvent.kind == .directChatStarted(actorID: profile.id))
     }
 
     @Test("A new direct chat requires profile Chat Messages relays")
@@ -64,6 +70,11 @@ struct PrototypeChatModelTests {
         ])
         #expect(group.routing.relayURLs == profile.relayConfiguration.availableChatMessageRelayURLs)
         #expect(group.timeline.count == 1)
+        guard case let .event(createdEvent)? = group.timeline.first else {
+            Issue.record("A new group must begin with its creation event.")
+            return
+        }
+        #expect(createdEvent.kind == .groupCreated(actorID: profile.id))
     }
 
     @Test("A new group requires profile Chat Messages relays")
@@ -129,6 +140,193 @@ struct PrototypeChatModelTests {
                 $0.authorID == profile.id || personIDs.contains($0.authorID)
             })
         }
+    }
+
+    @Test("Developer catalog order and list states stay stable")
+    func developerCatalogOrderAndListStates() throws {
+        let expectedTitles = [
+            "Direct — Text & Delivery",
+            "Direct — Replies & Deletion",
+            "Direct — Reactions & Actions",
+            "Direct — New Chat & Draft",
+            "Media — Photos & Video",
+            "Media — Files & Rich Content",
+            "Voice Messages",
+            "Group — Messages & Mentions",
+            "Group — Events & Roles",
+            "Group — Member Permissions",
+            "Group — Sole Admin",
+            "Direct — Left",
+            "Group — Left",
+            "Group — Removed",
+            "Direct — Blocked",
+            "Direct — Missing Relays",
+            "Direct — Archived",
+            "Support — Timeline Notice",
+        ]
+        let rows = Array(ChatListFixtures.populated.prefix(ChatListFixtures.catalogChatIDs.count))
+        let chats = Array(PrototypeProfile.marmota.chats.prefix(ChatListFixtures.catalogChatIDs.count))
+
+        #expect(rows.map(\.id) == ChatListFixtures.catalogChatIDs)
+        #expect(rows.map(\.title) == expectedTitles)
+        #expect(chats.map(\.id) == ChatListFixtures.catalogChatIDs)
+        #expect(ChatListFixtures.populated.filter(\.isPinned).map(\.id) == ["catalog-direct-text"])
+        #expect(rows.contains { $0.unreadCount > 0 })
+        #expect(rows.contains { $0.isMarkedUnread })
+        #expect(rows.contains { $0.isMuted })
+        #expect(rows.contains { $0.isDraft })
+        #expect(rows.contains { $0.deliveryState == .failed })
+        #expect(rows.contains { $0.isArchived })
+        #expect(rows.contains { $0.membershipState == .left })
+        #expect(rows.contains { $0.membershipState == .removed })
+
+        let firstLegacyRow = try #require(ChatListFixtures.populated.dropFirst(rows.count).first)
+        #expect(!ChatListFixtures.catalogChatIDs.contains(firstLegacyRow.id))
+    }
+
+    @Test("Developer catalog fixtures cover every renderer without legacy chats")
+    func developerCatalogFixtureCoverage() throws {
+        let profile = PrototypeProfile.marmota
+        let catalogIDs = Set(ChatListFixtures.catalogChatIDs)
+        let chats = profile.chats.filter { catalogIDs.contains($0.id) }
+        let entries = chats.flatMap(\.timeline)
+        let messages = chats.flatMap(\.messages)
+        let attachments = messages.flatMap(\.attachments)
+        let events = entries.compactMap { entry -> PrototypeChatEventKind? in
+            guard case let .event(event) = entry else { return nil }
+            return event.kind
+        }
+
+        #expect(chats.count == ChatListFixtures.catalogChatIDs.count)
+        #expect(Set(entries.map(\.id)).count == entries.count)
+        #expect(chats.allSatisfy { $0.timeline.map(\.date) == $0.timeline.map(\.date).sorted() })
+        #expect(messages.filter { !$0.text.isEmpty }.allSatisfy { message in
+            let scenarioID = message.id
+                .replacingOccurrences(of: "-source-caption", with: "")
+                .replacingOccurrences(of: "-caption", with: "")
+                .replacingOccurrences(of: "-source", with: "")
+                .replacingOccurrences(of: "-message", with: "")
+            return message.text.contains(scenarioID)
+        })
+
+        let galleryCounts = Set(messages.map(\.attachments.count))
+        #expect(galleryCounts.isSuperset(of: Set(1...7)))
+        #expect(attachments.contains { if case .photo = $0 { true } else { false } })
+        #expect(attachments.contains { if case .video = $0 { true } else { false } })
+        #expect(attachments.contains { if case .file = $0 { true } else { false } })
+        #expect(attachments.contains { if case .voice = $0 { true } else { false } })
+        #expect(attachments.contains { if case .link = $0 { true } else { false } })
+        #expect(attachments.contains { if case .gif = $0 { true } else { false } })
+        #expect(attachments.contains { if case .sticker = $0 { true } else { false } })
+        #expect(attachments.contains { if case .location = $0 { true } else { false } })
+        #expect(attachments.contains { if case .contact = $0 { true } else { false } })
+        #expect(attachments.contains { attachment in
+            guard case let .photo(_, source, _) = attachment else { return false }
+            if case .data = source { return true }
+            return false
+        })
+        #expect(attachments.contains { if case let .video(_, url, _, _) = $0 { url == nil } else { false } })
+        #expect(attachments.contains { if case let .file(_, _, _, url) = $0 { url == nil } else { false } })
+        #expect(attachments.contains { if case let .link(_, _, domain, _, _) = $0 { domain.isEmpty } else { false } })
+
+        let fileNames = attachments.compactMap { attachment -> String? in
+            guard case let .file(_, name, _, url) = attachment, url != nil else { return nil }
+            return name
+        }
+        #expect(Set(fileNames).isSuperset(of: [
+            "Project Brief.pdf", "Review Notes.docx", "Budget.xlsx", "Assets.zip", "Read Me.txt",
+        ]))
+        #expect(messages.contains { $0.id == "RICH-02" && $0.text.isEmpty })
+        #expect(messages.contains { $0.id == "RICH-03" && !$0.text.isEmpty })
+        #expect(messages.contains { $0.id == "RICH-06" && $0.attachments.count > 1 })
+        #expect(messages.contains { $0.replyToMessageID == "RPL-missing" })
+        #expect(messages.contains { $0.deletionState == .deletedByCurrentProfile })
+        #expect(messages.contains { $0.deletionState == .deletedByOther })
+        #expect(messages.contains { $0.deliveryState == .sending })
+        #expect(messages.contains { $0.deliveryState == .sent })
+        #expect(messages.contains { $0.deliveryState == .failed })
+        #expect(Set(messages.flatMap(\.reactions).map(\.emoji)) == Set(PrototypeReaction.supportedEmoji))
+
+        #expect(events.contains { if case .directChatStarted = $0 { true } else { false } })
+        #expect(events.contains { if case .directChatLeft = $0 { true } else { false } })
+        #expect(events.contains { if case .groupCreated = $0 { true } else { false } })
+        #expect(events.contains { if case .membersAdded = $0 { true } else { false } })
+        #expect(events.contains { if case .memberJoined = $0 { true } else { false } })
+        #expect(events.contains { if case .memberLeft = $0 { true } else { false } })
+        #expect(events.contains { if case .memberRemoved = $0 { true } else { false } })
+        #expect(events.contains { if case .adminGranted = $0 { true } else { false } })
+        #expect(events.contains { if case .adminRevoked = $0 { true } else { false } })
+        #expect(events.contains { if case .groupNameChanged = $0 { true } else { false } })
+        #expect(events.contains { if case .groupPhotoChanged = $0 { true } else { false } })
+        #expect(events.contains { if case .groupPhotoRemoved = $0 { true } else { false } })
+        #expect(events.contains { if case .groupDescriptionChanged = $0 { true } else { false } })
+        #expect(events.contains { if case .groupDescriptionRemoved = $0 { true } else { false } })
+        #expect(events.contains { if case .disappearingMessagesChanged = $0 { true } else { false } })
+
+        let support = try #require(chats.first { $0.id == ChatListFixtures.supportChatID })
+        #expect(support.messages.isEmpty)
+        #expect(support.timeline.count == 1)
+        #expect(support.timeline.first?.id == "STATE-08")
+        #expect(
+            support.row(people: profile.people, currentProfileID: profile.id).preview
+                == support.emptyPreview
+        )
+    }
+
+    @Test("Catalog permissions and recovery states are explicit")
+    func developerCatalogPermissionsAndRecovery() throws {
+        let profile = PrototypeProfile.marmota
+        let eventsGroup = try #require(profile.chats.first { $0.id == "catalog-group-events" })
+        let memberGroup = try #require(profile.chats.first { $0.id == "catalog-group-member" })
+        var soleAdminGroup = try #require(profile.chats.first { $0.id == "catalog-group-sole-admin" })
+        let directLeft = try #require(profile.chats.first { $0.id == "catalog-direct-left" })
+        let groupLeft = try #require(profile.chats.first { $0.id == "catalog-group-left" })
+        let groupRemoved = try #require(profile.chats.first { $0.id == "catalog-group-removed" })
+        let blocked = try #require(profile.chats.first { $0.id == "catalog-direct-blocked" })
+        var missingRelays = try #require(profile.chats.first { $0.id == "catalog-direct-missing-relays" })
+        let archived = try #require(profile.chats.first { $0.id == "catalog-direct-archived" })
+
+        #expect(eventsGroup.canManageGroup(currentProfileID: profile.id))
+        #expect(eventsGroup.groupDescription.isEmpty)
+        #expect(eventsGroup.disappearingMessageDuration == .off)
+        #expect(!memberGroup.canManageGroup(currentProfileID: profile.id))
+        #expect(soleAdminGroup.members.filter { $0.role == .admin }.map(\.personID) == [profile.id])
+        let protectedLeave = soleAdminGroup.leave(currentProfileID: profile.id)
+        let promotedAdmin = soleAdminGroup.promoteMember(personID: "maya-chen", actorID: profile.id)
+        let validLeave = soleAdminGroup.leave(currentProfileID: profile.id)
+        #expect(!protectedLeave)
+        #expect(promotedAdmin)
+        #expect(validLeave)
+
+        #expect(directLeft.listState.membershipState == .left)
+        #expect(groupLeft.listState.membershipState == .left)
+        #expect(groupRemoved.listState.membershipState == .removed)
+        #expect(
+            directLeft.row(people: profile.people, currentProfileID: profile.id).visiblePreview
+                == "You left this chat."
+        )
+        #expect(
+            groupLeft.row(people: profile.people, currentProfileID: profile.id).visiblePreview
+                == "You left this group."
+        )
+        #expect(
+            groupRemoved.row(people: profile.people, currentProfileID: profile.id).visiblePreview
+                == "You were removed from this group."
+        )
+        #expect(!groupLeft.members.contains { $0.personID == profile.id })
+        #expect(!groupRemoved.members.contains { $0.personID == profile.id })
+        #expect(blocked.composerAvailability(currentProfileID: profile.id, people: profile.people) == .blocked)
+        var unblockedPeople = profile.people
+        let blockedPersonIndex = try #require(
+            unblockedPeople.firstIndex { $0.id == "catalog-direct-blocked" }
+        )
+        unblockedPeople[blockedPersonIndex].isBlocked = false
+        #expect(blocked.composerAvailability(currentProfileID: profile.id, people: unblockedPeople) == .available)
+        #expect(missingRelays.composerAvailability(currentProfileID: profile.id, people: profile.people) == .missingRelays)
+        missingRelays.routing.restoreDefaults()
+        #expect(missingRelays.composerAvailability(currentProfileID: profile.id, people: profile.people) == .available)
+        #expect(archived.listState.isArchived)
+        #expect(archived.listState.membershipState == .active)
     }
 
     @Test("Groups in common require active membership for both profiles")
@@ -204,6 +402,16 @@ struct PrototypeChatModelTests {
         chat.mutateMessage("m") { $0.deletionState = .deletedByOther }
         chat.toggleReaction(emoji: "❤", messageID: "m", currentProfileID: "marmota")
         #expect(chat.messages[0].reactions.isEmpty)
+    }
+
+    @Test("Failed outgoing delivery retries to sent")
+    func failedDeliveryRetry() throws {
+        var chat = try #require(
+            PrototypeProfile.marmota.chats.first { $0.id == "catalog-direct-text" }
+        )
+        #expect(chat.messages.first { $0.id == "DLV-03" }?.deliveryState == .failed)
+        chat.retryMessage("DLV-03", currentProfileID: "marmota")
+        #expect(chat.messages.first { $0.id == "DLV-03" }?.deliveryState == .sent)
     }
 
     @Test("Gallery layouts cover one through seven")
@@ -309,14 +517,13 @@ struct PrototypeChatModelTests {
             Issue.record("Weekend Walks must begin with its creation event.")
             return
         }
-        #expect(firstEvent.kind == .created(actorID: "marmota"))
+        #expect(firstEvent.kind == .groupCreated(actorID: "marmota"))
 
         let eventCopy = Set(group.timeline.compactMap { entry -> String? in
             guard case let .event(event) = entry else { return nil }
-            return PrototypeGroupEventFormatter.text(
+            return PrototypeChatEventFormatter.text(
                 for: event.kind,
                 profileID: "marmota",
-                profileName: "Marmota",
                 people: PrototypeChatFixtures.people()
             )
         })
@@ -405,24 +612,174 @@ struct PrototypeChatModelTests {
             return event
         }.last)
 
-        #expect(leftEvent.kind == .left(personID: profile.id))
-        #expect(removedEvent.kind == .removed(actorID: "maya-chen", personID: profile.id))
+        #expect(leftEvent.kind == .memberLeft(personID: profile.id))
+        #expect(removedEvent.kind == .memberRemoved(actorID: "maya-chen", personID: profile.id))
         #expect(
-            PrototypeGroupEventFormatter.text(
+            PrototypeChatEventFormatter.text(
                 for: leftEvent.kind,
                 profileID: profile.id,
-                profileName: profile.name,
                 people: profile.people
             ) == "You left the group."
         )
         #expect(
-            PrototypeGroupEventFormatter.text(
+            PrototypeChatEventFormatter.text(
                 for: removedEvent.kind,
                 profileID: profile.id,
-                profileName: profile.name,
                 people: profile.people
             ) == "Maya Chen removed you from the group."
         )
+    }
+
+    @Test("Every chat event formats current and other participants correctly")
+    func chatEventFormattingMatrix() {
+        let profileID = "marmota"
+        let people = PrototypeChatFixtures.people()
+        let cases: [(PrototypeChatEventKind, String)] = [
+            (.directChatStarted(actorID: profileID), "You started the chat."),
+            (.directChatStarted(actorID: "maya-chen"), "Maya Chen started the chat."),
+            (.directChatLeft, "You left the chat."),
+            (.groupCreated(actorID: profileID), "You created the group."),
+            (.groupCreated(actorID: "maya-chen"), "Maya Chen created the group."),
+            (.membersAdded(actorID: profileID, personIDs: ["maya-chen"]), "You added Maya Chen."),
+            (.membersAdded(actorID: "maya-chen", personIDs: [profileID, "elias-moreno"]), "Maya Chen added you and Elias Moreno."),
+            (.memberJoined(personID: profileID), "You joined the group."),
+            (.memberJoined(personID: "maya-chen"), "Maya Chen joined the group."),
+            (.memberLeft(personID: profileID), "You left the group."),
+            (.memberLeft(personID: "maya-chen"), "Maya Chen left the group."),
+            (.memberRemoved(actorID: profileID, personID: "maya-chen"), "You removed Maya Chen."),
+            (.memberRemoved(actorID: "maya-chen", personID: "elias-moreno"), "Maya Chen removed Elias Moreno."),
+            (.memberRemoved(actorID: "maya-chen", personID: profileID), "Maya Chen removed you from the group."),
+            (.adminGranted(actorID: profileID, personID: "maya-chen"), "You made Maya Chen an admin."),
+            (.adminGranted(actorID: "maya-chen", personID: profileID), "Maya Chen made you an admin."),
+            (.adminRevoked(actorID: profileID, personID: "maya-chen"), "You removed Maya Chen as an admin."),
+            (.adminRevoked(actorID: "maya-chen", personID: profileID), "Maya Chen removed you as an admin."),
+            (.groupNameChanged(actorID: profileID, name: "River Walks"), "You changed the group name to River Walks."),
+            (.groupPhotoChanged(actorID: "maya-chen"), "Maya Chen changed the group photo."),
+            (.groupPhotoRemoved(actorID: profileID), "You removed the group photo."),
+            (.groupDescriptionChanged(actorID: "maya-chen"), "Maya Chen changed the group description."),
+            (.groupDescriptionRemoved(actorID: profileID), "You removed the group description."),
+            (.disappearingMessagesChanged(actorID: profileID, duration: .oneDay), "You set disappearing messages to 1 Day."),
+            (.disappearingMessagesChanged(actorID: "maya-chen", duration: .oneWeek), "Maya Chen set disappearing messages to 1 Week."),
+            (.disappearingMessagesChanged(actorID: profileID, duration: .fourWeeks), "You set disappearing messages to 4 Weeks."),
+            (.disappearingMessagesChanged(actorID: "maya-chen", duration: .off), "Maya Chen turned off disappearing messages."),
+        ]
+
+        for (kind, expected) in cases {
+            #expect(
+                PrototypeChatEventFormatter.text(
+                    for: kind,
+                    profileID: profileID,
+                    people: people
+                ) == expected
+            )
+        }
+    }
+
+    @Test("Direct and group exit transitions append their distinct terminal events")
+    func exitTransitionsUseChatAndGroupCopy() throws {
+        let now = Date(timeIntervalSince1970: 2_000)
+        var direct = emptyDirectChat()
+        let leftDirect = direct.leave(currentProfileID: "marmota", now: now)
+        #expect(leftDirect)
+        guard case let .event(directEvent)? = direct.timeline.last else {
+            Issue.record("Direct leave must append a timeline event.")
+            return
+        }
+        #expect(directEvent.kind == .directChatLeft)
+        #expect(
+            PrototypeChatEventFormatter.text(
+                for: directEvent.kind,
+                profileID: "marmota",
+                people: PrototypeChatFixtures.people()
+            ) == "You left the chat."
+        )
+
+        var group = try #require(
+            PrototypeProfile.marmota.chats.first { $0.id == "catalog-group-events" }
+        )
+        let leftGroup = group.leave(currentProfileID: "marmota", now: now)
+        #expect(leftGroup)
+        guard case let .event(groupEvent)? = group.timeline.last else {
+            Issue.record("Group leave must append a timeline event.")
+            return
+        }
+        #expect(groupEvent.kind == .memberLeft(personID: "marmota"))
+        #expect(
+            PrototypeChatEventFormatter.text(
+                for: groupEvent.kind,
+                profileID: "marmota",
+                people: PrototypeChatFixtures.people()
+            ) == "You left the group."
+        )
+    }
+
+    @Test("Disappearing-message changes append one event only when the value changes")
+    func disappearingMessageTimelineChanges() throws {
+        var group = try #require(
+            PrototypeProfile.marmota.chats.first { $0.id == "catalog-group-events" }
+        )
+        group.timeline = []
+        group.disappearingMessageDuration = .off
+
+        let changedToOneDay = group.setDisappearingMessages(
+            .oneDay,
+            actorID: "marmota",
+            now: Date(timeIntervalSince1970: 1)
+        )
+        let repeatedOneDay = group.setDisappearingMessages(
+            .oneDay,
+            actorID: "marmota",
+            now: Date(timeIntervalSince1970: 2)
+        )
+        let changedToOff = group.setDisappearingMessages(
+            .off,
+            actorID: "maya-chen",
+            now: Date(timeIntervalSince1970: 3)
+        )
+        #expect(changedToOneDay)
+        #expect(!repeatedOneDay)
+        #expect(changedToOff)
+        #expect(group.timeline.count == 2)
+        guard case let .event(offEvent)? = group.timeline.last else {
+            Issue.record("Turning disappearing messages off must append an event.")
+            return
+        }
+        #expect(offEvent.kind == .disappearingMessagesChanged(actorID: "maya-chen", duration: .off))
+        #expect(
+            PrototypeChatEventFormatter.text(
+                for: offEvent.kind,
+                profileID: "marmota",
+                people: PrototypeChatFixtures.people()
+            ) == "Maya Chen turned off disappearing messages."
+        )
+    }
+
+    @Test("Group photo removal is distinct and emits exactly one event")
+    func groupPhotoRemovalEvent() throws {
+        var group = try #require(
+            PrototypeProfile.marmota.chats.first { $0.id == "catalog-group-events" }
+        )
+        group.timeline = []
+        group.avatar = .imageData(Data([0x01]))
+
+        let removedPhoto = group.updateGroupPhoto(
+            .monogram("G"),
+            actorID: "marmota",
+            now: Date(timeIntervalSince1970: 1)
+        )
+        let repeatedRemoval = group.updateGroupPhoto(
+            .monogram("G"),
+            actorID: "marmota",
+            now: Date(timeIntervalSince1970: 2)
+        )
+        #expect(removedPhoto)
+        #expect(!repeatedRemoval)
+        #expect(group.timeline.count == 1)
+        guard case let .event(event)? = group.timeline.first else {
+            Issue.record("Removing a group photo must append an event.")
+            return
+        }
+        #expect(event.kind == .groupPhotoRemoved(actorID: "marmota"))
     }
 
     @Test("Mentions filter group members only")
@@ -582,7 +939,7 @@ struct PrototypeChatModelTests {
             PrototypeProfile.marmota.chats.first { $0.id == "weekend-walks" }
         )
         group.appendEvent(
-            .changedName(actorID: "marmota", name: "River Walks"),
+            .groupNameChanged(actorID: "marmota", name: "River Walks"),
             now: now
         )
 

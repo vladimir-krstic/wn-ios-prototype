@@ -197,7 +197,9 @@ private struct DirectChatInfoView: View {
         Binding {
             chat.disappearingMessageDuration
         } set: { duration in
-            updateChat { $0.disappearingMessageDuration = duration }
+            updateChat {
+                $0.setDisappearingMessages(duration, actorID: profile.id)
+            }
         }
     }
 
@@ -425,7 +427,9 @@ private struct GroupInfoView: View {
         Binding {
             chat.disappearingMessageDuration
         } set: { duration in
-            updateChat { $0.disappearingMessageDuration = duration }
+            updateChat {
+                $0.setDisappearingMessages(duration, actorID: profile.id)
+            }
         }
     }
 
@@ -1979,16 +1983,22 @@ private struct EditGroupView: View {
         let old = original
         if trimmedName != old.groupName {
             profile.chats[chatIndex].groupName = trimmedName
-            profile.chats[chatIndex].appendEvent(.changedName(actorID: profile.id, name: trimmedName))
+            profile.chats[chatIndex].appendEvent(
+                .groupNameChanged(actorID: profile.id, name: trimmedName)
+            )
         }
         if avatar != old.avatar {
-            profile.chats[chatIndex].avatar = avatar
-            profile.chats[chatIndex].appendEvent(.changedPhoto(actorID: profile.id))
+            profile.chats[chatIndex].updateGroupPhoto(
+                avatar,
+                actorID: profile.id
+            )
         }
         if trimmedDescription != old.groupDescription {
             profile.chats[chatIndex].groupDescription = trimmedDescription
             profile.chats[chatIndex].appendEvent(
-                trimmedDescription.isEmpty ? .removedDescription(actorID: profile.id) : .changedDescription(actorID: profile.id)
+                trimmedDescription.isEmpty
+                    ? .groupDescriptionRemoved(actorID: profile.id)
+                    : .groupDescriptionChanged(actorID: profile.id)
             )
         }
         dismiss()
