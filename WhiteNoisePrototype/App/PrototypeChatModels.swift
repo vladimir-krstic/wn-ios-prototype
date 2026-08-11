@@ -530,20 +530,18 @@ enum PrototypeChatListDateFormatter {
 
 enum PrototypeVoiceRecordingState: Equatable {
     case idle
-    case recording(startedAt: Date, isCancellationArmed: Bool)
+    case recording(startedAt: Date)
+    case review(id: String, duration: TimeInterval)
 
     mutating func begin(at date: Date = .now) {
-        self = .recording(startedAt: date, isCancellationArmed: false)
+        self = .recording(startedAt: date)
     }
 
-    mutating func updateCancellation(isArmed: Bool) {
-        guard case let .recording(startedAt, _) = self else { return }
-        self = .recording(startedAt: startedAt, isCancellationArmed: isArmed)
+    mutating func moveToReview(id: String, duration: TimeInterval) -> Bool {
+        guard case .recording = self else { return false }
+        self = .review(id: id, duration: duration)
+        return true
     }
 
-    mutating func finish() -> Bool {
-        defer { self = .idle }
-        guard case let .recording(_, isCancellationArmed) = self else { return false }
-        return !isCancellationArmed
-    }
+    mutating func reset() { self = .idle }
 }

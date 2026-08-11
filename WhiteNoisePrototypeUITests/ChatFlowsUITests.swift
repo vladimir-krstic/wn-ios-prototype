@@ -275,7 +275,7 @@ final class ChatFlowsUITests: XCTestCase {
         XCTAssertTrue(app.textFields["conversation.composer"].waitForExistence(timeout: 3))
     }
 
-    func testVoiceReleaseSendsAndSlideCancelDoesNot() {
+    func testVoiceLongPressReviewsThenSendsAndWaveformBubblePlays() {
         openChat("maya-chen")
         let voiceMessages = app.descendants(matching: .any).matching(
             NSPredicate(
@@ -287,7 +287,28 @@ final class ChatFlowsUITests: XCTestCase {
         let initialCount = voiceMessages.count
         let voice = app.descendants(matching: .any)["conversation.voice"]
         XCTAssertTrue(voice.waitForExistence(timeout: 3))
+        voice.tap()
+        XCTAssertFalse(app.buttons["conversation.voice.stop"].exists)
         voice.press(forDuration: 0.6)
+        let stop = app.buttons["conversation.voice.stop"]
+        XCTAssertTrue(stop.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["conversation.voice.timer"].exists)
+        stop.tap()
+        XCTAssertEqual(voiceMessages.count, initialCount)
+        let reviewToggle = app.buttons["conversation.voice.review.toggle"]
+        XCTAssertTrue(reviewToggle.waitForExistence(timeout: 3))
+        reviewToggle.tap()
+        XCTAssertEqual(reviewToggle.label, "Pause Voice Message")
+        reviewToggle.tap()
+        app.buttons["conversation.voice.cancel"].tap()
+        XCTAssertEqual(voiceMessages.count, initialCount)
+
+        let voiceToSend = app.descendants(matching: .any)["conversation.voice"]
+        XCTAssertTrue(voiceToSend.waitForExistence(timeout: 3))
+        voiceToSend.press(forDuration: 0.6)
+        XCTAssertTrue(stop.waitForExistence(timeout: 3))
+        stop.tap()
+        app.buttons["conversation.voice.review.send"].tap()
         XCTAssertEqual(voiceMessages.count, initialCount + 1)
         let playback = voiceMessages.element(boundBy: voiceMessages.count - 1)
         XCTAssertTrue(playback.waitForExistence(timeout: 2))
@@ -314,12 +335,30 @@ final class ChatFlowsUITests: XCTestCase {
             .completed
         )
 
-        let destination = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label == %@", "Add Attachment")
-        ).firstMatch
-        XCTAssertTrue(destination.waitForExistence(timeout: 3))
-        voice.press(forDuration: 0.6, thenDragTo: destination)
-        XCTAssertEqual(voiceMessages.count, initialCount + 1)
+    }
+
+    func testAttachmentMenuBlocksComposerBeforeSelectingBottomItem() {
+        openChat("maya-chen")
+        let composer = app.textFields["conversation.composer"]
+        let attachmentMenu = app.buttons["conversation.attachment-menu"]
+        XCTAssertTrue(attachmentMenu.waitForExistence(timeout: 3))
+
+        attachmentMenu.tap()
+        let camera = app.buttons["Camera"]
+        let photosAndVideos = app.buttons["Photos and Videos"]
+        let files = app.buttons["Files"]
+        XCTAssertTrue(camera.waitForExistence(timeout: 3))
+        XCTAssertTrue(photosAndVideos.exists)
+        XCTAssertTrue(files.exists)
+        XCTAssertLessThan(camera.frame.minY, photosAndVideos.frame.minY)
+        XCTAssertLessThan(photosAndVideos.frame.minY, files.frame.minY)
+        XCTAssertFalse(composer.isEnabled)
+
+        files.tap()
+        XCTAssertTrue(
+            app.navigationBars["UIDocumentPickerView"].waitForExistence(timeout: 3)
+        )
+        XCTAssertFalse(composer.isEnabled)
     }
 
     func testMediaPreviewControlsMatchNavigationGeometry() {

@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct ConversationView: View {
     private let bottomID = "conversation-bottom"
+    @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
 
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
@@ -13,6 +14,7 @@ struct ConversationView: View {
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPhotoPickerPresented = false
+    @State private var isCameraPresented = false
     @State private var queuedAttachments: [PrototypeAttachment] = []
     @State private var isFileImporterPresented = false
     @State private var mediaSelection: PrototypeMediaSelection?
@@ -28,7 +30,14 @@ struct ConversationView: View {
     @State private var renderedChat: PrototypeChat?
     @State private var voiceState = PrototypeVoiceRecordingState.idle
     @State private var recordingSeconds = 0
+    @State private var recordingWaveformSamples: [Double] = []
+    @State private var isVoiceButtonPressing = false
+    @State private var isComposerInteractionBlocked = false
+    @State private var isAttachmentMenuPresented = false
+    @State private var attachmentMenuDismissalTask: Task<Void, Never>?
     @State private var fileImportTask: Task<Void, Never>?
+    @State private var attachmentPresentationTask: Task<Void, Never>?
+    @State private var composerTextHeight: CGFloat = 0
     @FocusState private var composerIsFocused: Bool
 
     init(
@@ -92,6 +101,14 @@ struct ConversationView: View {
             .onChange(of: chat.timeline.count) {
                 withAnimation { proxy.scrollTo(bottomID, anchor: .bottom) }
             }
+            .onChange(of: composerIsFocused) { _, isFocused in
+                guard isFocused else { return }
+                withAnimation { proxy.scrollTo(bottomID, anchor: .bottom) }
+            }
+            .onChange(of: composerTextHeight) { oldHeight, newHeight in
+                guard composerIsFocused, newHeight > oldHeight else { return }
+                proxy.scrollTo(bottomID, anchor: .bottom)
+            }
             .onChange(of: requestedScrollID) { _, id in
                 guard let id else { return }
                 withAnimation { proxy.scrollTo(id, anchor: .center) }
@@ -116,6 +133,11 @@ struct ConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { conversationToolbar }
         .fullScreenCover(item: $mediaSelection) { PrototypeMediaViewer(selection: $0) }
+        .sheet(isPresented: $isCameraPresented) {
+            ConversationCameraCaptureView(onCapture: handleCameraCapture)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
         .quickLookPreview($quickLookURL)
         .fileImporter(
             isPresented: $isFileImporterPresented,
@@ -129,6 +151,15 @@ struct ConversationView: View {
             maxSelectionCount: 20,
             matching: .any(of: [.images, .videos])
         )
+        .onChange(of: isCameraPresented) { _, _ in
+            restoreComposerInteractionIfPossible()
+        }
+        .onChange(of: isPhotoPickerPresented) { _, _ in
+            restoreComposerInteractionIfPossible()
+        }
+        .onChange(of: isFileImporterPresented) { _, _ in
+            restoreComposerInteractionIfPossible()
+        }
         .task(id: selectedPhotoItems) { await preparePhotoItems() }
         .confirmationDialog(
             "Delete Message?",
@@ -214,8 +245,13 @@ struct ConversationView: View {
             persistDraft()
             PrototypePlaybackCoordinator.shared.stopAll()
             fileImportTask?.cancel()
-            voiceState = .idle
+            attachmentPresentationTask?.cancel()
+            attachmentMenuDismissalTask?.cancel()
+            voiceState.reset()
             recordingSeconds = 0
+            recordingWaveformSamples = []
+            isComposerInteractionBlocked = false
+            isAttachmentMenuPresented = false
         }
     }
 
@@ -378,135 +414,242 @@ struct ConversationView: View {
                 composer
             }
         }
-        .background(Color(uiColor: .systemBackground))
     }
 
     private var composer: some View {
         GlassEffectContainer {
             HStack(alignment: .bottom, spacing: 8) {
-                Menu {
-                    Button {
-                        composerIsFocused = false
-                        isPhotoPickerPresented = true
-                    } label: {
-                        Label("Photos and Videos", systemImage: "photo.on.rectangle.angled")
+                if isReviewingVoice {
+                    Button(action: discardVoiceMessage) {
+                        Image(systemName: "xmark")
+                            .font(.body.weight(.medium))
+                            .frame(width: 44, height: 44)
+                            .contentShape(.circle)
                     }
-                    Button {
-                        composerIsFocused = false
-                        isFileImporterPresented = true
-                    } label: {
-                        Label("Files", systemImage: "folder")
-                    }
-                } label: {
-                    Image(systemName: "plus")
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .accessibilityLabel("Cancel Voice Message")
+                    .accessibilityIdentifier("conversation.voice.cancel")
+                } else if !isRecording {
+                    ConversationAttachmentMenuButton(
+                        onCamera: {
+                            presentAttachmentDestination(.camera)
+                        },
+                        onPhotosAndVideos: {
+                            presentAttachmentDestination(.photosAndVideos)
+                        },
+                        onFiles: {
+                            presentAttachmentDestination(.files)
+                        },
+                        onMenuVisibilityChanged: { shown in
+                            attachmentMenuVisibilityDidChange(shown)
+                        }
+                    )
+                    .frame(width: 44, height: 44)
+                    .contentShape(.circle)
+                    .glassEffect(.regular.interactive(), in: .circle)
                 }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .controlSize(.large)
-                .accessibilityLabel("Add Attachment")
 
                 HStack(alignment: .bottom, spacing: 4) {
                     if isRecording {
                         recordingStatus
+                    } else if let voiceReview {
+                        voiceReviewStatus(
+                            id: voiceReview.id,
+                            duration: voiceReview.duration
+                        )
                     } else {
                         TextField("Message", text: composerTextBinding, axis: .vertical)
-                            .lineLimit(1...6)
+                            .lineLimit(1...10)
+                            .padding(.vertical, 10)
+                            .onGeometryChange(for: CGFloat.self) { proxy in
+                                proxy.size.height
+                            } action: { height in
+                                composerTextHeight = height
+                            }
                             .focused($composerIsFocused)
                             .submitLabel(settings.returnKeyBehavior == .send ? .send : .return)
                             .onSubmit {
                                 if settings.returnKeyBehavior == .send { send() }
                             }
                             .accessibilityIdentifier("conversation.composer")
-                    }
 
-                    if !canSend {
-                        voiceButton
+                        trailingComposerControl
                     }
                 }
-                .padding(.leading, 14)
-                .padding(.trailing, 4)
-                .glassEffect(.regular.interactive(), in: .capsule)
-
-                if canSend {
-                    Button(action: send) { Image(systemName: "arrow.up") }
-                        .buttonStyle(.glassProminent)
-                        .buttonBorderShape(.circle)
-                        .controlSize(.large)
-                        .accessibilityLabel("Send")
-                        .accessibilityIdentifier("conversation.send")
+                .frame(minHeight: 44)
+                .padding(.leading, isReviewingVoice ? 0 : 14)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
+                .disabled(isComposerInteractionBlocked)
+                .overlay {
+                    if isComposerInteractionBlocked {
+                        Color.clear
+                            .contentShape(.rect)
+                            .onTapGesture { }
+                            .accessibilityHidden(true)
+                    }
                 }
+                .accessibilityHidden(isComposerInteractionBlocked)
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 6)
     }
 
+    @ViewBuilder
+    private var trailingComposerControl: some View {
+        if canSend {
+            Button(action: send) {
+                ZStack {
+                    Circle()
+                        .fill(Color.primary)
+                    Image(systemName: "arrow.up")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color(uiColor: .systemBackground))
+                }
+                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Send")
+            .accessibilityIdentifier("conversation.send")
+        } else {
+            voiceButton
+        }
+    }
+
     private var voiceButton: some View {
-        Image(systemName: isRecording ? "waveform.badge.mic" : "waveform")
-        .symbolEffect(.pulse, isActive: isRecording)
-        .foregroundStyle(isRecording ? .red : .secondary)
-        .frame(minWidth: 44, minHeight: 44)
-        .contentShape(.rect)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(isRecording ? "Stop and Send Voice Message" : "Record Voice Message")
-        .accessibilityIdentifier("conversation.voice")
-        .accessibilityHint("Double-tap to start or stop recording. Press and hold to record, then release to send.")
-        .accessibilityAction {
-            if isRecording {
-                if voiceState.finish() { sendVoiceMessage() }
-                recordingSeconds = 0
-            } else {
-                voiceState.begin()
-                recordingSeconds = 0
-                composerIsFocused = false
-            }
-        }
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    if !isRecording {
-                        voiceState.begin()
-                        recordingSeconds = 0
-                        composerIsFocused = false
-                    }
-                    voiceState.updateCancellation(
-                        isArmed: value.translation.width < -70 || abs(value.translation.height) > 70
-                    )
-                }
-                .onEnded { _ in
-                    if voiceState.finish() { sendVoiceMessage() }
-                    recordingSeconds = 0
-                }
-        )
-        .task(id: isRecording) {
-            while isRecording {
-                try? await Task.sleep(for: .seconds(1))
-                if Task.isCancelled { return }
-                recordingSeconds += 1
-            }
-        }
+        Image(systemName: "waveform")
+            .foregroundStyle(.secondary)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(.rect)
+            .scaleEffect(isVoiceButtonPressing ? 0.92 : 1)
+            .opacity(isVoiceButtonPressing ? 0.65 : 1)
+            .onLongPressGesture(
+                minimumDuration: 0.5,
+                maximumDistance: 10,
+                perform: beginVoiceMessage,
+                onPressingChanged: { isVoiceButtonPressing = $0 }
+            )
+            .animation(.snappy(duration: 0.2), value: isVoiceButtonPressing)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Record Voice Message")
+            .accessibilityIdentifier("conversation.voice")
+            .accessibilityHint("Touch and hold to start recording.")
+            .accessibilityAction { beginVoiceMessage() }
     }
 
     private var recordingStatus: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(.red)
-                .frame(width: 8, height: 8)
-                .symbolEffect(.pulse, isActive: !isCancellationArmed)
+            PrototypeAudioWaveform(
+                samples: recordingWaveformSamples,
+                progress: 1,
+                attenuatesQuietSamples: true
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 30)
+
             Text(prototypeDurationString(TimeInterval(recordingSeconds)))
                 .font(.body.monospacedDigit())
-                .accessibilityIdentifier("conversation.voice.timer")
-            Spacer(minLength: 8)
-            Text(isCancellationArmed ? "Release to Cancel" : "Slide to Cancel")
-                .font(.caption)
-                .foregroundStyle(isCancellationArmed ? .red : .secondary)
                 .lineLimit(1)
-                .accessibilityIdentifier("conversation.voice.status")
+                .accessibilityIdentifier("conversation.voice.timer")
+
+            Button(action: finishVoiceMessage) {
+                Image(systemName: "stop.fill")
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .frame(width: 44, height: 44)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Stop Recording")
+            .accessibilityIdentifier("conversation.voice.stop")
         }
-        .accessibilityElement(children: .combine)
+        .foregroundStyle(.red)
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(
-            "Recording, \(prototypeDurationString(TimeInterval(recordingSeconds))), \(isCancellationArmed ? "release to cancel" : "release to send")"
+            "Recording, \(prototypeDurationString(TimeInterval(recordingSeconds)))"
         )
+        .task(id: isRecording) {
+            var tick = 0
+            while isRecording {
+                try? await Task.sleep(for: .milliseconds(100))
+                if Task.isCancelled { return }
+                tick += 1
+                recordingSeconds = tick / 10
+                recordingWaveformSamples.append(
+                    PrototypeWaveformSamples.liveSample(at: tick)
+                )
+                if recordingWaveformSamples.count > 160 {
+                    recordingWaveformSamples.removeFirst(
+                        recordingWaveformSamples.count - 160
+                    )
+                }
+            }
+        }
+    }
+
+    private func voiceReviewStatus(
+        id: String,
+        duration: TimeInterval
+    ) -> some View {
+        let isActive = playback.activeVoiceID == id
+        let isPlaying = isActive && !playback.isPaused
+        let progress = isActive && duration > 0
+            ? min(max(playback.elapsed / duration, 0), 1)
+            : 0
+        let displayedDuration = isActive
+            ? max(0, duration - playback.elapsed)
+            : duration
+
+        return HStack(spacing: 4) {
+            Button {
+                playback.toggleVoice(id: id, duration: duration)
+            } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .foregroundStyle(.primary)
+                    .frame(width: 32, height: 32)
+                    .background(.quaternary, in: .circle)
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPlaying ? "Pause Voice Message" : "Play Voice Message")
+            .accessibilityIdentifier("conversation.voice.review.toggle")
+
+            PrototypeAudioWaveform(
+                samples: playback.waveform(for: id),
+                progress: progress
+            )
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 28)
+
+            Text(prototypeDurationString(displayedDuration))
+                .font(.body.monospacedDigit())
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+
+            Button {
+                confirmVoiceMessage(id: id, duration: duration)
+            } label: {
+                ZStack {
+                    Circle().fill(Color.accentColor)
+                    Image(systemName: "arrow.up")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.white)
+                }
+                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Send Voice Message")
+            .accessibilityIdentifier("conversation.voice.review.send")
+        }
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .contain)
     }
 
     private var queuedAttachmentStrip: some View {
@@ -666,15 +809,77 @@ struct ConversationView: View {
             || !queuedAttachments.isEmpty
     }
 
+    private func presentAttachmentDestination(
+        _ destination: ComposerAttachmentDestination
+    ) {
+        attachmentMenuDismissalTask?.cancel()
+        attachmentMenuDismissalTask = nil
+        isComposerInteractionBlocked = true
+        composerIsFocused = false
+        attachmentPresentationTask?.cancel()
+        attachmentPresentationTask = Task { @MainActor in
+            defer {
+                attachmentPresentationTask = nil
+                restoreComposerInteractionIfPossible()
+            }
+            // Let the context menu finish its native dismissal before another
+            // system-owned destination begins presenting.
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+
+            switch destination {
+            case .camera:
+                isCameraPresented = true
+            case .photosAndVideos:
+                isPhotoPickerPresented = true
+            case .files:
+                isFileImporterPresented = true
+            }
+        }
+    }
+
+    private func attachmentMenuVisibilityDidChange(_ shown: Bool) {
+        isAttachmentMenuPresented = shown
+        attachmentMenuDismissalTask?.cancel()
+        attachmentMenuDismissalTask = nil
+        if shown {
+            isComposerInteractionBlocked = true
+            composerIsFocused = false
+        } else {
+            // Keep the composer inert through the menu row's touch-up and the
+            // selection callback. This prevents the lowest row from briefly
+            // re-enabling the field beneath the dismissing context menu.
+            attachmentMenuDismissalTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+                attachmentMenuDismissalTask = nil
+                restoreComposerInteractionIfPossible()
+            }
+        }
+    }
+
+    private func restoreComposerInteractionIfPossible() {
+        guard !isCameraPresented,
+              !isPhotoPickerPresented,
+              !isFileImporterPresented,
+              !isAttachmentMenuPresented,
+              attachmentPresentationTask == nil,
+              attachmentMenuDismissalTask == nil
+        else { return }
+        isComposerInteractionBlocked = false
+    }
+
     private var isRecording: Bool {
         if case .recording = voiceState { return true }
         return false
     }
 
-    private var isCancellationArmed: Bool {
-        if case let .recording(_, isArmed) = voiceState { return isArmed }
-        return false
+    private var voiceReview: (id: String, duration: TimeInterval)? {
+        guard case let .review(id, duration) = voiceState else { return nil }
+        return (id, duration)
     }
+
+    private var isReviewingVoice: Bool { voiceReview != nil }
 
     private var mentionQuery: String? {
         guard chat.isGroup,
@@ -733,15 +938,65 @@ struct ConversationView: View {
         composerText = ""
     }
 
-    private func sendVoiceMessage() {
+    private func beginVoiceMessage() {
+        guard voiceState == .idle else { return }
+        playback.stopAll()
+        composerIsFocused = false
+        recordingSeconds = 0
+        recordingWaveformSamples = []
+        voiceState.begin()
+    }
+
+    private func finishVoiceMessage() {
+        let voiceID = UUID().uuidString
+        let duration = max(1, TimeInterval(recordingSeconds))
+        let waveform = recordingWaveformSamples.isEmpty
+            ? PrototypeWaveformSamples.samples(seed: voiceID)
+            : recordingWaveformSamples
+        guard voiceState.moveToReview(id: voiceID, duration: duration) else { return }
+        recordingWaveformSamples = waveform
+        playback.registerWaveform(waveform, for: voiceID)
+    }
+
+    private func discardVoiceMessage() {
+        if let voiceReview, playback.activeVoiceID == voiceReview.id {
+            playback.stopAll()
+        }
+        voiceState.reset()
+        recordingSeconds = 0
+        recordingWaveformSamples = []
+    }
+
+    private func confirmVoiceMessage(id: String, duration: TimeInterval) {
+        guard voiceReview?.id == id else { return }
+        playback.stopAll()
+        sendVoiceMessage(
+            id: id,
+            duration: duration,
+            waveform: recordingWaveformSamples
+        )
+        voiceState.reset()
+        recordingSeconds = 0
+        recordingWaveformSamples = []
+    }
+
+    private func sendVoiceMessage(
+        id voiceID: String,
+        duration: TimeInterval,
+        waveform: [Double]
+    ) {
+        playback.registerWaveform(
+            waveform.isEmpty ? PrototypeWaveformSamples.samples(seed: voiceID) : waveform,
+            for: voiceID
+        )
         updateChat {
             $0.appendMessage(
                 authorID: profile.id,
                 attachments: [
                     .voice(
-                        id: UUID().uuidString,
+                        id: voiceID,
                         resourceName: PrototypeVoiceSample.resourceName,
-                        duration: PrototypeVoiceSample.duration
+                        duration: duration
                     )
                 ]
             )
@@ -858,6 +1113,44 @@ struct ConversationView: View {
         if !Task.isCancelled { selectedPhotoItems = [] }
     }
 
+    private func handleCameraCapture(_ capture: ConversationCameraCapture) {
+        composerIsFocused = false
+
+        switch capture.content {
+        case let .photo(data):
+            Task {
+                guard let prepared = await ConversationImageProcessor
+                    .preparedDataAsync(from: data),
+                      !Task.isCancelled
+                else { return }
+                queuedAttachments.append(
+                    .photo(
+                        id: UUID().uuidString,
+                        source: .data(prepared),
+                        label: "Camera photo"
+                    )
+                )
+            }
+        case let .video(url):
+            Task {
+                defer { try? FileManager.default.removeItem(at: url) }
+                guard let prepared = await ConversationVideoProcessor
+                    .prepare(fileAt: url),
+                      !Task.isCancelled
+                else { return }
+                queuedAttachments.append(
+                    .video(
+                        id: UUID().uuidString,
+                        url: prepared.url,
+                        thumbnail: prepared.thumbnailData.map(PrototypeImageSource.data)
+                            ?? .asset("FiatjafMediaBadger"),
+                        duration: prepared.duration
+                    )
+                )
+            }
+        }
+    }
+
     private func importFiles(_ result: Result<[URL], Error>) {
         guard case let .success(urls) = result else { return }
         fileImportTask?.cancel()
@@ -889,6 +1182,12 @@ struct ConversationView: View {
             }
         }
     }
+}
+
+private enum ComposerAttachmentDestination {
+    case camera
+    case photosAndVideos
+    case files
 }
 
 private struct ChatMessageSearchView: View {

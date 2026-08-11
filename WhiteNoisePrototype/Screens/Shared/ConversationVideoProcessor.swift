@@ -19,6 +19,32 @@ enum ConversationVideoProcessor {
             }.value
             try Task.checkCancellation()
 
+            return await prepareOwnedVideo(at: url)
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            return nil
+        }
+    }
+
+    static func prepare(fileAt sourceURL: URL) async -> ConversationPreparedVideo? {
+        let destination = FileManager.default.temporaryDirectory
+            .appending(path: "video-\(UUID().uuidString).mov")
+
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try FileManager.default.copyItem(at: sourceURL, to: destination)
+            }.value
+            try Task.checkCancellation()
+
+            return await prepareOwnedVideo(at: destination)
+        } catch {
+            try? FileManager.default.removeItem(at: destination)
+            return nil
+        }
+    }
+
+    private static func prepareOwnedVideo(at url: URL) async -> ConversationPreparedVideo? {
+        do {
             let asset = AVURLAsset(url: url)
             let loadedDuration = try await asset.load(.duration)
             let duration = loadedDuration.seconds.isFinite

@@ -232,16 +232,19 @@ struct PrototypeChatModelTests {
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .removed)
     }
 
-    @Test("Simulated voice recording sends or cancels predictably")
+    @Test("Voice recording moves to review before explicit completion")
     func voiceStateMachine() {
         var state = PrototypeVoiceRecordingState.idle
-        state.begin(at: Date(timeIntervalSince1970: 1))
-        state.updateCancellation(isArmed: true)
-        #expect(state.finish() == false)
+        let start = Date(timeIntervalSince1970: 1)
+        state.begin(at: start)
+        #expect(state == .recording(startedAt: start))
+        let didMoveToReview = state.moveToReview(id: "voice-review", duration: 3)
+        #expect(didMoveToReview)
+        #expect(state == .review(id: "voice-review", duration: 3))
+        state.reset()
         #expect(state == .idle)
-        state.begin(at: Date(timeIntervalSince1970: 2))
-        #expect(state.finish() == true)
-        #expect(state == .idle)
+        let didMoveFromIdle = state.moveToReview(id: "voice-review", duration: 3)
+        #expect(didMoveFromIdle == false)
     }
 
     @Test("Search covers text, sender, and attachment labels")

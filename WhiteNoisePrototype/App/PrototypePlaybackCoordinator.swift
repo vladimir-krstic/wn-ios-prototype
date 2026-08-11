@@ -11,6 +11,7 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject, AVAudioPla
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var isPaused = false
+    @Published private var registeredWaveforms: [String: [Double]] = [:]
 
     private var player: AVAudioPlayer?
     private var progressTask: Task<Void, Never>?
@@ -19,7 +20,7 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject, AVAudioPla
         super.init()
     }
 
-    func toggleVoice(id: String, duration _: TimeInterval) {
+    func toggleVoice(id: String, duration requestedDuration: TimeInterval) {
         if activeVoiceID == id {
             if isPaused {
                 player?.play()
@@ -38,12 +39,24 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject, AVAudioPla
         self.player = player
         player.delegate = self
         player.prepareToPlay()
+        let playbackDuration = max(0.1, requestedDuration)
+        if playbackDuration > player.duration {
+            player.numberOfLoops = -1
+        }
         activeVoiceID = id
-        duration = player.duration
+        duration = playbackDuration
         elapsed = 0
         isPaused = false
         player.play()
         startProgress()
+    }
+
+    func registerWaveform(_ samples: [Double], for id: String) {
+        registeredWaveforms[id] = samples
+    }
+
+    func waveform(for id: String) -> [Double] {
+        registeredWaveforms[id] ?? PrototypeWaveformSamples.samples(seed: id)
     }
 
     func stopAll() {
@@ -67,7 +80,11 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject, AVAudioPla
             while !Task.isCancelled, activeVoiceID != nil, !isPaused {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return }
-                elapsed = min(duration, player?.currentTime ?? elapsed)
+                elapsed = min(duration, elapsed + 0.1)
+                if elapsed >= duration {
+                    stopAll()
+                    return
+                }
             }
         }
     }

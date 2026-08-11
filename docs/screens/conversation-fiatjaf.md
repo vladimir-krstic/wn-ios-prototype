@@ -38,12 +38,13 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - The reply preview is part of the incoming bubble and uses a semantic overlay, a short vertical capsule, caption typography for the author, and secondary text for the quoted body.
 - Reactions use a compact system-background capsule attached below the bubble’s inward edge: leading for outgoing messages and trailing for incoming messages. The capsule is inset symmetrically from that edge, matching the timestamp inset rather than sitting flush with the bubble.
 - The five approved Figma images use native SwiftUI stacks with row widths derived from the approved bubble width, clipped rounded rectangles, and no runtime loading. Media never escapes its message bubble.
-- The composer is pinned with `safeAreaInset`; the timeline uses the native soft bottom scroll-edge effect instead of a hard bar boundary. A native multiline `TextField` owns keyboard, focus, selection, and text entry inside a system Liquid Glass capsule. Its resting single line is vertically centered at the native minimum interaction height, while multiline content can grow and keep the trailing control at the lower edge. A trailing native waveform control provides the voice-message affordance inside the field; native glass buttons own attachment and send feedback.
+- The composer is pinned with `safeAreaInset`; the timeline uses the native soft bottom scroll-edge effect instead of a hard bar boundary or opaque composer backing. A native multiline `TextField` owns keyboard, focus, selection, and text entry inside a system Liquid Glass rounded rectangle. Its resting single line is vertically centered at the native minimum interaction height, multiline content grows to ten visible lines before scrolling, and the resting corner radius stays constant. The stable trailing slot changes in place from waveform to the native glass Send button so typing does not resize the field.
 - The timeline keeps system spacing between its final message and the stationary composer when first opened and after sending.
 - Message metadata shows time only. Timestamps sit outside the bubble: beneath the inward edge of outgoing and incoming messages. Delivery checkmarks aren’t part of the White Noise conversation design.
 - Sending nonempty text appends a deterministic outgoing bubble labeled **Now**, clears the composer, keeps the new message visible, and updates the Fiatjaf row preview.
-- The attachment button presents native `PhotosPicker` and file-importer
-  choices. Selected photos, videos, and files appear in an ordered removable
+- The attachment button presents **Camera**, native `PhotosPicker`, and
+  file-importer choices. The AVFoundation camera takes a photo on tap and
+  records video while the shutter is held. Selected photos, videos, and files appear in an ordered removable
   queue and send with optional text. Photos are downsampled off the main actor;
   video/file data is copied to temporary app-owned storage and discarded when
   the process ends.
@@ -55,13 +56,14 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - Empty composer: no Send button.
 - Empty composer with complete relay setup: the trailing waveform control is
   visible inside the glass text-entry capsule.
-- Starting the deterministic voice-recording state dismisses composer focus;
-  returning focus to the text field stops that state so the red stop control
-  never remains active while composing text.
+- Starting the deterministic voice-recording state dismisses composer focus
+  and replaces the field contents with the red waveform, elapsed timer, and
+  Stop control. Stopping sends the voice message and restores text entry.
 - Empty composer with no Chat Relays: **Check Chat Relays** replaces normal
   entry and opens this chat's routing page.
 - Nonempty composer: Send appears and works.
-- Attachment menu opens native photo and file pickers; selected content appears in memory in the timeline.
+- Attachment menu opens Camera plus the native photo and file pickers; selected
+  or captured content appears in memory in the timeline.
 - Back returns to Chats without resetting the active profile's in-memory Fiatjaf list. Reopening Fiatjaf during the same process shows the sent messages, and switching profiles keeps each profile's messages independent.
 - The composer recovery treatment appears only while this chat's independent
   relay list is empty; adding a valid relay restores **Message** and the

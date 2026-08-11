@@ -590,6 +590,10 @@ private struct PrototypeVoiceBubble: View {
     private var isActive: Bool { playback.activeVoiceID == id }
     private var isPlaying: Bool { isActive && !playback.isPaused }
     private var elapsed: TimeInterval { isActive ? playback.elapsed : 0 }
+    private var progress: Double {
+        guard isActive, duration > 0 else { return 0 }
+        return min(max(elapsed / duration, 0), 1)
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -602,14 +606,22 @@ private struct PrototypeVoiceBubble: View {
             .buttonStyle(.plain)
             .accessibilityLabel(isPlaying ? "Pause" : "Play")
             .accessibilityIdentifier("voice.\(id).toggle")
-            VStack(alignment: .leading, spacing: 5) {
-                ProgressView(value: elapsed, total: max(duration, 0.1))
-                    .frame(minWidth: 120)
-                Text("\(prototypeDurationString(elapsed)) / \(prototypeDurationString(duration))")
-                    .font(.caption.monospacedDigit())
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
+
+            PrototypeAudioWaveform(
+                samples: playback.waveform(for: id),
+                progress: progress
+            )
+            .frame(minWidth: 120, idealWidth: 170, maxWidth: 210)
+            .frame(height: 32)
+
+            Text(
+                prototypeDurationString(
+                    isActive ? max(0, duration - elapsed) : duration
+                )
+            )
+            .font(.caption.monospacedDigit())
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
