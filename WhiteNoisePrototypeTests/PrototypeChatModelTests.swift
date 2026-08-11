@@ -570,6 +570,10 @@ struct PrototypeChatModelTests {
         first.remove("wss://relay.example.com")
         first.remove("wss://second.example.com/path")
         #expect(first.relayURLs.isEmpty)
+        #expect(!first.isDefaultConfiguration)
+        first.restoreDefaults()
+        #expect(first.relayURLs == ["wss://relay.example.com"])
+        #expect(first.isDefaultConfiguration)
         #expect(second.relayURLs == ["wss://relay.example.com"])
     }
 

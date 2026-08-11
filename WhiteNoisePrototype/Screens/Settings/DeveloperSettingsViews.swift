@@ -1,94 +1,6 @@
 import Foundation
 import SwiftUI
-
-struct PrototypeConversationDebugInfo: Equatable {
-    let identifier: String
-    let type: String
-    let participantCount: Int
-    let messageCount: Int
-    let routingRelaySummary: String
-    let pushDiagnosticsStatus: String
-    let recentEvents: [String]
-
-    static func fiatjaf(
-        messageCount: Int,
-        pushDiagnosticsStatus: String
-    ) -> PrototypeConversationDebugInfo {
-        PrototypeConversationDebugInfo(
-            identifier: "conversation-fiatjaf-001",
-            type: "Direct",
-            participantCount: 2,
-            messageCount: messageCount,
-            routingRelaySummary: "2 chat relays · 2 connected",
-            pushDiagnosticsStatus: pushDiagnosticsStatus,
-            recentEvents: [
-                "18:45:02  timeline projection ready",
-                "18:45:04  delivery state synchronized",
-                "18:45:06  attachment metadata indexed",
-            ]
-        )
-    }
-
-    static func support(
-        messageCount: Int,
-        pushDiagnosticsStatus: String
-    ) -> PrototypeConversationDebugInfo {
-        PrototypeConversationDebugInfo(
-            identifier: "conversation-support-001",
-            type: "Support",
-            participantCount: 2,
-            messageCount: messageCount,
-            routingRelaySummary: "2 chat relays · 2 connected",
-            pushDiagnosticsStatus: pushDiagnosticsStatus,
-            recentEvents: [
-                "15:02:10  support conversation opened",
-                "15:02:11  guidance event projected",
-                "15:02:12  composer state ready",
-            ]
-        )
-    }
-}
-
-struct ConversationDebugPrototypeView: View {
-    let info: PrototypeConversationDebugInfo
-
-    var body: some View {
-        Form {
-            Section("Conversation") {
-                LabeledContent("Identifier", value: info.identifier)
-                LabeledContent("Type", value: info.type)
-                LabeledContent(
-                    "Participants",
-                    value: info.participantCount.formatted()
-                )
-                LabeledContent(
-                    "Messages",
-                    value: info.messageCount.formatted()
-                )
-            }
-
-            Section("Delivery") {
-                LabeledContent(
-                    "Routing Relays",
-                    value: info.routingRelaySummary
-                )
-                LabeledContent(
-                    "Push Diagnostics",
-                    value: info.pushDiagnosticsStatus
-                )
-            }
-
-            Section("Recent Events") {
-                ForEach(info.recentEvents, id: \.self) { event in
-                    Text(event)
-                        .font(.caption.monospaced())
-                }
-            }
-        }
-        .navigationTitle("Conversation Debug")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
+import UIKit
 
 struct DeveloperToolsPrototypeView: View {
     @Binding var developerTools: PrototypeDeveloperToolsState
@@ -336,15 +248,21 @@ private struct KeyPackagesPrototypeView: View {
     }
 }
 
-private struct DiagnosticsPrototypeView: View {
+struct DiagnosticsPrototypeView: View {
     private let consoleContentInset: CGFloat = 20
+    let diagnosticSummary: String?
 
     @State private var isTesting = false
+    @State private var didCopyDiagnosticSummary = false
     @State private var recentEvents = [
         "18:42:10  runtime started",
         "18:42:11  relay connected",
         "18:42:12  profile projection ready",
     ]
+
+    init(diagnosticSummary: String? = nil) {
+        self.diagnosticSummary = diagnosticSummary
+    }
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -396,6 +314,24 @@ private struct DiagnosticsPrototypeView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
+                    if let diagnosticSummary {
+                        Button {
+                            UIPasteboard.general.string = diagnosticSummary
+                            didCopyDiagnosticSummary = true
+                        } label: {
+                            Label(
+                                didCopyDiagnosticSummary
+                                    ? "Diagnostic Summary Copied"
+                                    : "Copy Diagnostic Summary",
+                                systemImage: didCopyDiagnosticSummary
+                                    ? "checkmark"
+                                    : "doc.on.doc"
+                            )
+                        }
+
+                        Divider()
+                    }
+
                     Button(action: test) {
                         Label(
                             isTesting ? "Testing…" : "Test",
@@ -411,11 +347,12 @@ private struct DiagnosticsPrototypeView: View {
                     }
                     .disabled(recentEvents.isEmpty)
                 } label: {
-                    Label("Event Actions", systemImage: "ellipsis")
+                    Label("Diagnostic Actions", systemImage: "ellipsis")
                         .labelStyle(.iconOnly)
                 }
             }
         }
+        .sensoryFeedback(.success, trigger: didCopyDiagnosticSummary)
     }
 
     @ViewBuilder

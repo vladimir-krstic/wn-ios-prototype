@@ -322,6 +322,107 @@ final class ChatFlowsUITests: XCTestCase {
         XCTAssertEqual(voiceMessages.count, initialCount + 1)
     }
 
+    func testMediaPreviewControlsMatchNavigationGeometry() {
+        openChat("maya-chen")
+        app.buttons["conversation.info"].tap()
+
+        let photosAndVideos = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Photos & Videos")
+        ).firstMatch
+        XCTAssertTrue(reveal(photosAndVideos).exists)
+        photosAndVideos.tap()
+
+        let firstMedia = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "chat-info.media.")
+        ).firstMatch
+        XCTAssertTrue(firstMedia.waitForExistence(timeout: 5))
+        firstMedia.tap()
+
+        let close = app.buttons["media-preview.close"]
+        let more = app.buttons["media-preview.more"]
+        let share = app.buttons["media-preview.share"]
+        let forward = app.buttons["media-preview.forward"]
+        for control in [close, more, share, forward] {
+            XCTAssertTrue(control.waitForExistence(timeout: 5))
+            XCTAssertTrue(control.isHittable)
+        }
+
+        print(
+            "MEDIA_CONTROL_FRAMES "
+                + "close=\(close.frame) more=\(more.frame) "
+                + "share=\(share.frame) forward=\(forward.frame)"
+        )
+
+        XCTAssertEqual(share.frame.width, forward.frame.width, accuracy: 1)
+        XCTAssertEqual(share.frame.height, forward.frame.height, accuracy: 1)
+        // Toolbar accessibility frames don't include the complete rendered
+        // glass halo. Compare alignment centers here; the retained screenshot
+        // is the regression evidence for the visible glass surfaces.
+        XCTAssertEqual(share.frame.midX, close.frame.midX, accuracy: 1)
+        XCTAssertEqual(forward.frame.midX, more.frame.midX, accuracy: 1)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Media preview control geometry"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    func testForwardMediaSupportsSelectionMessageAndKeyboardDismissal() {
+        openChat("maya-chen")
+        app.buttons["conversation.info"].tap()
+
+        let photosAndVideos = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Photos & Videos")
+        ).firstMatch
+        XCTAssertTrue(reveal(photosAndVideos).exists)
+        photosAndVideos.tap()
+
+        let firstMedia = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "chat-info.media.")
+        ).firstMatch
+        XCTAssertTrue(firstMedia.waitForExistence(timeout: 5))
+        firstMedia.tap()
+        app.buttons["media-preview.forward"].tap()
+
+        XCTAssertTrue(app.navigationBars["Forward To"].waitForExistence(timeout: 5))
+        let nostrDevs = app.buttons["forward.chat.nostr-devs"]
+        XCTAssertTrue(nostrDevs.waitForExistence(timeout: 3))
+        nostrDevs.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertEqual(nostrDevs.value as? String, "Selected")
+
+        let message = app.descendants(matching: .any)["forward.message"]
+        let send = app.buttons["forward.send"]
+        XCTAssertTrue(message.waitForExistence(timeout: 3))
+        XCTAssertTrue(send.waitForExistence(timeout: 3))
+        XCTAssertTrue(send.isHittable)
+
+        message.tap()
+        message.typeText("A note with this image")
+        XCTAssertTrue(app.keyboards.firstMatch.exists)
+
+        let keyboardScreenshot = XCTAttachment(screenshot: app.screenshot())
+        keyboardScreenshot.name = "Forward media composer with keyboard"
+        keyboardScreenshot.lifetime = .keepAlways
+        add(keyboardScreenshot)
+        let radia = app.buttons["forward.chat.radia-perlman"]
+        XCTAssertTrue(radia.waitForExistence(timeout: 3))
+        radia.tap()
+        XCTAssertFalse(app.keyboards.firstMatch.exists)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Forward media selected destination and message"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        send.tap()
+        XCTAssertTrue(app.buttons["media-preview.forward"].waitForExistence(timeout: 3))
+        app.buttons["media-preview.close"].tap()
+        returnToChats()
+        openChat("nostr-devs")
+        XCTAssertTrue(app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@", "A note with this image")
+        ).firstMatch.waitForExistence(timeout: 3))
+    }
+
     private func openChat(_ id: String) {
         let row = locateChat(id)
         row.tap()

@@ -69,7 +69,7 @@ struct ChatListItem: Identifiable, Equatable {
             case .voiceMessage:
                 "waveform"
             case .file:
-                "doc.fill"
+                "doc"
             case .location:
                 "location.fill"
             case .contact:

@@ -7,15 +7,27 @@ notification and Search actions, shared-content categories, group management,
 and Leave Group. Member rows push **Group Member**.
 
 - **Mute** or **Unmute**, **Disappearing Messages**, and **Search** appear as
-  one centered quick-action group directly below the group identity. They are
-  icon-only visually, retain explicit accessibility names, and the
-  disappearing-message menu announces its current value.
+  one centered quick-action group directly below the group identity. They use
+  compact non-glass circular secondary controls on an adaptive white
+  surface with concise captions beneath them: **Mute** or **Unmute**,
+  **Disappearing**, and **Search**. They retain explicit accessibility names,
+  and the disappearing-message menu announces its current value.
 - One scrolling `List` replaces the rejected category tabs and pager.
-  **Photos**, **Links**, and **Documents** appear as disclosure rows in one
-  grouped container and push focused shared-content destinations.
-- **Relays** and **Developer Tools** appear in the next grouped container.
+  **Photos & Videos**, **Links**, and **Documents** appear as disclosure rows in
+  one grouped container titled **Shared in Chat** and push focused
+  shared-content destinations. Its heading is spaced from the quick actions by
+  the same amount used between the group identity and quick actions.
+- The Photos & Videos destination follows the shared Chat Info behavior: a
+  three-column grid of square cells opens one selected item without paging the
+  entire group history. The preview shows the sender and sent date without
+  repeating message text, exposes system-owned Share, Forward, Save, and Go to
+  Message toolbar actions, and uses the shared searchable multi-chat forwarding
+  sheet.
+- **Relays** and **Developer Tools** appear in the next grouped container titled
+  **Advanced**.
   Members and permitted management actions follow. The final group contains
-  **Archive** or **Unarchive** and destructive **Leave Group**.
+  **Archive** or **Unarchive** and destructive **Leave Group**, with no
+  redundant heading. Leaving uses a native alert.
 - Media, links, documents, relays, members, and settings derive from and mutate
   the same authoritative group chat as the conversation and chat row.
 
@@ -40,18 +52,20 @@ and Leave Group. Member rows push **Group Member**.
 
 ## Chat Relays
 
-Chat Info and Group Info both expose **Relays** as a disclosure destination. It says
-**Messages in this chat use these relays.**, lists the chat's independent
-`wss://` URLs, adds normalized nonduplicate values, and removes values after
-consequence-aware confirmation. Removing the final relay is allowed after
-stating that sending will stop; history remains available and adding a relay
-restores sending.
+Chat Info and Group Info both expose **Relays** as a disclosure destination. It
+says **These relays are used only to deliver messages in this chat.**, lists
+the chat's independent `wss://` URLs, adds normalized nonduplicate values, and
+removes values after consequence-aware confirmation. Add Relay expands to the
+large detent when its URL field receives keyboard focus. Removing the final
+relay is allowed after stating that sending will stop; history remains
+available and adding a relay restores sending.
 
 ## Native components and accessibility
 
-Use `Form`, `Section`, `NavigationLink`, `TextField`, `PhotosPicker`, `Button`,
-native disabled states, alerts, and confirmation dialogs. Admin/Member is
-visible and spoken. Destructive actions are never gesture-only.
+Use `Form`, `Section`, `NavigationLink`, `TextField`, `PhotosPicker`,
+`LazyVGrid`, `ShareLink`, `fileExporter`, `Button`, native disabled states,
+alerts, and confirmation dialogs. Admin/Member is visible and spoken.
+Destructive actions are never gesture-only.
 
 ## Governing sources
 
@@ -61,6 +75,9 @@ visible and spoken. Destructive actions are never gesture-only.
 - [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink)
 - [Menus](https://developer.apple.com/design/human-interface-guidelines/menus)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
+- [LazyVGrid](https://developer.apple.com/documentation/swiftui/lazyvgrid)
+- [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
+- [fileExporter](https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:))
 - [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts)
 - [Confirmation dialogs](https://developer.apple.com/documentation/swiftui/view/confirmationdialog)
 

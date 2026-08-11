@@ -21,6 +21,7 @@ struct ConversationView: View {
     @State private var highlightedMessageID: String?
     @State private var requestedScrollID: String?
     @State private var selectedPersonID: String?
+    @State private var isShowingChatInfo = false
     @State private var isShowingSearch = false
     @State private var pendingSearchResultID: String?
     @State private var composerText: String
@@ -163,6 +164,15 @@ struct ConversationView: View {
                 requestedScrollID = messageID
             }
         }
+        .navigationDestination(isPresented: $isShowingChatInfo) {
+            ChatInfoView(
+                profile: $profile,
+                settings: $settings,
+                chatID: chatID,
+                onSearch: openSearchFromChatInfo,
+                onOpenMessage: openMessageFromChatInfo
+            )
+        }
         .navigationDestination(isPresented: personIsPresented) {
             if let selectedPersonID {
                 if chat.isGroup,
@@ -212,13 +222,8 @@ struct ConversationView: View {
     @ToolbarContentBuilder
     private var conversationToolbar: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            NavigationLink {
-                ChatInfoView(
-                    profile: $profile,
-                    settings: $settings,
-                    chatID: chatID,
-                    onSearch: { isShowingSearch = true }
-                )
+            Button {
+                isShowingChatInfo = true
             } label: {
                 HStack(spacing: 8) {
                     PrototypeChatAvatarView(
@@ -238,6 +243,23 @@ struct ConversationView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens chat information.")
             .accessibilityIdentifier("conversation.info")
+        }
+    }
+
+    private func openSearchFromChatInfo() {
+        isShowingChatInfo = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            isShowingSearch = true
+        }
+    }
+
+    private func openMessageFromChatInfo(_ messageID: String) {
+        isShowingChatInfo = false
+        composerIsFocused = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            requestedScrollID = messageID
         }
     }
 
@@ -503,7 +525,7 @@ struct ConversationView: View {
             }
             .frame(width: 72, height: 72).clipShape(.rect(cornerRadius: 10))
         case let .file(_, name, _, _):
-            VStack { Image(systemName: "doc.fill"); Text(name).font(.caption2).lineLimit(2) }
+            VStack { Image(systemName: "doc"); Text(name).font(.caption2).lineLimit(2) }
                 .frame(width: 72, height: 72).background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
         default:
             Label(attachment.accessibilityLabel, systemImage: "paperclip")

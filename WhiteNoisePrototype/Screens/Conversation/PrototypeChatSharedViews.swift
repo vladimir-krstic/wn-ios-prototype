@@ -165,7 +165,8 @@ struct PrototypeMediaViewer: View {
         NavigationStack {
             TabView(selection: $selectedIndex) {
                 ForEach(Array(selection.attachments.enumerated()), id: \.element.id) { index, attachment in
-                    viewer(for: attachment).tag(index)
+                    PrototypeSingleMediaView(attachment: attachment)
+                        .tag(index)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .automatic))
@@ -178,15 +179,20 @@ struct PrototypeMediaViewer: View {
         }
     }
 
+}
+
+struct PrototypeSingleMediaView: View {
+    let attachment: PrototypeAttachment
+
     @ViewBuilder
-    private func viewer(for attachment: PrototypeAttachment) -> some View {
+    var body: some View {
         switch attachment {
         case let .photo(_, source, label):
             ZoomablePrototypeImage(source: source)
                 .accessibilityLabel(label)
-        case let .video(_, url, thumbnail, _):
+        case let .video(_, url, thumbnail, duration):
             if let url {
-                PrototypeVideoPage(url: url)
+                PrototypeVideoPage(url: url, duration: duration)
             } else {
                 ZStack {
                     PrototypeImageSourceView(source: thumbnail).scaledToFit()
@@ -215,22 +221,89 @@ struct PrototypeMediaViewer: View {
 
 private struct PrototypeVideoPage: View {
     let url: URL
+    let duration: TimeInterval
     @State private var player: AVPlayer
+    @State private var isPlaying = false
 
-    init(url: URL) {
+    init(url: URL, duration: TimeInterval) {
         self.url = url
+        self.duration = duration
         _player = State(initialValue: AVPlayer(url: url))
     }
 
     var body: some View {
-        VideoPlayer(player: player)
-            .onAppear {
-                PrototypePlaybackCoordinator.shared.stopAll()
+        ZStack(alignment: .bottom) {
+            VideoPlayer(player: player)
+                .allowsHitTesting(false)
+
+            TimelineView(.periodic(from: .now, by: 0.25)) { _ in
+                HStack(spacing: 12) {
+                    Button {
+                        togglePlayback()
+                    } label: {
+                        Label(
+                            isPlaying ? "Pause Video" : "Play Video",
+                            systemImage: isPlaying ? "pause.fill" : "play.fill"
+                        )
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                    }
+                    .buttonStyle(.plain)
+                    .background(.black.opacity(0.55), in: .circle)
+                    .accessibilityLabel(isPlaying ? "Pause Video" : "Play Video")
+
+                    ProgressView(
+                        value: min(elapsed, duration),
+                        total: max(duration, 0.1)
+                    )
+                    .tint(.white)
+
+                    Text(prototypeDurationString(max(duration - elapsed, 0)))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.black.opacity(0.45))
             }
-            .onDisappear {
-                player.pause()
+        }
+        .onAppear {
+            PrototypePlaybackCoordinator.shared.stopAll()
+            player.play()
+            isPlaying = true
+        }
+        .onDisappear {
+            player.pause()
+            player.seek(to: .zero)
+            isPlaying = false
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: AVPlayerItem.didPlayToEndTimeNotification,
+                object: player.currentItem
+            )
+        ) { _ in
+            player.seek(to: .zero)
+            isPlaying = false
+        }
+    }
+
+    private var elapsed: TimeInterval {
+        let seconds = player.currentTime().seconds
+        return seconds.isFinite ? max(seconds, 0) : 0
+    }
+
+    private func togglePlayback() {
+        if isPlaying {
+            player.pause()
+        } else {
+            if elapsed >= duration {
                 player.seek(to: .zero)
             }
+            player.play()
+        }
+        isPlaying.toggle()
     }
 }
 

@@ -68,9 +68,21 @@ enum PrototypeChatKind: Equatable {
 
 struct PrototypeChatRouting: Equatable {
     var relayURLs: [String]
+    private(set) var defaultRelayURLs: [String]
 
-    init(relayURLs: [String] = ["wss://relay.primal.net"]) {
-        self.relayURLs = Self.normalizedUnique(relayURLs)
+    init(
+        relayURLs: [String] = ["wss://relay.primal.net"],
+        defaultRelayURLs: [String]? = nil
+    ) {
+        let normalizedRelays = Self.normalizedUnique(relayURLs)
+        self.relayURLs = normalizedRelays
+        self.defaultRelayURLs = Self.normalizedUnique(
+            defaultRelayURLs ?? normalizedRelays
+        )
+    }
+
+    var isDefaultConfiguration: Bool {
+        relayURLs == defaultRelayURLs
     }
 
     static func normalized(_ candidate: String) -> String? {
@@ -99,6 +111,10 @@ struct PrototypeChatRouting: Equatable {
 
     mutating func remove(_ value: String) {
         relayURLs.removeAll { $0 == value }
+    }
+
+    mutating func restoreDefaults() {
+        relayURLs = defaultRelayURLs
     }
 
     private static func normalizedUnique(_ values: [String]) -> [String] {

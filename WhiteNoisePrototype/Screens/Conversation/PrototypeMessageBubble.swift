@@ -536,7 +536,7 @@ private struct PrototypeAttachmentCollectionView: View {
 
     private func fileRow(name: String, size: Int, isAvailable: Bool) -> some View {
         HStack {
-            Image(systemName: "doc.fill").font(.title2)
+            Image(systemName: "doc").font(.title2)
             VStack(alignment: .leading) {
                 Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Text(fileMetadata(name: name, size: size))

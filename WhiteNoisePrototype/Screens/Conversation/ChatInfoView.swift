@@ -1,20 +1,34 @@
 import PhotosUI
 import QuickLook
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChatInfoView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
     let chatID: String
     let onSearch: () -> Void
+    let onOpenMessage: (String) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         if let index = profile.chats.firstIndex(where: { $0.id == chatID }) {
             if profile.chats[index].isGroup {
-                GroupInfoView(profile: $profile, settings: $settings, chatID: chatID, onSearch: search)
+                GroupInfoView(
+                    profile: $profile,
+                    settings: $settings,
+                    chatID: chatID,
+                    onSearch: search,
+                    onOpenMessage: openMessage
+                )
             } else {
-                DirectChatInfoView(profile: $profile, settings: $settings, chatID: chatID, onSearch: search)
+                DirectChatInfoView(
+                    profile: $profile,
+                    settings: $settings,
+                    chatID: chatID,
+                    onSearch: search,
+                    onOpenMessage: openMessage
+                )
             }
         } else {
             ContentUnavailableView("Chat Unavailable", systemImage: "bubble.left")
@@ -28,6 +42,14 @@ struct ChatInfoView: View {
             onSearch()
         }
     }
+
+    private func openMessage(_ messageID: String) {
+        dismiss()
+        Task { @MainActor in
+            await Task.yield()
+            onOpenMessage(messageID)
+        }
+    }
 }
 
 private struct DirectChatInfoView: View {
@@ -35,6 +57,7 @@ private struct DirectChatInfoView: View {
     @Binding var settings: PrototypeSettingsState
     let chatID: String
     let onSearch: () -> Void
+    let onOpenMessage: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var isShowingContact = false
@@ -43,12 +66,20 @@ private struct DirectChatInfoView: View {
     var body: some View {
         List {
             identityHeader
-                .listRowInsets(.init(top: 24, leading: 16, bottom: 12, trailing: 16))
+                .listRowInsets(.init(top: 24, leading: 16, bottom: 0, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
-            ChatInfoSharedContentLinks(profile: $profile, chatID: chatID)
-            ChatInfoTechnicalLinks(profile: $profile, chatID: chatID)
+            ChatInfoSharedContentLinks(
+                profile: $profile,
+                chatID: chatID,
+                onOpenMessage: onOpenMessage
+            )
+            ChatInfoTechnicalLinks(
+                profile: $profile,
+                settings: settings,
+                chatID: chatID
+            )
 
             Section {
                 Button(
@@ -59,12 +90,14 @@ private struct DirectChatInfoView: View {
                 }
 
                 if chat.listState.membershipState == .active {
-                    Button(
-                        "Leave Chat",
-                        systemImage: "rectangle.portrait.and.arrow.right",
-                        role: .destructive
-                    ) {
+                    Button(role: .destructive) {
                         isShowingLeaveConfirmation = true
+                    } label: {
+                        Label(
+                            "Leave Chat",
+                            systemImage: "rectangle.portrait.and.arrow.right"
+                        )
+                        .foregroundStyle(.red)
                     }
                 }
             }
@@ -79,10 +112,9 @@ private struct DirectChatInfoView: View {
                 onMessagePerson: { _ in dismiss() }
             )
         }
-        .confirmationDialog(
+        .alert(
             "Leave \(person.name)?",
-            isPresented: $isShowingLeaveConfirmation,
-            titleVisibility: .visible
+            isPresented: $isShowingLeaveConfirmation
         ) {
             Button("Leave Chat", role: .destructive, action: leaveChat)
             Button("Cancel", role: .cancel) {}
@@ -103,32 +135,30 @@ private struct DirectChatInfoView: View {
                     .multilineTextAlignment(.center)
             }
 
-            HStack(spacing: 20) {
-                ChatInfoQuickAction {
+            HStack(spacing: 12) {
+                ChatInfoQuickAction(title: "Contact") {
                     Button {
                         isShowingContact = true
                     } label: {
                         ChatInfoQuickActionIcon(systemName: "person.crop.circle")
                     }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
+                    .buttonStyle(ChatInfoSecondaryActionButtonStyle())
                     .accessibilityLabel("Contact")
                 }
 
-                ChatInfoQuickAction {
+                ChatInfoQuickAction(title: muteActionTitle) {
                     muteMenu
                 }
 
-                ChatInfoQuickAction {
+                ChatInfoQuickAction(title: "Disappearing") {
                     disappearingMessagesMenu
                 }
 
-                ChatInfoQuickAction {
+                ChatInfoQuickAction(title: "Search") {
                     Button(action: onSearch) {
                         ChatInfoQuickActionIcon(systemName: "magnifyingglass")
                     }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
+                    .buttonStyle(ChatInfoSecondaryActionButtonStyle())
                     .accessibilityLabel("Search")
                 }
             }
@@ -158,8 +188,7 @@ private struct DirectChatInfoView: View {
         } label: {
             ChatInfoQuickActionIcon(systemName: "timer")
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(ChatInfoSecondaryActionButtonStyle())
         .accessibilityLabel("Disappearing Messages")
         .accessibilityValue(chat.disappearingMessageDuration.title)
     }
@@ -186,8 +215,7 @@ private struct DirectChatInfoView: View {
                 systemName: chat.listState.muteDuration == nil ? "bell.slash" : "bell"
             )
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(ChatInfoSecondaryActionButtonStyle())
         .accessibilityLabel(muteActionTitle)
     }
 
@@ -205,6 +233,7 @@ private struct GroupInfoView: View {
     @Binding var settings: PrototypeSettingsState
     let chatID: String
     let onSearch: () -> Void
+    let onOpenMessage: (String) -> Void
 
     @State private var isShowingLeaveConfirmation = false
     @State private var isShowingOnlyAdminAlert = false
@@ -212,12 +241,20 @@ private struct GroupInfoView: View {
     var body: some View {
         List {
             identityHeader
-                .listRowInsets(.init(top: 24, leading: 16, bottom: 12, trailing: 16))
+                .listRowInsets(.init(top: 24, leading: 16, bottom: 0, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
-            ChatInfoSharedContentLinks(profile: $profile, chatID: chatID)
-            ChatInfoTechnicalLinks(profile: $profile, chatID: chatID)
+            ChatInfoSharedContentLinks(
+                profile: $profile,
+                chatID: chatID,
+                onOpenMessage: onOpenMessage
+            )
+            ChatInfoTechnicalLinks(
+                profile: $profile,
+                settings: settings,
+                chatID: chatID
+            )
 
             Section("Members") {
                 ForEach(chat.members) { member in
@@ -268,26 +305,27 @@ private struct GroupInfoView: View {
                 }
 
                 if chat.listState.membershipState == .active {
-                    Button(
-                        "Leave Group",
-                        systemImage: "rectangle.portrait.and.arrow.right",
-                        role: .destructive
-                    ) {
+                    Button(role: .destructive) {
                         if isOnlyAdmin {
                             isShowingOnlyAdminAlert = true
                         } else {
                             isShowingLeaveConfirmation = true
                         }
+                    } label: {
+                        Label(
+                            "Leave Group",
+                            systemImage: "rectangle.portrait.and.arrow.right"
+                        )
+                        .foregroundStyle(.red)
                     }
                 }
             }
         }
         .navigationTitle("Group Info")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog(
+        .alert(
             "Leave \(chat.groupName)?",
-            isPresented: $isShowingLeaveConfirmation,
-            titleVisibility: .visible
+            isPresented: $isShowingLeaveConfirmation
         ) {
             Button("Leave Group", role: .destructive, action: leaveGroup)
             Button("Cancel", role: .cancel) {}
@@ -318,21 +356,20 @@ private struct GroupInfoView: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 28) {
-                ChatInfoQuickAction {
+            HStack(spacing: 12) {
+                ChatInfoQuickAction(title: muteActionTitle) {
                     muteMenu
                 }
 
-                ChatInfoQuickAction {
+                ChatInfoQuickAction(title: "Disappearing") {
                     disappearingMessagesMenu
                 }
 
-                ChatInfoQuickAction {
+                ChatInfoQuickAction(title: "Search") {
                     Button(action: onSearch) {
                         ChatInfoQuickActionIcon(systemName: "magnifyingglass")
                     }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
+                    .buttonStyle(ChatInfoSecondaryActionButtonStyle())
                     .accessibilityLabel("Search")
                 }
             }
@@ -379,8 +416,7 @@ private struct GroupInfoView: View {
         } label: {
             ChatInfoQuickActionIcon(systemName: "timer")
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(ChatInfoSecondaryActionButtonStyle())
         .accessibilityLabel("Disappearing Messages")
         .accessibilityValue(chat.disappearingMessageDuration.title)
     }
@@ -407,8 +443,7 @@ private struct GroupInfoView: View {
                 systemName: chat.listState.muteDuration == nil ? "bell.slash" : "bell"
             )
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(ChatInfoSecondaryActionButtonStyle())
         .accessibilityLabel(muteActionTitle)
     }
 
@@ -422,7 +457,7 @@ private struct GroupInfoView: View {
 }
 
 private enum ChatInfoSharedContent: String, CaseIterable, Identifiable {
-    case photos = "Photos"
+    case photos = "Photos & Videos"
     case links = "Links"
     case documents = "Documents"
 
@@ -430,7 +465,7 @@ private enum ChatInfoSharedContent: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .photos: "photo.on.rectangle"
+        case .photos: "photo.on.rectangle.angled"
         case .links: "link"
         case .documents: "doc"
         }
@@ -438,14 +473,44 @@ private enum ChatInfoSharedContent: String, CaseIterable, Identifiable {
 }
 
 private struct ChatInfoQuickAction<Control: View>: View {
+    let title: String
     let control: Control
 
-    init(@ViewBuilder control: () -> Control) {
+    init(title: String, @ViewBuilder control: () -> Control) {
+        self.title = title
         self.control = control()
     }
 
     var body: some View {
-        control
+        VStack(spacing: 6) {
+            control
+
+            Text(title)
+                .font(.footnote)
+                .lineLimit(1)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+private struct ChatInfoSecondaryActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.primary)
+            .padding(10)
+            .background(
+                configuration.isPressed
+                    ? Color(uiColor: .secondarySystemFill)
+                    : Color(uiColor: .secondarySystemGroupedBackground),
+                in: .circle
+            )
+            .overlay {
+                Circle()
+                    .stroke(
+                        Color(uiColor: .separator).opacity(0.35),
+                        lineWidth: 0.5
+                    )
+            }
     }
 }
 
@@ -462,15 +527,17 @@ private struct ChatInfoQuickActionIcon: View {
 private struct ChatInfoSharedContentLinks: View {
     @Binding var profile: PrototypeProfile
     let chatID: String
+    let onOpenMessage: (String) -> Void
 
     var body: some View {
-        Section {
+        Section("Shared in Chat") {
             ForEach(ChatInfoSharedContent.allCases) { category in
                 NavigationLink {
                     ChatInfoSharedContentView(
                         profile: $profile,
                         chatID: chatID,
-                        category: category
+                        category: category,
+                        onOpenMessage: onOpenMessage
                     )
                 } label: {
                     Label(category.rawValue, systemImage: category.systemImage)
@@ -482,10 +549,11 @@ private struct ChatInfoSharedContentLinks: View {
 
 private struct ChatInfoTechnicalLinks: View {
     @Binding var profile: PrototypeProfile
+    let settings: PrototypeSettingsState
     let chatID: String
 
     var body: some View {
-        Section {
+        Section("Advanced") {
             NavigationLink {
                 ChatRelaysView(profile: $profile, chatID: chatID)
             } label: {
@@ -493,9 +561,10 @@ private struct ChatInfoTechnicalLinks: View {
             }
 
             NavigationLink {
-                DeveloperToolsPrototypeView(
-                    developerTools: $profile.developerTools,
-                    profile: profile
+                ChatDeveloperToolsView(
+                    profile: $profile,
+                    settings: settings,
+                    chatID: chatID
                 )
             } label: {
                 Label("Developer Tools", systemImage: "wrench.and.screwdriver")
@@ -508,25 +577,77 @@ private struct ChatInfoSharedContentView: View {
     @Binding var profile: PrototypeProfile
     let chatID: String
     let category: ChatInfoSharedContent
-    @State private var mediaSelection: PrototypeMediaSelection?
+    let onOpenMessage: (String) -> Void
+    @State private var mediaSelection: ChatInfoMediaItem?
+    @State private var pendingOpenMessageID: String?
     @State private var quickLookURL: URL?
 
     var body: some View {
-        List {
-            ChatInfoSharedCategorySections(
-                profile: $profile,
-                chatID: chatID,
-                category: category,
-                mediaSelection: $mediaSelection,
-                quickLookURL: $quickLookURL
-            )
+        Group {
+            switch category {
+            case .photos:
+                ScrollView {
+                    ChatInfoMediaSection(items: mediaItems) {
+                        mediaSelection = $0
+                    }
+                }
+                .scrollIndicators(.hidden)
+            case .links, .documents:
+                List {
+                    ChatInfoSharedCategorySections(
+                        profile: $profile,
+                        chatID: chatID,
+                        category: category,
+                        quickLookURL: $quickLookURL
+                    )
+                }
+            }
         }
         .navigationTitle(category.rawValue)
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(item: $mediaSelection) {
-            PrototypeMediaViewer(selection: $0)
+        .fullScreenCover(item: $mediaSelection, onDismiss: openPendingMessage) { item in
+            ChatInfoMediaPreview(
+                profile: $profile,
+                sourceChatID: chatID,
+                items: mediaItems,
+                initialIndex: mediaItems.firstIndex { $0.id == item.id } ?? 0,
+                onRequestOpenMessage: { messageID in
+                    pendingOpenMessageID = messageID
+                    mediaSelection = nil
+                }
+            )
         }
         .quickLookPreview($quickLookURL)
+    }
+
+    private var chat: PrototypeChat {
+        profile.chats.first { $0.id == chatID }!
+    }
+
+    private var mediaItems: [ChatInfoMediaItem] {
+        chat.messages
+            .filter { !$0.isDeleted }
+            .flatMap { message in
+                message.attachments.enumerated().compactMap { index, attachment in
+                    guard attachment.isChatInfoMedia else { return nil }
+                    return ChatInfoMediaItem(
+                        id: "\(message.id)-\(attachment.id)-\(index)",
+                        attachment: attachment,
+                        messageID: message.id,
+                        authorID: message.authorID,
+                        sentAt: message.sentAt
+                    )
+                }
+            }
+    }
+
+    private func openPendingMessage() {
+        guard let messageID = pendingOpenMessageID else { return }
+        pendingOpenMessageID = nil
+        Task { @MainActor in
+            await Task.yield()
+            onOpenMessage(messageID)
+        }
     }
 }
 
@@ -534,19 +655,12 @@ private struct ChatInfoSharedCategorySections: View {
     @Binding var profile: PrototypeProfile
     let chatID: String
     let category: ChatInfoSharedContent
-    @Binding var mediaSelection: PrototypeMediaSelection?
     @Binding var quickLookURL: URL?
 
     var body: some View {
         switch category {
         case .photos:
-            ChatInfoMediaSection(attachments: mediaAttachments) { index in
-                mediaSelection = PrototypeMediaSelection(
-                    id: "\(chatID)-info-media-\(UUID().uuidString)",
-                    attachments: mediaAttachments,
-                    initialIndex: index
-                )
-            }
+            EmptyView()
         case .links:
             ChatInfoLinksSection(attachments: linkAttachments)
         case .documents:
@@ -564,14 +678,6 @@ private struct ChatInfoSharedCategorySections: View {
             .filter { !$0.isDeleted }
             .flatMap(\.attachments)
     }
-    private var mediaAttachments: [PrototypeAttachment] {
-        attachments.filter {
-            switch $0 {
-            case .photo, .video, .gif, .sticker: true
-            default: false
-            }
-        }
-    }
     private var linkAttachments: [PrototypeAttachment] {
         attachments.filter {
             if case .link = $0 { return true }
@@ -586,35 +692,58 @@ private struct ChatInfoSharedCategorySections: View {
     }
 }
 
+private struct ChatInfoMediaItem: Identifiable {
+    let id: String
+    let attachment: PrototypeAttachment
+    let messageID: String
+    let authorID: String
+    let sentAt: Date
+}
+
+private extension PrototypeAttachment {
+    var isChatInfoMedia: Bool {
+        switch self {
+        case .photo, .video: true
+        default: false
+        }
+    }
+}
+
 private struct ChatInfoMediaSection: View {
-    let attachments: [PrototypeAttachment]
-    let onOpen: (Int) -> Void
-    private let columns = [GridItem(.adaptive(minimum: 92), spacing: 3)]
+    let items: [ChatInfoMediaItem]
+    let onOpen: (ChatInfoMediaItem) -> Void
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: 2),
+        count: 3
+    )
 
     var body: some View {
-        Section {
-            if attachments.isEmpty {
+        Group {
+            if items.isEmpty {
                 ContentUnavailableView(
-                    "No Photos",
-                    systemImage: "photo.on.rectangle",
+                    "No Photos or Videos",
+                    systemImage: "photo.on.rectangle.angled",
                     description: Text("Photos and videos shared in this chat will appear here.")
                 )
-                .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
+                .frame(maxWidth: .infinity, minHeight: 420)
             } else {
-                LazyVGrid(columns: columns, spacing: 3) {
-                    ForEach(Array(attachments.enumerated()), id: \.element.id) { index, attachment in
+                LazyVGrid(columns: columns, spacing: 2) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         Button {
-                            onOpen(index)
+                            onOpen(item)
                         } label: {
-                            mediaTile(attachment)
-                                .frame(maxWidth: .infinity)
+                            Color.clear
                                 .aspectRatio(1, contentMode: .fit)
+                                .overlay {
+                                    mediaTile(item.attachment)
+                                }
+                                .clipped()
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                         .accessibilityLabel(
-                            "\(attachment.accessibilityLabel), \(index + 1) of \(attachments.count)"
+                            "\(item.attachment.accessibilityLabel), \(index + 1) of \(items.count)"
                         )
+                        .accessibilityIdentifier("chat-info.media.\(item.id)")
                     }
                 }
             }
@@ -663,8 +792,603 @@ private struct ChatInfoMediaSection: View {
                 EmptyView()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
-        .clipShape(.rect(cornerRadius: 10))
+    }
+}
+
+private struct ChatInfoMediaPreview: View {
+    @Binding var profile: PrototypeProfile
+    let sourceChatID: String
+    let items: [ChatInfoMediaItem]
+    let onRequestOpenMessage: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedIndex: Int
+    @State private var preparedMedia: ChatInfoPreparedMedia?
+    @State private var exportDocument: ChatInfoMediaDocument?
+    @State private var isShowingFileExporter = false
+    @State private var isShowingForwardSheet = false
+    @State private var isShowingSaveError = false
+
+    init(
+        profile: Binding<PrototypeProfile>,
+        sourceChatID: String,
+        items: [ChatInfoMediaItem],
+        initialIndex: Int,
+        onRequestOpenMessage: @escaping (String) -> Void
+    ) {
+        _profile = profile
+        self.sourceChatID = sourceChatID
+        self.items = items
+        self.onRequestOpenMessage = onRequestOpenMessage
+        _selectedIndex = State(
+            initialValue: min(max(initialIndex, 0), max(items.count - 1, 0))
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            TabView(selection: $selectedIndex) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    PrototypeSingleMediaView(attachment: item.attachment)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .tag(index)
+                }
+            }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .background(Color(uiColor: .systemBackground))
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            ChatInfoMediaControlLabel(
+                                title: "Close",
+                                systemImage: "chevron.backward"
+                            )
+                        }
+                        .accessibilityIdentifier("media-preview.close")
+                    }
+
+                    ToolbarItem(placement: .principal) {
+                        VStack(spacing: 0) {
+                            Text(senderName)
+                                .font(.headline)
+                            Text(
+                                item.sentAt.formatted(
+                                    date: .abbreviated,
+                                    time: .shortened
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Button("Save", systemImage: "square.and.arrow.down") {
+                                saveToFiles()
+                            }
+                            .disabled(preparedMedia == nil)
+
+                            Button("Go to Message", systemImage: "bubble.left") {
+                                goToMessage()
+                            }
+                        } label: {
+                            ChatInfoMediaControlLabel(
+                                title: "More",
+                                systemImage: "ellipsis"
+                            )
+                        }
+                        .accessibilityIdentifier("media-preview.more")
+                    }
+
+                }
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    HStack {
+                        if let preparedMedia {
+                            ShareLink(item: preparedMedia.url) {
+                                ChatInfoMediaControlLabel(
+                                    title: "Share",
+                                    systemImage: "square.and.arrow.up"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .modifier(ChatInfoMediaBottomControl())
+                            .accessibilityIdentifier("media-preview.share")
+                        } else {
+                            Button {} label: {
+                                ChatInfoMediaControlLabel(
+                                    title: "Share",
+                                    systemImage: "square.and.arrow.up"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .modifier(ChatInfoMediaBottomControl())
+                            .accessibilityIdentifier("media-preview.share")
+                            .disabled(true)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            isShowingForwardSheet = true
+                        } label: {
+                            ChatInfoMediaControlLabel(
+                                title: "Forward",
+                                systemImage: "arrowshape.turn.up.right"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .modifier(ChatInfoMediaBottomControl())
+                        .accessibilityIdentifier("media-preview.forward")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .safeAreaPadding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                }
+        }
+        .task(id: item.id) {
+            preparedMedia = nil
+            preparedMedia = await ChatInfoMediaPreparer.prepare(item.attachment)
+        }
+        .sheet(isPresented: $isShowingForwardSheet) {
+            NavigationStack {
+                ChatInfoForwardMediaView(
+                    profile: $profile,
+                    sourceChatID: sourceChatID,
+                    item: item
+                )
+            }
+            .presentationDetents([.large])
+        }
+        .fileExporter(
+            isPresented: $isShowingFileExporter,
+            document: exportDocument,
+            contentType: preparedMedia?.contentType ?? .data,
+            defaultFilename: preparedMedia?.filename ?? "Media",
+            onCompletion: handleSaveResult
+        )
+        .alert("Couldn’t Save Media", isPresented: $isShowingSaveError) {
+            Button("Dismiss", role: .cancel) {}
+        } message: {
+            Text("Choose another location and try again.")
+        }
+    }
+
+    private var item: ChatInfoMediaItem {
+        items[min(max(selectedIndex, 0), max(items.count - 1, 0))]
+    }
+
+    private var senderName: String {
+        if item.authorID == profile.id { return "You" }
+        return profile.people.first { $0.id == item.authorID }?.name ?? "Unknown"
+    }
+
+    private func saveToFiles() {
+        guard let preparedMedia else { return }
+        exportDocument = ChatInfoMediaDocument(data: preparedMedia.data)
+        isShowingFileExporter = true
+    }
+
+    private func goToMessage() {
+        onRequestOpenMessage(item.messageID)
+    }
+
+    private func handleSaveResult(_ result: Result<URL, Error>) {
+        if case .failure = result {
+            isShowingSaveError = true
+        }
+    }
+}
+
+private struct ChatInfoMediaControlLabel: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .labelStyle(.iconOnly)
+            .imageScale(.large)
+    }
+}
+
+private struct ChatInfoMediaBottomControl: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(width: 44, height: 44)
+            .contentShape(.circle)
+            .glassEffect(.regular.interactive(), in: .circle)
+    }
+}
+
+private struct ChatInfoForwardMediaView: View {
+    @Binding var profile: PrototypeProfile
+    let sourceChatID: String
+    let item: ChatInfoMediaItem
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var message = ""
+    @State private var selectedChatIDs: [String] = []
+    @FocusState private var isSearchFocused: Bool
+    @FocusState private var isMessageFocused: Bool
+
+    var body: some View {
+        List {
+            if !selectedChats.isEmpty {
+                selectedChatsSection
+            }
+
+            if filteredChats.isEmpty {
+                ContentUnavailableView(
+                    query.isEmpty ? "No Chats Available" : "No Results",
+                    systemImage: query.isEmpty
+                        ? "arrowshape.turn.up.right"
+                        : "magnifyingglass",
+                    description: Text(
+                        query.isEmpty
+                            ? "Start another chat before forwarding this media."
+                            : "No chats match your search."
+                    )
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            } else {
+                Section("Chats") {
+                    ForEach(filteredChats) { chat in
+                        Button {
+                            toggleSelection(chat.id)
+                            isSearchFocused = false
+                            isMessageFocused = false
+                        } label: {
+                            HStack(spacing: 10) {
+                                PrototypeChatAvatarView(
+                                    avatar: chat.resolvedAvatar(people: profile.people),
+                                    size: 40
+                                )
+                                Text(chat.title(people: profile.people))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Spacer()
+
+                                Image(
+                                    systemName: selectedChatIDs.contains(chat.id)
+                                        ? "checkmark.circle.fill"
+                                        : "circle"
+                                )
+                                .font(.title2)
+                                .foregroundStyle(
+                                    selectedChatIDs.contains(chat.id)
+                                        ? Color.accentColor
+                                        : Color.secondary
+                                )
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("forward.chat.\(chat.id)")
+                        .accessibilityLabel(chat.title(people: profile.people))
+                        .accessibilityValue(
+                            selectedChatIDs.contains(chat.id)
+                                ? "Selected"
+                                : "Not selected"
+                        )
+                        .accessibilityAddTraits(
+                            selectedChatIDs.contains(chat.id) ? .isSelected : []
+                        )
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollDismissesKeyboard(.interactively)
+        .navigationTitle("Forward To")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(
+            text: $query,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search"
+        )
+        .searchFocused($isSearchFocused)
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            forwardingComposer
+        }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    dismiss()
+                } label: {
+                    Label("Close", systemImage: "xmark")
+                        .labelStyle(.iconOnly)
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Forward", action: forwardSelection)
+                    .buttonStyle(.glassProminent)
+                    .disabled(selectedChatIDs.isEmpty)
+                    .accessibilityHint("Forwards the media to the selected chats.")
+                    .accessibilityIdentifier("forward.send")
+            }
+        }
+        .onSubmit(of: .search) {
+            isSearchFocused = false
+        }
+    }
+
+    private var selectedChatsSection: some View {
+        Section {
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: 10) {
+                    ForEach(selectedChats) { chat in
+                        Button {
+                            removeSelection(chat.id)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ZStack(alignment: .topTrailing) {
+                                    PrototypeChatAvatarView(
+                                        avatar: chat.resolvedAvatar(people: profile.people),
+                                        size: 64
+                                    )
+                                    .frame(
+                                        width: 72,
+                                        height: 72,
+                                        alignment: .bottomLeading
+                                    )
+
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title3)
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.white, .black)
+                                        .offset(x: -6, y: 6)
+                                        .accessibilityHidden(true)
+                                }
+                                .frame(width: 72, height: 72)
+
+                                Text(chat.title(people: profile.people))
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                    .frame(width: 72)
+                            }
+                            .frame(width: 72, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(
+                            "Remove \(chat.title(people: profile.people))"
+                        )
+                        .accessibilityHint("Removes this chat from the forward recipients.")
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .contentMargins(.horizontal, 20, for: .scrollContent)
+            .defaultScrollAnchor(.leading, for: .initialOffset)
+            .scrollIndicators(.hidden)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } header: {
+            Text("Selected")
+                .padding(.horizontal, 20)
+        }
+        .listSectionMargins([.horizontal, .bottom], 0)
+    }
+
+    private var forwardingComposer: some View {
+        GlassEffectContainer {
+            TextField("Add a message", text: $message, axis: .vertical)
+                .lineLimit(1...4)
+                .focused($isMessageFocused)
+                .submitLabel(.done)
+                .onSubmit {
+                    isMessageFocused = false
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(minHeight: 44)
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .rect(cornerRadius: 22)
+                )
+                .accessibilityIdentifier("forward.message")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+    }
+
+    private var filteredChats: [PrototypeChat] {
+        let search = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !search.isEmpty else { return destinationChats }
+        return destinationChats.filter {
+            $0.title(people: profile.people).localizedStandardContains(search)
+        }
+    }
+
+    private var selectedChats: [PrototypeChat] {
+        selectedChatIDs.compactMap { selectedID in
+            destinationChats.first { $0.id == selectedID }
+        }
+    }
+
+    private var destinationChats: [PrototypeChat] {
+        profile.chats.filter {
+            $0.id != sourceChatID
+                && $0.composerAvailability(
+                    currentProfileID: profile.id,
+                    people: profile.people
+                ) == .available
+        }
+    }
+
+    private func toggleSelection(_ chatID: String) {
+        if let index = selectedChatIDs.firstIndex(of: chatID) {
+            selectedChatIDs.remove(at: index)
+        } else {
+            selectedChatIDs.append(chatID)
+        }
+    }
+
+    private func removeSelection(_ chatID: String) {
+        selectedChatIDs.removeAll { $0 == chatID }
+    }
+
+    private func forwardSelection() {
+        let forwardedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        for chatID in selectedChatIDs {
+            guard let index = profile.chats.firstIndex(where: { $0.id == chatID }) else {
+                continue
+            }
+            profile.chats[index].appendMessage(
+                authorID: profile.id,
+                text: forwardedMessage,
+                attachments: [chatInfoForwardedCopy(of: item.attachment)]
+            )
+        }
+        dismiss()
+    }
+}
+
+private struct ChatInfoPreparedMedia {
+    let data: Data
+    let contentType: UTType
+    let filename: String
+    let url: URL
+}
+
+private enum ChatInfoMediaPreparer {
+    static func prepare(_ attachment: PrototypeAttachment) async -> ChatInfoPreparedMedia? {
+        switch attachment {
+        case let .photo(id, source, _):
+            guard let data = await jpegData(for: source) else { return nil }
+            return await prepared(
+                data: data,
+                contentType: .jpeg,
+                filename: "Photo-\(id).jpg"
+            )
+        case let .video(id, url, _, _):
+            guard let url,
+                  let data = await readData(from: url)
+            else { return nil }
+            let contentType = UTType(filenameExtension: url.pathExtension) ?? .movie
+            let filename = url.lastPathComponent.isEmpty
+                ? "Video-\(id).mov"
+                : url.lastPathComponent
+            return await prepared(
+                data: data,
+                contentType: contentType,
+                filename: filename
+            )
+        case let .gif(id, assetName, _):
+            guard let data = await pngData(forAsset: assetName) else { return nil }
+            return await prepared(
+                data: data,
+                contentType: .png,
+                filename: "GIF-\(id).png"
+            )
+        case let .sticker(id, assetName, _):
+            guard let data = await pngData(forAsset: assetName) else { return nil }
+            return await prepared(
+                data: data,
+                contentType: .png,
+                filename: "Sticker-\(id).png"
+            )
+        default:
+            return nil
+        }
+    }
+
+    private static func jpegData(for source: PrototypeImageSource) async -> Data? {
+        switch source {
+        case let .asset(name):
+            return await Task.detached(priority: .userInitiated) {
+                UIImage(named: name)?.jpegData(compressionQuality: 0.92)
+            }.value
+        case let .data(data):
+            return await Task.detached(priority: .userInitiated) {
+                UIImage(data: data)?.jpegData(compressionQuality: 0.92)
+            }.value
+        }
+    }
+
+    private static func pngData(forAsset name: String) async -> Data? {
+        await Task.detached(priority: .userInitiated) {
+            UIImage(named: name)?.pngData()
+        }.value
+    }
+
+    private static func readData(from url: URL) async -> Data? {
+        await Task.detached(priority: .userInitiated) {
+            try? Data(contentsOf: url)
+        }.value
+    }
+
+    private static func prepared(
+        data: Data,
+        contentType: UTType,
+        filename: String
+    ) async -> ChatInfoPreparedMedia? {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "chat-media-\(UUID().uuidString)-\(filename)")
+        let wroteFile = await Task.detached(priority: .userInitiated) {
+            do {
+                try data.write(to: url, options: .atomic)
+                return true
+            } catch {
+                return false
+            }
+        }.value
+        guard wroteFile else { return nil }
+        return ChatInfoPreparedMedia(
+            data: data,
+            contentType: contentType,
+            filename: filename,
+            url: url
+        )
+    }
+}
+
+private struct ChatInfoMediaDocument: FileDocument {
+    static var readableContentTypes: [UTType] {
+        [.image, .movie]
+    }
+
+    let data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
+private func chatInfoForwardedCopy(
+    of attachment: PrototypeAttachment
+) -> PrototypeAttachment {
+    let id = UUID().uuidString
+    switch attachment {
+    case let .photo(_, source, label):
+        return .photo(id: id, source: source, label: label)
+    case let .video(_, url, thumbnail, duration):
+        return .video(id: id, url: url, thumbnail: thumbnail, duration: duration)
+    case let .gif(_, assetName, label):
+        return .gif(id: id, assetName: assetName, label: label)
+    case let .sticker(_, assetName, label):
+        return .sticker(id: id, assetName: assetName, label: label)
+    default:
+        return attachment
     }
 }
 
@@ -797,7 +1521,7 @@ private struct ChatInfoDocumentRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "doc.fill")
+            Image(systemName: "doc")
                 .font(.title2)
                 .frame(width: 36)
             VStack(alignment: .leading, spacing: 2) {
@@ -814,97 +1538,6 @@ private struct ChatInfoDocumentRow: View {
         }
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct ChatInfoRelaysSections: View {
-    @Binding var profile: PrototypeProfile
-    let chatID: String
-    @State private var newRelay = ""
-    @State private var validationMessage: String?
-    @State private var relayPendingRemoval: String?
-
-    var body: some View {
-        Group {
-            Section {
-                Text("Messages in this chat use these relays.")
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Relays") {
-                ForEach(chat.routing.relayURLs, id: \.self) { relay in
-                    HStack {
-                        Text(relay)
-                            .textSelection(.enabled)
-                        Spacer()
-                        Button(role: .destructive) {
-                            relayPendingRemoval = relay
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Remove \(relay)")
-                    }
-                }
-            }
-
-            Section("Add Relay") {
-                TextField("wss://relay.example.com", text: $newRelay)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .accessibilityIdentifier("chat-relays.input")
-                if let validationMessage {
-                    Text(validationMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
-                Button("Add Relay", action: addRelay)
-                    .disabled(newRelay.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .confirmationDialog(
-            chat.routing.relayURLs.count == 1 ? "Remove Final Relay?" : "Remove Relay?",
-            isPresented: Binding(
-                get: { relayPendingRemoval != nil },
-                set: { if !$0 { relayPendingRemoval = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Remove Relay", role: .destructive) {
-                removePendingRelay()
-            }
-            Button("Cancel", role: .cancel) {
-                relayPendingRemoval = nil
-            }
-        } message: {
-            if chat.routing.relayURLs.count == 1 {
-                Text("Sending will stop until you add a Chat Relay.")
-            }
-        }
-    }
-
-    private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
-    private var chat: PrototypeChat { profile.chats[chatIndex] }
-
-    private func addRelay() {
-        validationMessage = nil
-        let normalized = PrototypeChatRouting.normalized(newRelay)
-        guard normalized != nil else {
-            validationMessage = "Enter a valid wss:// relay URL."
-            return
-        }
-        guard profile.chats[chatIndex].routing.add(newRelay) else {
-            validationMessage = "This relay is already in the chat."
-            return
-        }
-        newRelay = ""
-    }
-
-    private func removePendingRelay() {
-        guard let relayPendingRemoval else { return }
-        profile.chats[chatIndex].routing.remove(relayPendingRemoval)
-        self.relayPendingRemoval = nil
     }
 }
 
@@ -925,13 +1558,329 @@ private func chatInfoFileMetadata(name: String, size: Int) -> String {
 struct ChatRelaysView: View {
     @Binding var profile: PrototypeProfile
     let chatID: String
+    @State private var isShowingAddRelay = false
+    @State private var isShowingRestoreDefaultsConfirmation = false
+    @State private var reconnectingRelayURLs: Set<String> = []
+    @State private var addRelayDetent: PresentationDetent = .medium
 
     var body: some View {
         Form {
-            ChatInfoRelaysSections(profile: $profile, chatID: chatID)
+            Section {
+                if chat.routing.relayURLs.isEmpty {
+                    Text("This chat has no relays")
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(chat.routing.relayURLs, id: \.self) { relayURL in
+                    NavigationLink {
+                        ChatRelayDetailView(
+                            profile: $profile,
+                            chatID: chatID,
+                            relayURL: relayURL
+                        )
+                    } label: {
+                        relayRow(relayURL)
+                    }
+                }
+
+                Button {
+                    addRelayDetent = .medium
+                    isShowingAddRelay = true
+                } label: {
+                    Label("Add Relay", systemImage: "plus.circle")
+                }
+            } footer: {
+                Text("These relays are used only to deliver messages in this chat.")
+            }
+
+            Section {
+                Button("Restore Default Relays", role: .destructive) {
+                    isShowingRestoreDefaultsConfirmation = true
+                }
+                .disabled(chat.routing.isDefaultConfiguration)
+            } footer: {
+                Text("Restores the relay list this chat started with.")
+            }
         }
-        .navigationTitle("Chat Relays")
+        .navigationTitle("Relays")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isShowingAddRelay) {
+            AddChatRelaySheet(
+                existingRelayURLs: chat.routing.relayURLs,
+                presentationDetent: $addRelayDetent,
+                onAdd: addRelay
+            )
+            .presentationDetents(
+                [.medium, .large],
+                selection: $addRelayDetent
+            )
+        }
+        .alert(
+            "Restore default relays?",
+            isPresented: $isShowingRestoreDefaultsConfirmation
+        ) {
+            Button("Restore Defaults", role: .destructive) {
+                reconnectingRelayURLs.removeAll()
+                updateChat { $0.routing.restoreDefaults() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "This replaces this chat’s relay list with the relays it started with. Custom relays will be removed."
+            )
+        }
+    }
+
+    private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
+    private var chat: PrototypeChat { profile.chats[chatIndex] }
+
+    private func relayRow(_ relayURL: String) -> some View {
+        let relay = chatRelayDescriptor(
+            for: relayURL,
+            profile: profile,
+            isReconnecting: reconnectingRelayURLs.contains(relayURL)
+        )
+
+        return HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(relay.displayName)
+
+                Text(relay.url)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer()
+
+            ChatRelayConnectionStatusView(state: relay.connectionState)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(relay.displayName), \(relay.url)")
+        .accessibilityValue(relay.connectionState.accessibilityTitle)
+    }
+
+    private func addRelay(_ relayURL: String) {
+        guard let normalized = PrototypeChatRouting.normalized(relayURL) else {
+            return
+        }
+        guard updateRouting({ $0.add(normalized) }) else {
+            return
+        }
+
+        reconnectingRelayURLs.insert(normalized)
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            _ = withAnimation {
+                reconnectingRelayURLs.remove(normalized)
+            }
+        }
+    }
+
+    private func updateChat(_ mutation: (inout PrototypeChat) -> Void) {
+        mutation(&profile.chats[chatIndex])
+    }
+
+    private func updateRouting(
+        _ mutation: (inout PrototypeChatRouting) -> Bool
+    ) -> Bool {
+        mutation(&profile.chats[chatIndex].routing)
+    }
+}
+
+private struct ChatRelayDescriptor {
+    let displayName: String
+    let url: String
+    let connectionState: PrototypeRelayConnectionState
+}
+
+private func chatRelayDescriptor(
+    for relayURL: String,
+    profile: PrototypeProfile,
+    isReconnecting: Bool = false
+) -> ChatRelayDescriptor {
+    let normalized = PrototypeChatRouting.normalized(relayURL) ?? relayURL
+    let configuredRelay = profile.relayConfiguration.relays.first {
+        PrototypeChatRouting.normalized($0.url) == normalized
+    }
+
+    return ChatRelayDescriptor(
+        displayName: configuredRelay?.displayName
+            ?? URL(string: normalized)?.host
+            ?? "Custom Relay",
+        url: normalized,
+        connectionState: isReconnecting
+            ? .reconnecting
+            : (configuredRelay?.connectionState ?? .connected)
+    )
+}
+
+private struct ChatRelayConnectionStatusView: View {
+    let state: PrototypeRelayConnectionState
+
+    var body: some View {
+        Group {
+            switch state {
+            case .connected:
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            case .reconnecting:
+                ProgressView()
+                    .controlSize(.regular)
+                    .tint(.secondary)
+            case .disconnected:
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+            }
+        }
+        .imageScale(.medium)
+        .accessibilityHidden(true)
+    }
+}
+
+private extension PrototypeRelayConnectionState {
+    var accessibilityTitle: String {
+        switch self {
+        case .connected: "Connected"
+        case .reconnecting: "Reconnecting"
+        case .disconnected: "Disconnected"
+        }
+    }
+}
+
+private struct ChatRelayDetailView: View {
+    @Binding var profile: PrototypeProfile
+    let chatID: String
+    let relayURL: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var isShowingRemovalConfirmation = false
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Name", value: relay.displayName)
+
+                LabeledContent("URL") {
+                    Text(relay.url)
+                        .font(.subheadline.monospaced())
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                LabeledContent("Status") {
+                    HStack {
+                        Text(relay.connectionState.accessibilityTitle)
+                            .foregroundStyle(.secondary)
+                        ChatRelayConnectionStatusView(
+                            state: relay.connectionState
+                        )
+                    }
+                }
+            }
+
+            Section {
+                Button("Remove Relay", role: .destructive) {
+                    isShowingRemovalConfirmation = true
+                }
+            }
+        }
+        .navigationTitle("Relay")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert(
+            "Remove \(relay.displayName)?",
+            isPresented: $isShowingRemovalConfirmation
+        ) {
+            Button("Remove Relay", role: .destructive, action: removeRelay)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(removalMessage)
+        }
+    }
+
+    private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
+    private var chat: PrototypeChat { profile.chats[chatIndex] }
+    private var relay: ChatRelayDescriptor {
+        chatRelayDescriptor(for: relayURL, profile: profile)
+    }
+    private var removalMessage: String {
+        chat.routing.relayURLs.count == 1
+            ? "Sending will stop until you add a relay."
+            : "This chat will stop using this relay."
+    }
+
+    private func removeRelay() {
+        profile.chats[chatIndex].routing.remove(relayURL)
+        dismiss()
+    }
+}
+
+private struct AddChatRelaySheet: View {
+    let existingRelayURLs: [String]
+    @Binding var presentationDetent: PresentationDetent
+    let onAdd: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var relayURL = ""
+    @FocusState private var relayURLIsFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(
+                        "wss://relay.example.com",
+                        text: $relayURL
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .focused($relayURLIsFocused)
+                    .accessibilityIdentifier("chat-relays.input")
+                } header: {
+                    Text("Relay URL")
+                } footer: {
+                    Text("Enter a relay URL beginning with wss://.")
+                }
+            }
+            .navigationTitle("Add Relay")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        onAdd(normalizedRelayURL)
+                        dismiss()
+                    }
+                    .buttonStyle(.glassProminent)
+                    .disabled(!canAddRelay)
+                }
+            }
+        }
+        .onChange(of: relayURLIsFocused) { _, isFocused in
+            if isFocused {
+                presentationDetent = .large
+            }
+        }
+    }
+
+    private var canAddRelay: Bool {
+        guard PrototypeChatRouting.normalized(normalizedRelayURL) != nil else {
+            return false
+        }
+
+        return !existingRelayURLs.contains {
+            PrototypeChatRouting.normalized($0)
+                == PrototypeChatRouting.normalized(normalizedRelayURL)
+        }
+    }
+
+    private var normalizedRelayURL: String {
+        PrototypeChatRouting.normalized(relayURL)
+            ?? relayURL.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
