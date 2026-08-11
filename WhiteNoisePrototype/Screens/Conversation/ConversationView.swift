@@ -58,32 +58,32 @@ struct ConversationView: View {
 
     private var conversation: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    ForEach(Array(chat.timeline.enumerated()), id: \.element.id) { index, entry in
-                        if showsDateSeparator(at: index) {
-                            Text(PrototypeDateFormatter.separator(for: entry.date))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .accessibilityAddTraits(.isHeader)
+            conversationBottomSurface {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(Array(chat.timeline.enumerated()), id: \.element.id) { index, entry in
+                            if showsDateSeparator(at: index) {
+                                Text(PrototypeDateFormatter.separator(for: entry.date))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .accessibilityAddTraits(.isHeader)
+                            }
+
+                            timelineEntry(entry, at: index)
+                                .id(entry.id)
                         }
 
-                        timelineEntry(entry, at: index)
-                            .id(entry.id)
+                        Color.clear.frame(height: 8).id(bottomID)
                     }
-
-                    Color.clear.frame(height: 8).id(bottomID)
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-            }
-            .defaultScrollAnchor(.bottom)
-            .scrollDismissesKeyboard(.interactively)
-            .scrollIndicators(.hidden)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                composerArea
+                .defaultScrollAnchor(.bottom)
+                .scrollDismissesKeyboard(.interactively)
+                .scrollIndicators(.hidden)
+                .scrollEdgeEffectStyle(.soft, for: .bottom)
             }
             .task {
                 await Task.yield()
@@ -216,6 +216,29 @@ struct ConversationView: View {
             fileImportTask?.cancel()
             voiceState = .idle
             recordingSeconds = 0
+        }
+    }
+
+    @ViewBuilder
+    private func conversationBottomSurface<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        switch chat.listState.membershipState {
+        case .left:
+            content()
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    recoveryView(.left)
+                }
+        case .removed:
+            content()
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    recoveryView(.removed)
+                }
+        case .active:
+            content()
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    composerArea
+                }
         }
     }
 
@@ -582,11 +605,15 @@ struct ConversationView: View {
     private func recoveryView(_ recovery: ComposerRecovery) -> some View {
         switch recovery {
         case .left:
-            Label("You left this chat.", systemImage: "rectangle.portrait.and.arrow.right")
-                .frame(maxWidth: .infinity).padding()
+            membershipStatusLabel(
+                "You left this group.",
+                systemImage: "rectangle.portrait.and.arrow.right"
+            )
         case .removed:
-            Label("You were removed from this chat.", systemImage: "person.crop.circle.badge.minus")
-                .frame(maxWidth: .infinity).padding()
+            membershipStatusLabel(
+                "You were removed from this group.",
+                systemImage: "person.crop.circle.badge.minus"
+            )
         case let .blocked(personID):
             Button("Unblock to Send Messages") {
                 if let index = profile.people.firstIndex(where: { $0.id == personID }) {
@@ -602,6 +629,17 @@ struct ConversationView: View {
             }
             .buttonStyle(.borderedProminent).padding()
         }
+    }
+
+    private func membershipStatusLabel(
+        _ title: LocalizedStringKey,
+        systemImage: String
+    ) -> some View {
+        Label(title, systemImage: systemImage)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .accessibilityElement(children: .combine)
     }
 
     private var composerRecovery: ComposerRecovery? {

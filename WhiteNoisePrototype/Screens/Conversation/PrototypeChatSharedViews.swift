@@ -97,6 +97,9 @@ enum PrototypeGroupEventFormatter {
         case let .left(personID):
             return "\(actor(personID)) left the group."
         case let .removed(actorID, personID):
+            if personID == profileID {
+                return "\(actor(actorID)) removed you from the group."
+            }
             return "\(actor(actorID)) removed \(name(personID, subject: true))."
         case let .madeAdmin(actorID, personID):
             return "\(actor(actorID)) made \(name(personID, subject: true)) an admin."

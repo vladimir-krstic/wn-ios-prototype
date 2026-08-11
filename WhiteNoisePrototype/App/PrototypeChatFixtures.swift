@@ -133,6 +133,41 @@ enum PrototypeChatFixtures {
             }
         }
 
+        let timeline: [PrototypeTimelineEntry]
+        if row.isDraft || row.id == ChatListFixtures.supportChatID {
+            timeline = []
+        } else if isGroup {
+            let membershipEventDate = message.sentAt.addingTimeInterval(60)
+            switch row.membershipState {
+            case .active:
+                timeline = [.message(message)]
+            case .left:
+                timeline = [
+                    .message(message),
+                    .event(
+                        PrototypeTimelineEvent(
+                            id: "\(row.id)-membership-left",
+                            date: membershipEventDate,
+                            kind: .left(personID: profileID)
+                        )
+                    ),
+                ]
+            case .removed:
+                timeline = [
+                    .message(message),
+                    .event(
+                        PrototypeTimelineEvent(
+                            id: "\(row.id)-membership-removed",
+                            date: membershipEventDate,
+                            kind: .removed(actorID: "maya-chen", personID: profileID)
+                        )
+                    ),
+                ]
+            }
+        } else {
+            timeline = [.message(message)]
+        }
+
         return PrototypeChat(
             id: row.id,
             kind: isGroup ? .group : .direct(personID: row.id),
@@ -141,9 +176,7 @@ enum PrototypeChatFixtures {
             avatar: row.avatar,
             members: members,
             routing: PrototypeChatRouting(relayURLs: relayURLs),
-            timeline: row.isDraft || row.id == ChatListFixtures.supportChatID
-                ? []
-                : [.message(message)],
+            timeline: timeline,
             emptyPreview: row.id == ChatListFixtures.supportChatID ? row.preview : "",
             draft: row.isDraft ? row.preview : "",
             replyToMessageID: nil,

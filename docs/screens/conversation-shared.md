@@ -74,6 +74,20 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - A left/removed profile, blocked direct peer, or chat without Chat Relays keeps
   history visible but replaces the composer with the applicable recovery
   action.
+- Leaving or being removed from a group creates a centered, nonactionable
+  timeline event at the chronological point where membership ended. The exact
+  copy is **You left the group.** or, when the removing member is known,
+  **Maya Chen removed you from the group.**
+- A left or removed group replaces the composer with a passive native `Label`
+  in a system `safeAreaBar`: **You left this group.** or **You were removed
+  from this group.** The status uses a semantic SF Symbol and secondary
+  styling. It is not a disabled field, alert, toast, full-screen unavailable
+  state, or button; no rejoin action is available in this flow.
+- The membership-status bar combines `safeAreaBar` with SwiftUI's soft bottom
+  scroll-edge effect, allowing timeline content to transition beneath the
+  stationary surface without the composer's hard opaque boundary or a custom
+  blur implementation. The active composer keeps `safeAreaInset` for its
+  keyboard-following layout.
 - The composer follows keyboard safe areas. It does not install translucent
   content behind the system keyboard.
 
@@ -115,6 +129,10 @@ dead affordance.
 - [AVAudioPlayer](https://developer.apple.com/documentation/avfaudio/avaudioplayer)
 - [Quick Look](https://developer.apple.com/documentation/swiftui/view/quicklookpreview)
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
+- [Label](https://developer.apple.com/documentation/swiftui/label)
+- [safeAreaInset](https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:))
+- [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:))
+- [ScrollEdgeEffectStyle](https://developer.apple.com/documentation/swiftui/scrolledgeffectstyle)
 
 The shipped app supplied bounded comparison evidence for image/video messages,
 reply, reactions, deletion, sharing, search, mentions, and media galleries.
@@ -134,6 +152,9 @@ This brief records the adopted behaviors locally.
   recent weekday, Yesterday, and Today.
 - Sending, drafts, replies, reactions, deletion, retry, search, attachments,
   voice playback, and row previews remain coherent through navigation.
+- Left and removed groups retain readable history, show the corresponding
+  chronological membership event, and replace the composer with the matching
+  passive current-state label.
 - The chat-row preview and timestamp always derive from the latest visible
   message or typed event, including after deletion and group-management
   mutations.

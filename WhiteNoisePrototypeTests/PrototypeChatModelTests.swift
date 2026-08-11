@@ -388,6 +388,40 @@ struct PrototypeChatModelTests {
         #expect(!removed.members.contains { $0.personID == "marmota" })
     }
 
+    @Test("Ended groups retain the membership-ending event in their timeline")
+    func endedGroupTimelinesExplainMembershipState() throws {
+        let profile = PrototypeProfile.marmota
+        let left = try #require(profile.chats.first { $0.id == "book-club" })
+        let removed = try #require(profile.chats.first { $0.id == "quiet-studio" })
+        let leftEvent = try #require(left.timeline.compactMap { entry -> PrototypeTimelineEvent? in
+            guard case let .event(event) = entry else { return nil }
+            return event
+        }.last)
+        let removedEvent = try #require(removed.timeline.compactMap { entry -> PrototypeTimelineEvent? in
+            guard case let .event(event) = entry else { return nil }
+            return event
+        }.last)
+
+        #expect(leftEvent.kind == .left(personID: profile.id))
+        #expect(removedEvent.kind == .removed(actorID: "maya-chen", personID: profile.id))
+        #expect(
+            PrototypeGroupEventFormatter.text(
+                for: leftEvent.kind,
+                profileID: profile.id,
+                profileName: profile.name,
+                people: profile.people
+            ) == "You left the group."
+        )
+        #expect(
+            PrototypeGroupEventFormatter.text(
+                for: removedEvent.kind,
+                profileID: profile.id,
+                profileName: profile.name,
+                people: profile.people
+            ) == "Maya Chen removed you from the group."
+        )
+    }
+
     @Test("Mentions filter group members only")
     func mentions() throws {
         let group = try #require(PrototypeProfile.marmota.chats.first { $0.id == "weekend-walks" })
