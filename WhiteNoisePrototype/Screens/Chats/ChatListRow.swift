@@ -1,8 +1,9 @@
 import SwiftUI
 
 struct ChatListRow: View {
-    private static let statusRegion: CGFloat = 22
-    private static let failureSymbolSize: CGFloat = 20
+    private static let unreadBadgeHeight: CGFloat = 20
+    private static let failureSymbolSize: CGFloat = 18
+    private static let multiDigitHorizontalPadding: CGFloat = 6
 
     let chat: ChatListItem
 
@@ -124,8 +125,8 @@ struct ChatListRow: View {
                     .font(.system(size: Self.failureSymbolSize))
                     .foregroundStyle(.red)
                     .frame(
-                        width: Self.statusRegion,
-                        height: Self.statusRegion
+                        width: Self.failureSymbolSize,
+                        height: Self.failureSymbolSize
                     )
                     .accessibilityLabel("Not delivered")
             }
@@ -136,25 +137,67 @@ struct ChatListRow: View {
                 unreadDot
             }
         }
-        .frame(minHeight: Self.statusRegion)
+        .frame(minHeight: Self.unreadBadgeHeight)
     }
 
     private var unreadBadge: some View {
+        Group {
+            if unreadLabel.count == 1 {
+                Circle()
+                    .fill(Color("AccentColor"))
+                    .frame(
+                        width: Self.unreadBadgeHeight,
+                        height: Self.unreadBadgeHeight
+                    )
+                    .overlay {
+                        unreadBadgeLabel
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity,
+                                alignment: .center
+                            )
+                    }
+            } else {
+                unreadBadgeLabel
+                    .padding(
+                        .horizontal,
+                        Self.multiDigitHorizontalPadding
+                    )
+                    .hidden()
+                    .frame(
+                        minWidth: Self.unreadBadgeHeight,
+                        alignment: .center
+                    )
+                    .frame(
+                        height: Self.unreadBadgeHeight,
+                        alignment: .center
+                    )
+                    .background {
+                        Capsule()
+                            .fill(Color("AccentColor"))
+                    }
+                    .overlay {
+                        unreadBadgeLabel
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity,
+                                alignment: .center
+                            )
+                    }
+            }
+        }
+            .accessibilityLabel(
+                "\(chat.unreadCount) unread messages"
+            )
+    }
+
+    private var unreadBadgeLabel: some View {
         Text(unreadLabel)
             .font(.caption2.weight(.bold))
             .monospacedDigit()
             .foregroundStyle(Color(uiColor: .systemBackground))
             .lineLimit(1)
-            .padding(.horizontal, 6)
-            .frame(
-                minWidth: Self.statusRegion,
-                minHeight: Self.statusRegion,
-                alignment: .center
-            )
-            .background(Color("AccentColor"), in: Capsule())
-            .accessibilityLabel(
-                "\(chat.unreadCount) unread messages"
-            )
+            .multilineTextAlignment(.center)
     }
 
     private var unreadLabel: String {
@@ -167,8 +210,8 @@ struct ChatListRow: View {
         Circle()
             .fill(Color("AccentColor"))
             .frame(
-                width: Self.statusRegion,
-                height: Self.statusRegion
+                width: Self.unreadBadgeHeight,
+                height: Self.unreadBadgeHeight
             )
             .accessibilityLabel("Unread")
     }

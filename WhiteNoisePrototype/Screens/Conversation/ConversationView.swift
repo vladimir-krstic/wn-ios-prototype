@@ -76,6 +76,7 @@ struct ConversationView: View {
     }
 
     @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
+    @Environment(\.colorScheme) private var colorScheme
 
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
@@ -601,10 +602,10 @@ struct ConversationView: View {
             Button(action: send) {
                 ZStack {
                     Circle()
-                        .fill(Color.primary)
+                        .fill(sendButtonFill)
                     Image(systemName: "arrow.up")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color(uiColor: .systemBackground))
+                        .foregroundStyle(sendButtonSymbolColor)
                 }
                 .frame(width: 32, height: 32)
                 .frame(width: 44, height: 44)
@@ -616,6 +617,14 @@ struct ConversationView: View {
         } else {
             voiceButton
         }
+    }
+
+    private var sendButtonFill: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
+    private var sendButtonSymbolColor: Color {
+        colorScheme == .dark ? .black : .white
     }
 
     private var voiceButton: some View {

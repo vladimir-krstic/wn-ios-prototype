@@ -144,8 +144,8 @@ struct PrototypeMessageBubble: View {
     }
 
     private var failedDeliveryStatus: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Image(systemName: "exclamationmark.circle.fill")
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Image(systemName: "exclamationmark.circle")
 
             Text("Not delivered, hold for options")
                 .multilineTextAlignment(.leading)

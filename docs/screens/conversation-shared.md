@@ -60,7 +60,8 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   inside one cluster remain compact.
 - Deleted messages remain as **You deleted this message.** or **This message
   was deleted.** A failed outgoing message replaces its timestamp with the red
-  status **Not delivered, hold for options**. Its icon and copy form a compact
+  status **Not delivered, hold for options**. Its outlined warning icon and
+  copy form a compact three-point-spaced
   unit whose leading edge matches the outgoing timestamp at the bubble's inner
   corner inset. Touching and holding either the bubble or that status opens the
   native context menu, whose first recovery action is **Retry Send**. Sent

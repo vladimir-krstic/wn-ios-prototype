@@ -121,7 +121,7 @@ Nora Bennett failed-send fixture remains below the initial viewport.
 
 ## Swipe actions
 
-- Leading swipe toggles Read and Unread and offers Pin or Unpin. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 22-point monochrome badge with no number.
+- Leading swipe toggles Read and Unread and offers Pin or Unpin. Read clears both numeric unread counts and a manually marked unread state. Unread creates the approved empty 20-point monochrome badge with no number.
 - Pin and Unpin apply immediately to nonarchived chats. Pinned chats sort above unpinned chats within Chats, Unread, Left, and active search results while preserving the deterministic relative order inside each group.
 - Pin and Unpin first complete UIKit’s native contextual action, then observe the public `UICellConfigurationState.isSwiped` state on the display refresh cycle. Only after UIKit reports that no visible row remains swiped does the in-memory order change. The final sorted snapshot and pin-badge state are then swapped in atomically with UIKit’s reload-data snapshot API and animations disabled. The swipe closure provides the system-owned action feedback; the list doesn’t animate a row across unrelated conversations. No guessed delay, fade, custom duration, spring, transition, or manual row offset is applied.
 - An active row in Chats or Unread exposes Mute/Unmute and Archive. Active
@@ -155,13 +155,13 @@ Nora Bennett failed-send fixture remains below the initial viewport.
 ## Status presentation
 
 - Unread counts use an adaptive monochrome circle for one digit and a capsule for two digits or the capped **99+** value.
-- A manually marked unread chat uses the same 22-point monochrome circle without a number.
+- A manually marked unread chat uses the same 20-point monochrome circle without a number.
 - Muted uses `bell.slash.fill` immediately after the chat name.
 - A left or removed chat uses `rectangle.portrait.and.arrow.right` in the same title-row status position.
 - A pinned chat uses a compact `pin.fill` badge on the avatar edge. The row exposes **Pinned** as an accessibility value while the decorative badge itself is hidden from accessibility.
 - Drafts use a visible **Draft:** preview prefix in the same secondary preview style.
 - Failed sending uses the system-red outline `exclamationmark.circle`.
-- Unread and Failed share a 22-point status region. The unread badge fills that height; the 20-point outline SF Symbol is centered inside it as an optical correction because equal rendered bounds made the hollow symbol appear larger.
+- Unread uses a 20-point status region while Failed retains an 18-point outlined SF Symbol. A single-digit unread count is independently centered over an exact 20-point circle without label padding. Multi-digit counts use a 20-point-high capsule with six-point symmetric horizontal padding and an independently centered label.
 - Unread labels use tabular digits and a system-centered text frame. Counts greater than 99 display as **99+**.
 - No Sent, mention, or sending state appears in the Chats list.
 
