@@ -98,14 +98,16 @@ struct PersonProfileView: View {
             .listRowInsets(EdgeInsets())
 
             Section {
-                NavigationLink {
-                    GroupsInCommonView(
-                        profile: $profile,
-                        settings: $settings,
-                        personID: personID
-                    )
-                } label: {
-                    GroupsInCommonLabel(groups: sharedGroups)
+                if !sharedGroups.isEmpty {
+                    NavigationLink {
+                        GroupsInCommonView(
+                            profile: $profile,
+                            settings: $settings,
+                            personID: personID
+                        )
+                    } label: {
+                        GroupsInCommonLabel(groups: sharedGroups)
+                    }
                 }
 
                 Button(
@@ -903,8 +905,6 @@ private struct GroupsInCommonLabel: View {
 
     private var accessibilityValue: String {
         switch groups.count {
-        case 0:
-            "No groups in common"
         case 1:
             "1 group in common"
         default:
@@ -918,36 +918,25 @@ private struct GroupAvatarStack: View {
 
     var body: some View {
         HStack(spacing: -10) {
-            if groups.isEmpty {
-                Image(systemName: "person.2")
-                    .font(.caption.weight(.semibold))
+            ForEach(groups.prefix(3)) { chat in
+                PrototypeChatAvatarView(
+                    avatar: chat.avatar,
+                    size: 32
+                )
+                .groupStackOutline()
+            }
+
+            if groups.count > 3 {
+                Text("+\(groups.count - 3)")
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
                     .frame(width: 32, height: 32)
                     .background(
                         Color(uiColor: .systemGray5),
                         in: Circle()
                     )
                     .groupStackOutline()
-            } else {
-                ForEach(groups.prefix(3)) { chat in
-                    PrototypeChatAvatarView(
-                        avatar: chat.avatar,
-                        size: 32
-                    )
-                    .groupStackOutline()
-                }
-
-                if groups.count > 3 {
-                    Text("+\(groups.count - 3)")
-                        .font(.caption2.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-                        .frame(width: 32, height: 32)
-                        .background(
-                            Color(uiColor: .systemGray5),
-                            in: Circle()
-                        )
-                        .groupStackOutline()
-                }
             }
         }
         .accessibilityHidden(true)

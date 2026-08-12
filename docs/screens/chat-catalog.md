@@ -103,11 +103,12 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `DEL-01` | Direct - Replies & Deletion | `DEL-01-caption`, `DEL-01` | **You deleted this message.** | No context menu | Implemented; review pending |
 | [ ] | `DEL-02` | Direct - Replies & Deletion | `DEL-02-caption`, `DEL-02` | **This message was deleted.** | No context menu | Implemented; review pending |
 | [ ] | `RCT-01` | Direct - Reactions & Actions | `RCT-01` | One reaction from another person; no count | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-02` | Direct - Reactions & Actions | `RCT-02` | Current-profile reaction; selected treatment | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-03` | Direct - Reactions & Actions | `RCT-03` | Count >1 without current profile | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-04` | Direct - Reactions & Actions | `RCT-04` | Count >1 including current profile | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-05` | Direct - Reactions & Actions | `RCT-05` | Multiple chips | Toggle each chip | Implemented; review pending |
+| [ ] | `RCT-02` | Direct - Reactions & Actions | `RCT-02` | One current-profile reaction with the opaque selected treatment | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-03` | Direct - Reactions & Actions | `RCT-03` | Three people use the same reaction without current-profile participation | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-04` | Direct - Reactions & Actions | `RCT-04` | Three people use the same reaction including current-profile participation | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-05` | Direct - Reactions & Actions | `RCT-05` | Multiple reaction types mix single/count and current/other participation | Toggle each chip | Implemented; review pending |
 | [ ] | `RCT-06`–`RCT-12` | Direct - Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented | React submenu | Implemented; review pending |
+| [ ] | `RCT-13` | Direct - Reactions & Actions | `RCT-13` | A narrow outgoing bubble proves three-point reaction gaps, opposite-edge timestamp placement, and adaptive `+N` overflow | Toggle visible chips | Implemented; review pending |
 | [ ] | `ACT-01` | Direct - Reactions & Actions | `ACT-01` | Incoming text excludes Delete | Long press | Implemented; review pending |
 | [ ] | `ACT-02` | Direct - Reactions & Actions | `ACT-02` | Outgoing text includes Delete | Long press; confirm Delete | Implemented; review pending |
 | [ ] | `ACT-03` | Direct - Reactions & Actions | `ACT-03-caption`, `ACT-03` | Incoming attachment-only excludes Copy/Delete | Long press | Implemented; review pending |

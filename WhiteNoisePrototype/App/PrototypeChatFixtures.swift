@@ -481,10 +481,10 @@ enum PrototypeChatFixtures {
 
         var result: [PrototypeTimelineEntry] = [
             .message(PrototypeMessage(id: "RCT-01", authorID: otherID, sentAt: start, text: "RCT-01: Single reaction from another person", reactions: [.init(emoji: "❤", personIDs: [otherID])])),
-            .message(PrototypeMessage(id: "RCT-02", authorID: profileID, sentAt: start.addingTimeInterval(60), text: "RCT-02: Single selected reaction", reactions: [.init(emoji: "😀", personIDs: [profileID])])),
-            .message(PrototypeMessage(id: "RCT-03", authorID: otherID, sentAt: start.addingTimeInterval(120), text: "RCT-03: Reaction count without current profile", reactions: [.init(emoji: "👍", personIDs: [otherID, "maya-chen"])])),
-            .message(PrototypeMessage(id: "RCT-04", authorID: profileID, sentAt: start.addingTimeInterval(180), text: "RCT-04: Reaction count including current profile", reactions: [.init(emoji: "👎", personIDs: [profileID, otherID])])),
-            .message(PrototypeMessage(id: "RCT-05", authorID: otherID, sentAt: start.addingTimeInterval(240), text: "RCT-05: Multiple reaction chips", reactions: [.init(emoji: "🤣", personIDs: [profileID]), .init(emoji: "🔥", personIDs: [otherID]), .init(emoji: "🦫", personIDs: [profileID, otherID])])),
+            .message(PrototypeMessage(id: "RCT-02", authorID: profileID, sentAt: start.addingTimeInterval(60), text: "RCT-02: You reacted", reactions: [.init(emoji: "😀", personIDs: [profileID])])),
+            .message(PrototypeMessage(id: "RCT-03", authorID: otherID, sentAt: start.addingTimeInterval(120), text: "RCT-03: Repeated reaction from three others", reactions: [.init(emoji: "👍", personIDs: [otherID, "maya-chen", "nora-bennett"])])),
+            .message(PrototypeMessage(id: "RCT-04", authorID: profileID, sentAt: start.addingTimeInterval(180), text: "RCT-04: Repeated reaction including you", reactions: [.init(emoji: "👎", personIDs: [profileID, otherID, "maya-chen"])])),
+            .message(PrototypeMessage(id: "RCT-05", authorID: otherID, sentAt: start.addingTimeInterval(240), text: "RCT-05: Mixed reaction types and participation", reactions: [.init(emoji: "🤣", personIDs: [profileID]), .init(emoji: "🔥", personIDs: [otherID, "maya-chen"]), .init(emoji: "🦫", personIDs: [profileID, otherID, "nora-bennett"])])),
         ]
 
         for (index, value) in emoji.enumerated() {
@@ -500,6 +500,25 @@ enum PrototypeChatFixtures {
                 )
             )
         }
+
+        result.append(
+            .message(
+                PrototypeMessage(
+                    id: "RCT-13",
+                    authorID: profileID,
+                    sentAt: start.addingTimeInterval(780),
+                    text: "RCT-13: Overflow summary",
+                    reactions: emoji.enumerated().map { index, value in
+                        PrototypeReaction(
+                            emoji: value,
+                            personIDs: index.isMultiple(of: 2)
+                                ? [otherID]
+                                : [profileID, otherID]
+                        )
+                    }
+                )
+            )
+        )
 
         result += [
             .message(PrototypeMessage(id: "ACT-01", authorID: otherID, sentAt: start.addingTimeInterval(900), text: "ACT-01: Incoming text: React, Reply, Copy, Share")),

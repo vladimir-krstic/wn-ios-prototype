@@ -157,9 +157,13 @@ not require the source pages during normal work.
   control. Its help text reads **Share this key so people can find and connect
   with you.**
 - **Private Key** is hidden by default and uses the native eye/eye-slash action
-  to reveal or hide the deterministic key-shaped value. The value is marked
-  privacy-sensitive, uses normal enabled-text contrast while concealed, and
-  remains hidden from accessibility speech even while it is visible onscreen.
+  to reveal or hide the deterministic key-shaped value. While hidden, it shows
+  the largest number of complete bullets that fits inside the value area; no
+  ellipsis, partial bullet, or overflow is shown, and the eye action remains
+  visible. While revealed, the key remains middle-truncated with an ellipsis
+  when it does not fit. The value is marked privacy-sensitive, uses normal
+  enabled-text contrast while concealed, and remains hidden from accessibility
+  speech even while it is visible onscreen.
 - **Copy Private Key** copies the complete value without requiring it to be
   revealed. Public and private copy actions provide a checkmark, success
   haptic, and a concise VoiceOver announcement, then reset after two seconds.
@@ -690,8 +694,10 @@ need to open them to implement or evaluate Settings.
   disabled only while Name is empty and never exposes a dice action or
   address/email fields.
 - Profile Keys shows one public-key field and one private-key field. Public copy
-  is available inline; the private key starts hidden, reveals and hides without
-  being spoken by assistive technology, and can be copied independently.
+  is available inline; the private key starts hidden with the maximum complete
+  bullets that fit before the always-visible eye action and no ellipsis,
+  reveals with normal middle truncation, hides again without being spoken by
+  assistive technology, and can be copied independently.
 - Raw export uses the `arrow.down.document` SF Symbol and requires its explicit
   destructive confirmation. Encrypted export
   requires matching nonempty passwords. Both continue to the native Files

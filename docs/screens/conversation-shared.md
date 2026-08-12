@@ -27,7 +27,8 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Consecutive messages group by author. Direct chats never show transcript
   avatars or author labels. Group chats show the incoming author's name above
   the first bubble in a cluster and the author's avatar beside the final bubble
-  in that cluster. Each incoming group-author name receives one stable color
+  in that cluster. The author label's leading edge aligns with the same
+  12-point inset as the message text. Each incoming group-author name receives one stable color
   derived from that person's complete public key. The nine-color palette uses
   the adaptive system red, orange, green, teal, blue, indigo, purple, pink, and
   brown hues; yellow, mint, and cyan are omitted from this small-text treatment.
@@ -62,12 +63,38 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   was deleted.** A failed outgoing message replaces its timestamp with the red
   status **Not delivered, hold for options**. Its outlined warning icon and
   copy form a compact three-point-spaced
-  unit whose leading edge matches the outgoing timestamp at the bubble's inner
-  corner inset. Touching and holding either the bubble or that status opens the
+  unit whose leading edge matches the outgoing message text inset. Touching and
+  holding either the bubble or that status opens the
   native context menu, whose first recovery action is **Retry Send**. Sent
   messages do not show delivery checkmarks.
 - Native context menus own Reply, Copy, Share, Delete, and the supported
   reactions: ❤, 😀, 👍, 👎, 🤣, 🔥, and 🦫.
+- Reaction chips use opaque adaptive system surfaces in both appearances;
+  current-profile participation uses an opaque `systemGray4` surface rather
+  than a translucent overlay. Each visible pill surface uses a subtle native
+  drop shadow—black at 16-percent opacity, a two-point blur, and a one-point
+  downward offset—to separate it from either bubble color without adding a
+  border. Signal's current iOS reaction metrics are the
+  comparison basis: a 14-point bold emoji, a 12-point bold monospaced count,
+  seven-point horizontal content insets, and two points between emoji and
+  count. The approved White Noise exceptions are a 22-point visible pill with
+  no border. Adjacent pill surfaces use a three-point gap, while each pill
+  retains a 40-point interaction height. This 40-point height
+  is an explicit user-approved compact exception to the native 44-point target
+  default. The reaction row's leading edge for outgoing messages, or trailing
+  edge for incoming messages, aligns with the bubble's 12-point text inset.
+  The timestamp remains on the opposite side at the same 12-point text edge and
+  uses a 15-point external offset, aligning its lower edge with the visible
+  22-point reaction pill. The summary still accounts for that timestamp
+  width and shows every reaction type that fits without colliding with it; when
+  the row is too narrow, its final visible item is an adaptive `+N` pill
+  counting the omitted reaction types. This Signal-informed compact overflow
+  rule is implemented locally rather than copied from external code. Reaction
+  state changes suppress button dimming and interpolation so neither selected
+  nor unselected surfaces flash transparent. Reactions add no internal bubble
+  padding: the visible pill begins one point below the content's lower edge,
+  overlaps only the lower bubble edge, and reserves its external hit area
+  without changing a one-line bubble's height.
 - Search matches text, sender names, file names, and attachment labels. Reply
   quotes scroll to the original without adding an outline or other temporary
   target indicator, or show a stable unavailable state. Search results retain
@@ -494,8 +521,8 @@ that interaction split while using the user-approved visible copy above.
 - Tapping anywhere outside the focused composer dismisses the keyboard without
   consuming the tapped message, control, menu, media, or navigation action.
 - A failed outgoing message shows no timestamp. It shows **Not delivered, hold
-  for options**, left-aligned to the outgoing timestamp at the bubble's inner
-  corner inset, and touching and holding the bubble or status exposes **Retry
+  for options**, left-aligned to the outgoing message text inset, and touching
+  and holding the bubble or status exposes **Retry
   Send** in the native context menu.
 - The attachment control matches the resting field height. Send has a
   six-point visual inset at the top, bottom, and trailing edge. Voice-review

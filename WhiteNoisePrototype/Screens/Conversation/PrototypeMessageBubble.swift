@@ -63,7 +63,10 @@ struct PrototypeMessageBubble: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .padding(.leading, 10)
+                    .padding(
+                        .leading,
+                        PrototypeMessageBubbleMetrics.textHorizontalInset
+                    )
                 }
 
                 decoratedBubble
@@ -95,21 +98,26 @@ struct PrototypeMessageBubble: View {
                     .offset(x: -37)
                 }
             }
-            .overlay(alignment: reactionAlignment) {
-                if !message.reactions.isEmpty, !message.isDeleted {
-                    reactionRow
-                        .offset(x: outgoing ? 10 : -10, y: 19)
+            .overlay(alignment: .bottom) {
+                if showsReactions {
+                    reactionMetadataRow
+                        .padding(
+                            .horizontal,
+                            PrototypeMessageBubbleMetrics.reactionEdgeInset
+                        )
+                        .offset(y: reactionVerticalOffset)
                 }
             }
-            .padding(.bottom, showsReactions ? 18 : 0)
-            .overlay(alignment: timestampAlignment) {
+            .overlay(alignment: visibleTimestampAlignment) {
                 if showsVisibleTimestamp {
                     timestamp
                         .padding(
-                            outgoing ? .leading : .trailing,
-                            PrototypeMessageBubbleShape.cornerRadius
+                            visibleTimestampInsetEdge,
+                            PrototypeMessageBubbleMetrics.textHorizontalInset
                         )
-                        .offset(y: 17)
+                        .offset(
+                            y: PrototypeMessageBubbleMetrics.timestampVerticalOffset
+                        )
                 } else if showsFailedDeliveryStatus {
                     failedDeliveryStatus
                         .contextMenu { contextMenu }
@@ -118,7 +126,7 @@ struct PrototypeMessageBubble: View {
             }
             .padding(
                 .bottom,
-                showsVisibleTimestamp ? 17 : (showsFailedDeliveryStatus ? 18 : 0)
+                metadataBottomReserve
             )
     }
 
@@ -143,7 +151,10 @@ struct PrototypeMessageBubble: View {
         }
         .font(.caption)
         .foregroundStyle(.red)
-        .padding(.leading, PrototypeMessageBubbleShape.cornerRadius)
+        .padding(
+            .leading,
+            PrototypeMessageBubbleMetrics.textHorizontalInset
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Not delivered")
         .accessibilityHint("Touch and hold for options, then choose Retry Send.")
@@ -164,12 +175,8 @@ struct PrototypeMessageBubble: View {
                     ? PrototypeMessageBubbleMetrics.outerContentInset
                     : PrototypeMessageBubbleMetrics.textHorizontalInset
             )
-            .padding(
-                .vertical,
-                hasRichContent
-                    ? PrototypeMessageBubbleMetrics.outerContentInset
-                    : PrototypeMessageBubbleMetrics.textVerticalInset
-            )
+            .padding(.top, bubbleVerticalInset)
+            .padding(.bottom, bubbleVerticalInset)
             .foregroundStyle(messageColor.foregroundColor)
             .background(messageColor.color, in: shape)
     }
@@ -417,35 +424,104 @@ struct PrototypeMessageBubble: View {
         }
     }
 
-    private var reactionRow: some View {
-        HStack(spacing: 4) {
-            ForEach(message.reactions) { reaction in
-                Button {
-                    onToggleReaction(reaction.emoji)
-                } label: {
-                    HStack(spacing: 3) {
-                        Text(reaction.emoji)
-                        if reaction.personIDs.count > 1 {
-                            Text(reaction.personIDs.count.formatted())
-                                .font(.caption2.weight(.semibold))
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        reaction.personIDs.contains(currentProfileID)
-                            ? Color.accentColor.opacity(0.18)
-                            : Color(uiColor: .secondarySystemBackground),
-                        in: .capsule
-                    )
-                    .overlay { Capsule().stroke(Color(uiColor: .separator), lineWidth: 0.33) }
-                    .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
-                }
-                .buttonStyle(.plain)
-                .frame(minHeight: 44)
-                .accessibilityLabel("\(reaction.emoji), \(reaction.personIDs.count) reactions")
+    private var reactionMetadataRow: some View {
+        ViewThatFits(in: .horizontal) {
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 7))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 6))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 5))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 4))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 3))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 2))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 1))
+            reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 0))
+        }
+    }
+
+    private func reactionMetadataCandidate(
+        items: [PrototypeReactionSummaryItem]
+    ) -> some View {
+        PrototypeReactionMetadataLayout(outgoing: outgoing, minimumSpacing: 4) {
+            reactionPills(items)
+
+            if showsVisibleTimestamp {
+                // Preserve the timestamp's horizontal footprint while its
+                // visible copy keeps the standard below-bubble position.
+                timestamp
+                    .fixedSize()
+                    .hidden()
+                    .accessibilityHidden(true)
             }
         }
+    }
+
+    private func reactionPills(
+        _ items: [PrototypeReactionSummaryItem]
+    ) -> some View {
+        HStack(spacing: PrototypeMessageBubbleMetrics.reactionSpacing) {
+            ForEach(items) { item in
+                switch item {
+                case let .reaction(reaction):
+                    Button {
+                        onToggleReaction(reaction.emoji)
+                    } label: {
+                        PrototypeReactionChip(
+                            emoji: reaction.emoji,
+                            count: reaction.personIDs.count,
+                            isSelected: reaction.personIDs.contains(currentProfileID)
+                        )
+                    }
+                    .buttonStyle(PrototypeReactionButtonStyle())
+                    .frame(
+                        minHeight: PrototypeMessageBubbleMetrics.reactionHitTarget
+                    )
+                    .contentShape(Rectangle())
+                    .accessibilityLabel(reactionAccessibilityLabel(reaction))
+                    .accessibilityValue(
+                        reaction.personIDs.contains(currentProfileID) ? "You reacted" : ""
+                    )
+                    .accessibilityAddTraits(
+                        reaction.personIDs.contains(currentProfileID) ? .isSelected : []
+                    )
+
+                case let .overflow(count, isSelected):
+                    PrototypeReactionChip(
+                        overflowCount: count,
+                        isSelected: isSelected
+                    )
+                    .frame(
+                        minHeight: PrototypeMessageBubbleMetrics.reactionHitTarget
+                    )
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(count) more reaction types")
+                    .accessibilityValue(isSelected ? "Includes your reaction" : "")
+                }
+            }
+        }
+    }
+
+    private func reactionSummaryItems(
+        maximumReactionPills: Int
+    ) -> [PrototypeReactionSummaryItem] {
+        let visibleCount = min(maximumReactionPills, message.reactions.count)
+        let visible = message.reactions.prefix(visibleCount).map {
+            PrototypeReactionSummaryItem.reaction($0)
+        }
+        let hidden = message.reactions.dropFirst(visibleCount)
+        guard !hidden.isEmpty else { return visible }
+
+        return visible + [
+            .overflow(
+                count: hidden.count,
+                isSelected: hidden.contains {
+                    $0.personIDs.contains(currentProfileID)
+                }
+            ),
+        ]
+    }
+
+    private func reactionAccessibilityLabel(_ reaction: PrototypeReaction) -> String {
+        let noun = reaction.personIDs.count == 1 ? "reaction" : "reactions"
+        return "\(reaction.emoji), \(reaction.personIDs.count) \(noun)"
     }
 
     private var shape: PrototypeMessageBubbleShape {
@@ -466,15 +542,52 @@ struct PrototypeMessageBubble: View {
     private var showsReactions: Bool {
         !message.reactions.isEmpty && !message.isDeleted
     }
-    private var reactionAlignment: Alignment {
-        outgoing ? .bottomLeading : .bottomTrailing
-    }
     private var timestampAlignment: Alignment {
         outgoing ? .bottomLeading : .bottomTrailing
+    }
+    private var visibleTimestampAlignment: Alignment {
+        guard showsReactions else { return timestampAlignment }
+        return outgoing ? .bottomTrailing : .bottomLeading
+    }
+    private var visibleTimestampInsetEdge: Edge.Set {
+        guard showsReactions else {
+            return outgoing ? .leading : .trailing
+        }
+        return outgoing ? .trailing : .leading
+    }
+    private var reactionVerticalOffset: CGFloat {
+        let pillInsetWithinHitTarget = (
+            PrototypeMessageBubbleMetrics.reactionHitTarget
+                - PrototypeMessageBubbleMetrics.reactionPillHeight
+        ) / 2
+
+        return PrototypeMessageBubbleMetrics.reactionHitTarget
+            - pillInsetWithinHitTarget
+            - bubbleVerticalInset
+            + PrototypeMessageBubbleMetrics.reactionTextGap
+    }
+    private var metadataBottomReserve: CGFloat {
+        if showsFailedDeliveryStatus { return 18 }
+        if showsReactions {
+            return max(
+                reactionVerticalOffset,
+                showsVisibleTimestamp
+                    ? PrototypeMessageBubbleMetrics.timestampVerticalOffset
+                    : 0
+            )
+        }
+        return showsVisibleTimestamp
+            ? PrototypeMessageBubbleMetrics.timestampVerticalOffset
+            : 0
     }
     private var hasRichContent: Bool {
         !message.isDeleted
             && (message.replyToMessageID != nil || !message.attachments.isEmpty)
+    }
+    private var bubbleVerticalInset: CGFloat {
+        hasRichContent
+            ? PrototypeMessageBubbleMetrics.outerContentInset
+            : PrototypeMessageBubbleMetrics.textVerticalInset
     }
     private var richContentWidth: CGFloat {
         let media = message.attachments.filter(\.prototypeIsPhotoOrVideo)
@@ -518,6 +631,20 @@ struct PrototypeMessageBubble: View {
             }
         }
         return nil
+    }
+}
+
+private enum PrototypeReactionSummaryItem: Identifiable {
+    case reaction(PrototypeReaction)
+    case overflow(count: Int, isSelected: Bool)
+
+    var id: String {
+        switch self {
+        case let .reaction(reaction):
+            "reaction-\(reaction.id)"
+        case let .overflow(count, isSelected):
+            "overflow-\(count)-\(isSelected)"
+        }
     }
 }
 

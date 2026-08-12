@@ -1150,12 +1150,17 @@ struct ConversationView: View {
     }
 
     private func toggleReaction(_ emoji: String, messageID: String) {
-        updateChat {
-            $0.toggleReaction(
-                emoji: emoji,
-                messageID: messageID,
-                currentProfileID: profile.id
-            )
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            updateChat {
+                $0.toggleReaction(
+                    emoji: emoji,
+                    messageID: messageID,
+                    currentProfileID: profile.id
+                )
+            }
         }
     }
 

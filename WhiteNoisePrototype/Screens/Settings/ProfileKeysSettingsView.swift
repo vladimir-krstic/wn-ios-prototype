@@ -120,14 +120,20 @@ struct ProfileKeysSettingsView: View {
     private var privateKeySection: some View {
         Section {
             HStack(spacing: 12) {
-                Text(isPrivateKeyVisible ? rawPrivateKey : hiddenPrivateKey)
-                    .font(.body.monospaced())
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .privacySensitive()
-                    .accessibilityHidden(true)
-
-                Spacer(minLength: 0)
+                Group {
+                    if isPrivateKeyVisible {
+                        Text(rawPrivateKey)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } else {
+                        FittingPrivateKeyBullets()
+                    }
+                }
+                .font(.body.monospaced())
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .clipped()
+                .privacySensitive()
+                .accessibilityHidden(true)
 
                 Button {
                     isPrivateKeyVisible.toggle()
@@ -196,10 +202,6 @@ struct ProfileKeysSettingsView: View {
 
     private var rawPrivateKey: String {
         "nsec1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7"
-    }
-
-    private var hiddenPrivateKey: String {
-        String(repeating: "•", count: rawPrivateKey.count)
     }
 
     private func copyButton(for key: KeyKind) -> some View {
@@ -292,6 +294,38 @@ struct ProfileKeysSettingsView: View {
     private func encryptedPrivateKey(for password: String) -> String {
         let passwordLength = String(format: "%02d", password.count)
         return "ncryptsec1\(passwordLength)q8w4f6k1m9c5n7p3v2x6z8t4r1y9d5h7s3j6a2e8u4"
+    }
+}
+
+private struct FittingPrivateKeyBullets: View {
+    var body: some View {
+        Text("•")
+            .font(.body.monospaced())
+            .hidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay {
+                Canvas { context, size in
+                    let bullet = context.resolve(
+                        Text("•").font(.body.monospaced())
+                    )
+                    let bulletSize = bullet.measure(in: size)
+                    guard bulletSize.width > 0 else {
+                        return
+                    }
+
+                    let bulletCount = Int(size.width / bulletSize.width)
+                    for index in 0..<bulletCount {
+                        context.draw(
+                            bullet,
+                            at: CGPoint(
+                                x: CGFloat(index) * bulletSize.width,
+                                y: size.height / 2
+                            ),
+                            anchor: .leading
+                        )
+                    }
+                }
+            }
     }
 }
 

@@ -10,6 +10,167 @@ enum PrototypeMessageBubbleMetrics {
     static let richComponentCornerRadius = cornerRadius - outerContentInset
     static let contentSpacing: CGFloat = 6
     static let gallerySpacing: CGFloat = 2
+
+    // Reaction chips follow Signal's compact content metrics, with the
+    // user-approved 22-point visible pill and borderless surface. The larger
+    // interaction frame remains available around that visible pill.
+    static let reactionSpacing: CGFloat = 3
+    static let reactionHitTarget: CGFloat = 40
+    static let reactionPillHeight: CGFloat = 22
+    static let reactionEmojiSize: CGFloat = 14
+    static let reactionCountSize: CGFloat = 12
+    static let reactionHorizontalInset: CGFloat = 7
+    static let reactionContentSpacing: CGFloat = 2
+    static let reactionTextGap: CGFloat = 1
+    static let timestampVerticalOffset: CGFloat = 15
+    static let reactionVerticalOffset = reactionHitTarget
+        - ((reactionHitTarget - reactionPillHeight) / 2)
+        - textVerticalInset
+        + reactionTextGap
+    static let reactionReservedSpace = reactionVerticalOffset
+    static let reactionEdgeInset = textHorizontalInset
+}
+
+struct PrototypeReactionChip: View {
+    private let emoji: String?
+    private let countText: String?
+    let isSelected: Bool
+
+    init(emoji: String, count: Int, isSelected: Bool) {
+        self.emoji = emoji
+        self.countText = count > 1 ? count.formatted() : nil
+        self.isSelected = isSelected
+    }
+
+    init(overflowCount: Int, isSelected: Bool) {
+        emoji = nil
+        countText = "+\(overflowCount.formatted())"
+        self.isSelected = isSelected
+    }
+
+    var body: some View {
+        HStack(spacing: PrototypeMessageBubbleMetrics.reactionContentSpacing) {
+            if let emoji {
+                Text(emoji)
+                    .font(
+                        .system(
+                            size: PrototypeMessageBubbleMetrics.reactionEmojiSize,
+                            weight: .bold
+                        )
+                    )
+            }
+
+            if let countText {
+                Text(countText)
+                    .font(
+                        .system(
+                            size: PrototypeMessageBubbleMetrics.reactionCountSize,
+                            weight: .bold,
+                            design: .monospaced
+                        )
+                    )
+                    .monospacedDigit()
+            }
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, PrototypeMessageBubbleMetrics.reactionHorizontalInset)
+        .frame(height: PrototypeMessageBubbleMetrics.reactionPillHeight)
+        .background {
+            Capsule()
+                .fill(surface)
+                .shadow(
+                    color: .black.opacity(0.16),
+                    radius: 2,
+                    x: 0,
+                    y: 1
+                )
+        }
+        .fixedSize()
+        .transaction { transaction in
+            transaction.animation = nil
+            transaction.disablesAnimations = true
+        }
+    }
+
+    private var surface: Color {
+        Color(uiColor: isSelected ? .systemGray4 : .secondarySystemBackground)
+    }
+
+}
+
+/// Places the reaction summary at the bubble's conversation-center edge while
+/// reserving the timestamp's width at the opposite edge. Reporting the row's
+/// ideal width allows `ViewThatFits` to choose a progressively shorter reaction
+/// summary before either element can collide or wrap.
+struct PrototypeReactionMetadataLayout: Layout {
+    let outgoing: Bool
+    let minimumSpacing: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let contentWidth = sizes.reduce(0) { $0 + $1.width }
+            + (sizes.count > 1 ? minimumSpacing : 0)
+        let proposedWidth = proposal.width ?? contentWidth
+
+        return CGSize(
+            width: proposedWidth >= contentWidth ? proposedWidth : contentWidth,
+            height: sizes.map(\.height).max() ?? 0
+        )
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        guard let reactions = subviews.first else { return }
+        let reactionSize = reactions.sizeThatFits(.unspecified)
+        let reactionOrigin = CGPoint(
+            x: outgoing ? bounds.minX : bounds.maxX - reactionSize.width,
+            y: bounds.midY - reactionSize.height / 2
+        )
+        reactions.place(
+            at: reactionOrigin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(
+                width: reactionSize.width,
+                height: reactionSize.height
+            )
+        )
+
+        guard subviews.count > 1 else { return }
+        let timestampIndex = subviews.index(after: subviews.startIndex)
+        let timestamp = subviews[timestampIndex]
+        let timestampSize = timestamp.sizeThatFits(.unspecified)
+        let timestampOrigin = CGPoint(
+            x: outgoing ? bounds.maxX - timestampSize.width : bounds.minX,
+            y: bounds.midY - timestampSize.height / 2
+        )
+        timestamp.place(
+            at: timestampOrigin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(
+                width: timestampSize.width,
+                height: timestampSize.height
+            )
+        )
+    }
+}
+
+struct PrototypeReactionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(1)
+            .transaction { transaction in
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+    }
 }
 
 struct PrototypeMessageBubbleShape: Shape {
@@ -55,36 +216,34 @@ struct MessageRow<Content: View>: View {
                 }
                 .overlay(alignment: reactionAlignment) {
                     if let reaction {
-                        Text(reaction)
-                            .font(.caption)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 4)
-                            .background(
-                                Color(uiColor: .systemBackground),
-                                in: Capsule()
+                        PrototypeReactionChip(
+                            emoji: reaction,
+                            count: 1,
+                            isSelected: false
+                        )
+                            .frame(
+                                minHeight: PrototypeMessageBubbleMetrics.reactionHitTarget
                             )
-                            .overlay {
-                                Capsule()
-                                    .stroke(
-                                        Color(uiColor: .separator),
-                                        lineWidth: 0.5
-                                    )
-                            }
                             .offset(
-                                x: outgoing ? 10 : -10,
-                                y: 11
+                                x: outgoing
+                                    ? PrototypeMessageBubbleMetrics.reactionEdgeInset
+                                    : -PrototypeMessageBubbleMetrics.reactionEdgeInset,
+                                y: PrototypeMessageBubbleMetrics.reactionVerticalOffset
                             )
                             .accessibilityHidden(true)
                     }
                 }
-                .padding(.bottom, reaction == nil ? 0 : 7)
+                .padding(
+                    .bottom,
+                    reaction == nil ? 0 : PrototypeMessageBubbleMetrics.reactionReservedSpace
+                )
 
                 Text(time)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(
                         outgoing ? .leading : .trailing,
-                        10
+                        PrototypeMessageBubbleMetrics.textHorizontalInset
                     )
             }
 

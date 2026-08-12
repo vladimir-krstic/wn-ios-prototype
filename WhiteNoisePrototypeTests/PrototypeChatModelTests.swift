@@ -283,6 +283,51 @@ struct PrototypeChatModelTests {
         )
     }
 
+    @Test("Reaction catalog distinguishes count and participation states")
+    func reactionCatalogVariants() throws {
+        let profileID = "marmota"
+        let chat = try #require(
+            PrototypeChatFixtures.chats(
+                profileID: profileID,
+                relayURLs: ["wss://relay.example.com"],
+                now: Date(timeIntervalSince1970: 2_000_000_000)
+            ).first { $0.id == "catalog-direct-reactions" }
+        )
+        let messages = Dictionary(uniqueKeysWithValues: chat.messages.map { ($0.id, $0) })
+
+        let singleOther = try #require(messages["RCT-01"]?.reactions.first)
+        #expect(messages["RCT-01"]?.reactions.count == 1)
+        #expect(singleOther.personIDs.count == 1)
+        #expect(!singleOther.personIDs.contains(profileID))
+
+        let singleCurrent = try #require(messages["RCT-02"]?.reactions.first)
+        #expect(messages["RCT-02"]?.reactions.count == 1)
+        #expect(singleCurrent.personIDs == [profileID])
+
+        let repeatedOther = try #require(messages["RCT-03"]?.reactions.first)
+        #expect(messages["RCT-03"]?.reactions.count == 1)
+        #expect(repeatedOther.personIDs.count == 3)
+        #expect(!repeatedOther.personIDs.contains(profileID))
+
+        let repeatedCurrent = try #require(messages["RCT-04"]?.reactions.first)
+        #expect(messages["RCT-04"]?.reactions.count == 1)
+        #expect(repeatedCurrent.personIDs.count == 3)
+        #expect(repeatedCurrent.personIDs.contains(profileID))
+
+        let mixed = try #require(messages["RCT-05"]?.reactions)
+        #expect(mixed.count == 3)
+        #expect(mixed.contains { $0.personIDs.count == 1 })
+        #expect(mixed.contains { $0.personIDs.count > 1 })
+        #expect(mixed.contains { $0.personIDs.contains(profileID) })
+        #expect(mixed.contains { !$0.personIDs.contains(profileID) })
+
+        let overflow = try #require(messages["RCT-13"]?.reactions)
+        #expect(overflow.count == PrototypeReaction.supportedEmoji.count)
+        #expect(overflow.map(\.emoji) == PrototypeReaction.supportedEmoji)
+        #expect(overflow.contains { $0.personIDs.contains(profileID) })
+        #expect(overflow.contains { !$0.personIDs.contains(profileID) })
+    }
+
     @Test("Catalog permissions and recovery states are explicit")
     func developerCatalogPermissionsAndRecovery() throws {
         let profile = PrototypeProfile.marmota

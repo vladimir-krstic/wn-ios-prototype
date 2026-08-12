@@ -17,10 +17,11 @@ leaving deterministic in-memory prototype state.
   frame, or decorative background.
 - Choosing a person pushes their profile. Its identity header is shared with
   **Share & Connect**, **Message** is the prominent primary action, contact
-  membership toggles immediately, and **Groups in Common** owns the secondary
-  **Add to Another Group** action. See [Person profile](person-profile.md).
-  Message opens the existing direct chat or creates one; duplicate direct chats
-  are never created.
+  membership toggles immediately, and profiles with shared groups expose
+  **Groups in Common**, which owns the secondary **Add to Another Group**
+  action. Profiles without shared groups omit that row. See
+  [Person profile](person-profile.md). Message opens the existing direct chat
+  or creates one; duplicate direct chats are never created.
 - **New Group** pushes a searchable multi-selection list. **Continue** requires
   at least one other person.
 - Selected people appear as larger avatar items in a full-width horizontal

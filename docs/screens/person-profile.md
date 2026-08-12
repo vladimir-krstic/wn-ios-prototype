@@ -21,28 +21,26 @@ the common relationship and conversation actions clear.
   the two visible gaps read evenly.
   It has no heading or grouped container. Address rows are omitted because the
   public profile's primary identifier is already available in the header.
-- A compact **Groups in Common** navigation row appears beneath the identity
-  header. It uses the approved overlapping-avatar stack: up to three 32-point
-  group avatars and a `+N` circle for overflow. With no shared groups, a neutral
-  two-person symbol occupies the stack position. The row remains available in
-  every state so the related add action is never hidden. It shares the same
-  grouped action container as the contact and block rows. Monogram and fallback
-  avatars use an opaque adaptive gray surface so overlapping imagery never
-  shows through them.
+- When at least one shared group exists, a compact **Groups in Common**
+  navigation row appears beneath the identity header. It uses the approved
+  overlapping-avatar stack: up to three 32-point group avatars and a `+N`
+  circle for overflow. A person with no shared groups has no Groups in Common
+  row. When present, it shares the same grouped action container as the contact
+  and block rows. Monogram and fallback avatars use an opaque adaptive gray
+  surface so overlapping imagery never shows through them.
 - The row pushes **Groups in Common**. That page shows every shared group using
   group avatar, headline name, and secondary member count. Group rows contain
   no message preview, timestamp, unread state, mute, delivery, membership, or
   other status treatment. Tapping a row explicitly opens that conversation.
-- **Add to Another Group** moves from the main profile actions into the Groups
-  in Common page as the final row in the same grouped container as the shared
-  groups. It is secondary relationship management, not a prominent primary
-  action. With no shared groups, **No groups in common.** precedes the action in
-  that container. It uses the native system-image Button initializer with the
-  established `person.2.badge.plus` relationship symbol, allowing SwiftUI's
-  `Label` to own its text-matched scale, spacing, baseline, and list inset. It
-  has no disclosure chevron because it starts the scoped add-to-group sheet
-  rather than navigating deeper in the current hierarchy. The resulting
-  selection sheet uses the same explicit title.
+- **Add to Another Group** remains the final row in the same grouped container
+  as the shared groups on the Groups in Common page. It is secondary
+  relationship management, not a prominent primary action. It uses the native
+  system-image Button initializer with the established
+  `person.2.badge.plus` relationship symbol, allowing SwiftUI's `Label` to own
+  its text-matched scale, spacing, baseline, and list inset. It has no
+  disclosure chevron because it starts the scoped add-to-group sheet rather
+  than navigating deeper in the current hierarchy. The resulting selection
+  sheet uses the same explicit title.
 - Deterministic fixture coverage keeps Radia Perlman in three shared groups,
   David Chaum in one, and Maya Chen in enough groups to exercise the `+N`
   overflow state.
@@ -57,10 +55,10 @@ the common relationship and conversation actions clear.
   Confirming adds the member, provides native success feedback and a VoiceOver
   announcement, dismisses the sheet, and returns to the screen that presented
   it. It does not open the conversation automatically.
-- **Block** sits in the same secondary-action group as Groups in Common and the
-  contact action. Its person-removal symbol and label are both destructive red. A
-  standard alert confirms blocking. After blocking, the same row becomes the
-  neutral **Unblock** action and unblocks immediately.
+- **Block** sits in the same secondary-action group as the contact action and,
+  when applicable, Groups in Common. Its person-removal symbol and label are
+  both destructive red. A standard alert confirms blocking. After blocking,
+  the same row becomes the neutral **Unblock** action and unblocks immediately.
 - **Message** follows the secondary actions as the final full-width prominent
   primary action. It uses the same `plus.bubble` symbol as other chat-starting
   actions. When required profile Chat Messages relays are unavailable, the
@@ -103,9 +101,10 @@ similar duplicate implementations.
   typography, npub capsule, truncation, copy transition, feedback, and spacing.
 - A person's bio appears between their name and npub without a heading or
   grouped background.
-- The profile represents shared groups with one compact avatar-stack row in all
-  states; the complete list and secondary Add to Another Group action live on
-  its destination page.
+- The profile represents one or more shared groups with one compact
+  avatar-stack row; the row is absent when there are no shared groups. The
+  complete list and secondary Add to Another Group action live on its
+  destination page.
 - Message is the final, visually dominant primary action and uses the shared
   new-chat symbol.
 - Add/Remove Contact changes state without a modal.
