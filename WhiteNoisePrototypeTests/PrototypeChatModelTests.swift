@@ -145,30 +145,33 @@ struct PrototypeChatModelTests {
     @Test("Developer catalog order and list states stay stable")
     func developerCatalogOrderAndListStates() throws {
         let expectedTitles = [
-            "Direct — Text & Delivery",
-            "Direct — Replies & Deletion",
-            "Direct — Reactions & Actions",
-            "Direct — New Chat & Draft",
-            "Media — Photos & Video",
-            "Media — Files & Rich Content",
+            "Direct - Text & Delivery",
+            "Direct - Dates & Scrolling",
+            "Direct - Replies & Deletion",
+            "Direct - Reactions & Actions",
+            "Direct - New Chat & Draft",
+            "Media - Photos & Video",
+            "Media - Files & Rich Content",
             "Voice Messages",
-            "Group — Messages & Mentions",
-            "Group — Events & Roles",
-            "Group — Member Permissions",
-            "Group — Sole Admin",
-            "Direct — Left",
-            "Group — Left",
-            "Group — Removed",
-            "Direct — Blocked",
-            "Direct — Missing Relays",
-            "Direct — Archived",
-            "Support — Timeline Notice",
+            "Group - Messages & Mentions",
+            "Group - Identity Colors",
+            "Group - Events & Roles",
+            "Group - Member Permissions",
+            "Group - Sole Admin",
+            "Direct - Left",
+            "Group - Left",
+            "Group - Removed",
+            "Direct - Blocked",
+            "Direct - Missing Relays",
+            "Direct - Archived",
+            "Support - Timeline Notice",
         ]
         let rows = Array(ChatListFixtures.populated.prefix(ChatListFixtures.catalogChatIDs.count))
         let chats = Array(PrototypeProfile.marmota.chats.prefix(ChatListFixtures.catalogChatIDs.count))
 
         #expect(rows.map(\.id) == ChatListFixtures.catalogChatIDs)
         #expect(rows.map(\.title) == expectedTitles)
+        #expect(rows.allSatisfy { !$0.title.contains("—") && !$0.preview.contains("·") })
         #expect(chats.map(\.id) == ChatListFixtures.catalogChatIDs)
         #expect(ChatListFixtures.populated.filter(\.isPinned).map(\.id) == ["catalog-direct-text"])
         #expect(rows.contains { $0.unreadCount > 0 })
@@ -200,6 +203,7 @@ struct PrototypeChatModelTests {
         #expect(chats.count == ChatListFixtures.catalogChatIDs.count)
         #expect(Set(entries.map(\.id)).count == entries.count)
         #expect(chats.allSatisfy { $0.timeline.map(\.date) == $0.timeline.map(\.date).sorted() })
+        #expect(messages.allSatisfy { !$0.text.contains("·") })
         #expect(messages.filter { !$0.text.isEmpty }.allSatisfy { message in
             let scenarioID = message.id
                 .replacingOccurrences(of: "-source-caption", with: "")
@@ -217,8 +221,6 @@ struct PrototypeChatModelTests {
         #expect(attachments.contains { if case .voice = $0 { true } else { false } })
         #expect(attachments.contains { if case .link = $0 { true } else { false } })
         #expect(attachments.contains { if case .gif = $0 { true } else { false } })
-        #expect(attachments.contains { if case .sticker = $0 { true } else { false } })
-        #expect(attachments.contains { if case .location = $0 { true } else { false } })
         #expect(attachments.contains { if case .contact = $0 { true } else { false } })
         #expect(attachments.contains { attachment in
             guard case let .photo(_, source, _) = attachment else { return false }
@@ -236,8 +238,6 @@ struct PrototypeChatModelTests {
         #expect(Set(fileNames).isSuperset(of: [
             "Project Brief.pdf", "Review Notes.docx", "Budget.xlsx", "Assets.zip", "Read Me.txt",
         ]))
-        #expect(messages.contains { $0.id == "RICH-02" && $0.text.isEmpty })
-        #expect(messages.contains { $0.id == "RICH-03" && !$0.text.isEmpty })
         #expect(messages.contains { $0.id == "RICH-06" && $0.attachments.count > 1 })
         #expect(messages.contains { $0.replyToMessageID == "RPL-missing" })
         #expect(messages.contains { $0.deletionState == .deletedByCurrentProfile })
@@ -550,8 +550,6 @@ struct PrototypeChatModelTests {
         #expect(attachments.contains { if case .file = $0 { true } else { false } })
         #expect(attachments.contains { if case .voice = $0 { true } else { false } })
         #expect(attachments.contains { if case .gif = $0 { true } else { false } })
-        #expect(attachments.contains { if case .sticker = $0 { true } else { false } })
-        #expect(attachments.contains { if case .location = $0 { true } else { false } })
         #expect(attachments.contains { if case .contact = $0 { true } else { false } })
         #expect(attachments.allSatisfy { attachment in
             if case let .file(_, _, _, url) = attachment { return url != nil }
@@ -583,7 +581,9 @@ struct PrototypeChatModelTests {
         #expect(separators.contains("Yesterday"))
         #expect(separators.contains(where: { $0.contains("2025") }))
         let weekdayDate = try #require(calendar.date(byAdding: .day, value: -4, to: now))
-        #expect(separators.contains(weekdayDate.formatted(.dateTime.weekday(.wide))))
+        let recentDateFormatter = DateFormatter()
+        recentDateFormatter.setLocalizedDateFormatFromTemplate("EE, MMM d")
+        #expect(separators.contains(recentDateFormatter.string(from: weekdayDate)))
     }
 
     @Test("Ended groups do not retain the active profile as a current member")
@@ -846,8 +846,6 @@ struct PrototypeChatModelTests {
         let voice = PrototypeAttachment.voice(id: "a", resourceName: "voice", duration: 1)
         let link = PrototypeAttachment.link(id: "l", title: "Title", domain: "example.com", summary: "Summary", image: nil)
         let gif = PrototypeAttachment.gif(id: "g", assetName: "GIF", label: "GIF")
-        let sticker = PrototypeAttachment.sticker(id: "s", assetName: "Sticker", label: "Sticker")
-        let location = PrototypeAttachment.location(id: "o", name: "Park", address: "Main Street")
         let contact = PrototypeAttachment.contact(id: "c", personID: "maya-chen")
 
         #expect(photo.listPreview(people: people) == .photo)
@@ -856,8 +854,6 @@ struct PrototypeChatModelTests {
         #expect(voice.listPreview(people: people) == .voiceMessage)
         #expect(link.listPreview(people: people) == .link)
         #expect(gif.listPreview(people: people) == .gif)
-        #expect(sticker.listPreview(people: people) == .sticker)
-        #expect(location.listPreview(people: people) == .location)
         #expect(contact.listPreview(people: people) == .contact("Maya Chen"))
     }
 
@@ -890,18 +886,100 @@ struct PrototypeChatModelTests {
         )
     }
 
-    @Test("Date separators cover relative, recent, and full-date states")
-    func dateSeparators() throws {
+    @Test("Pinned date labels cover relative, recent, old, and future states")
+    func pinnedDateLabels() throws {
         let calendar = Calendar.autoupdatingCurrent
         let now = try #require(calendar.date(from: DateComponents(year: 2024, month: 3, day: 20, hour: 12)))
         let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: now))
         let recent = try #require(calendar.date(byAdding: .day, value: -3, to: now))
         let old = try #require(calendar.date(byAdding: .day, value: -400, to: now))
+        let future = try #require(calendar.date(byAdding: .day, value: 1, to: now))
+        let recentDateFormatter = DateFormatter()
+        recentDateFormatter.setLocalizedDateFormatFromTemplate("EE, MMM d")
 
         #expect(PrototypeDateFormatter.separator(for: now, now: now) == "Today")
         #expect(PrototypeDateFormatter.separator(for: yesterday, now: now) == "Yesterday")
-        #expect(PrototypeDateFormatter.separator(for: recent, now: now) == recent.formatted(.dateTime.weekday(.wide)))
+        #expect(
+            PrototypeDateFormatter.separator(for: recent, now: now)
+                == recentDateFormatter.string(from: recent)
+        )
         #expect(PrototypeDateFormatter.separator(for: old, now: now).contains("2023"))
+        #expect(
+            PrototypeDateFormatter.separator(for: future, now: now)
+                == PrototypeDateFormatter.separator(for: now, now: now)
+        )
+    }
+
+    @Test("Date scrolling fixture covers sparse and long day sections")
+    func dateScrollingFixtureCoverage() throws {
+        let calendar = Calendar.autoupdatingCurrent
+        let now = try #require(
+            calendar.date(from: DateComponents(year: 2026, month: 8, day: 12, hour: 12))
+        )
+        let chat = try #require(
+            PrototypeChatFixtures.chats(
+                profileID: "marmota",
+                relayURLs: ["wss://relay.example"],
+                now: now
+            ).first { $0.id == "catalog-direct-dates" }
+        )
+        let messagesByDay = Dictionary(grouping: chat.messages) {
+            calendar.startOfDay(for: $0.sentAt)
+        }
+
+        #expect(chat.messages.map(\.id) == (1...15).map {
+            String(format: "DATE-%02d", $0)
+        })
+        #expect(messagesByDay.count == 8)
+        #expect(messagesByDay.values.filter { $0.count == 1 }.count == 7)
+        #expect(messagesByDay.values.contains { $0.count == 8 })
+    }
+
+    @Test("Group author colors derive stable palette assignments from public keys")
+    func groupAuthorColorAssignments() {
+        let people = PrototypeChatFixtures.people()
+        let assignments = people.map {
+            PrototypeAuthorNameColor.paletteIndex(for: $0.publicKey)
+        }
+
+        #expect(PrototypeAuthorNameColor.paletteCount == 9)
+        #expect(assignments.allSatisfy { (0..<PrototypeAuthorNameColor.paletteCount).contains($0) })
+        #expect(assignments == people.map {
+            PrototypeAuthorNameColor.paletteIndex(for: $0.publicKey)
+        })
+        #expect(Set(assignments).count == PrototypeAuthorNameColor.paletteCount)
+    }
+
+    @Test("Identity color group exposes every palette bucket with monogram avatars")
+    func identityColorFixtureCoverage() throws {
+        let people = PrototypeChatFixtures.people().filter {
+            $0.id.hasPrefix("identity-color-")
+        }
+        let chat = try #require(
+            PrototypeChatFixtures.chats(
+                profileID: "marmota",
+                relayURLs: ["wss://relay.example"]
+            ).first { $0.id == "catalog-group-colors" }
+        )
+        let messagesChat = try #require(
+            PrototypeChatFixtures.chats(
+                profileID: "marmota",
+                relayURLs: ["wss://relay.example"]
+            ).first { $0.id == "catalog-group-messages" }
+        )
+
+        #expect(people.count == PrototypeAuthorNameColor.paletteCount)
+        #expect(people.map { PrototypeAuthorNameColor.paletteIndex(for: $0.publicKey) }
+            == Array(0..<PrototypeAuthorNameColor.paletteCount))
+        #expect(people.allSatisfy {
+            if case let .monogram(value) = $0.avatar { return value.count == 1 }
+            return false
+        })
+        #expect(Set(people.map(\.id)).isSubset(of: Set(chat.members.map(\.personID))))
+        #expect(Set(chat.messages.map(\.id)).isSuperset(of: Set((1...9).map {
+            String(format: "COLOR-%02d", $0)
+        })))
+        #expect(messagesChat.messages.allSatisfy { !$0.id.hasPrefix("COLOR-") })
     }
 
     @Test("Chat-list timestamps derive from activity dates and visible content")

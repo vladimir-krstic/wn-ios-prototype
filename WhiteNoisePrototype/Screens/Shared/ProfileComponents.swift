@@ -40,11 +40,11 @@ struct ProfileAvatarView: View {
     private var monogram: some View {
         ZStack {
             Circle()
-                .fill(.primary)
+                .fill(PrototypeAuthorNameColor.avatarBackground(for: profile.publicKey))
 
             Text(profile.initial)
-                .font(.headline)
-                .foregroundStyle(.background)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
         }
     }
 }

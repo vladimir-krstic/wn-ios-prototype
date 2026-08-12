@@ -129,7 +129,11 @@ private struct DirectChatInfoView: View {
     private var identityHeader: some View {
         VStack(spacing: 24) {
             VStack(spacing: 10) {
-                PrototypeChatAvatarView(avatar: person.avatar, size: 104)
+                PrototypeChatAvatarView(
+                    avatar: person.avatar,
+                    size: 104,
+                    publicKey: person.publicKey
+                )
                 Text(person.name)
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
@@ -397,9 +401,11 @@ private struct GroupInfoView: View {
         if id == profile.id {
             ProfileAvatarView(profile: profile, size: 36)
         } else {
+            let person = profile.people.first { $0.id == id }
             PrototypeChatAvatarView(
-                avatar: profile.people.first { $0.id == id }?.avatar ?? .monogram("?"),
-                size: 36
+                avatar: person?.avatar ?? .monogram("?"),
+                size: 36,
+                publicKey: person?.publicKey
             )
         }
     }
@@ -787,11 +793,6 @@ private struct ChatInfoMediaSection: View {
                     .background(.black.opacity(0.55), in: .capsule)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(5)
-            case let .sticker(_, assetName, _):
-                Image(assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(8)
             default:
                 EmptyView()
             }
@@ -1052,7 +1053,8 @@ private struct ChatInfoForwardMediaView: View {
                             HStack(spacing: 10) {
                                 PrototypeChatAvatarView(
                                     avatar: chat.resolvedAvatar(people: profile.people),
-                                    size: 40
+                                    size: 40,
+                                    publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
                                 )
                                 Text(chat.title(people: profile.people))
                                     .foregroundStyle(.primary)
@@ -1137,7 +1139,8 @@ private struct ChatInfoForwardMediaView: View {
                                 ZStack(alignment: .topTrailing) {
                                     PrototypeChatAvatarView(
                                         avatar: chat.resolvedAvatar(people: profile.people),
-                                        size: 64
+                                        size: 64,
+                                        publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
                                     )
                                     .frame(
                                         width: 72,
@@ -1296,13 +1299,6 @@ private enum ChatInfoMediaPreparer {
                 contentType: .png,
                 filename: "GIF-\(id).png"
             )
-        case let .sticker(id, assetName, _):
-            guard let data = await pngData(forAsset: assetName) else { return nil }
-            return await prepared(
-                data: data,
-                contentType: .png,
-                filename: "Sticker-\(id).png"
-            )
         default:
             return nil
         }
@@ -1389,8 +1385,6 @@ private func chatInfoForwardedCopy(
         return .video(id: id, url: url, thumbnail: thumbnail, duration: duration)
     case let .gif(_, assetName, label):
         return .gif(id: id, assetName: assetName, label: label)
-    case let .sticker(_, assetName, label):
-        return .sticker(id: id, assetName: assetName, label: label)
     default:
         return attachment
     }
@@ -2151,7 +2145,13 @@ struct GroupMemberView: View {
     }
     @ViewBuilder private var memberAvatar: some View {
         if personID == profile.id { ProfileAvatarView(profile: profile, size: 88) }
-        else { PrototypeChatAvatarView(avatar: person.avatar, size: 88) }
+        else {
+            PrototypeChatAvatarView(
+                avatar: person.avatar,
+                size: 88,
+                publicKey: person.publicKey
+            )
+        }
     }
     private var actionIsPresented: Binding<Bool> {
         Binding { pendingAction != nil } set: { if !$0 { pendingAction = nil } }

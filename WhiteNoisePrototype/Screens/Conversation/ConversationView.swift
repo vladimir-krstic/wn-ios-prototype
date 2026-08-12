@@ -3,8 +3,78 @@ import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
+private struct ConversationIndexedTimelineEntry: Identifiable {
+    let index: Int
+    let entry: PrototypeTimelineEntry
+
+    var id: String { entry.id }
+}
+
+private struct ConversationTimelineDay: Identifiable {
+    let date: Date
+    var entries: [ConversationIndexedTimelineEntry]
+
+    var id: Date { date }
+}
+
+private struct ConversationDateHeader: View {
+    let date: Date
+    let visibilityChanged: (Bool) -> Void
+
+    var body: some View {
+        label
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .allowsHitTesting(false)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier("conversation.date-header")
+            .onScrollVisibilityChange(threshold: 0.01) { isVisible in
+                visibilityChanged(isVisible)
+            }
+            .onDisappear {
+                visibilityChanged(false)
+            }
+    }
+
+    private var label: some View {
+        Text(PrototypeDateFormatter.separator(for: date))
+            .font(.footnote.weight(.medium))
+            .lineLimit(1)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 3)
+    }
+}
+
+private struct ConversationPinnedDateHeader: View {
+    let date: Date
+
+    var body: some View {
+        Text(PrototypeDateFormatter.separator(for: date))
+            .font(.footnote.weight(.medium))
+            .lineLimit(1)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 3)
+            .foregroundStyle(.primary)
+            .glassEffect(.regular, in: .capsule)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .allowsHitTesting(false)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier("conversation.pinned-date-header")
+    }
+}
+
 struct ConversationView: View {
     private let bottomID = "conversation-bottom"
+
+    private enum TimelineSpacing {
+        static let compactCluster: CGFloat = 3
+        static let separateCluster: CGFloat = 16
+    }
+
     @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
 
     @Binding var profile: PrototypeProfile
@@ -38,6 +108,8 @@ struct ConversationView: View {
     @State private var fileImportTask: Task<Void, Never>?
     @State private var attachmentPresentationTask: Task<Void, Never>?
     @State private var composerTextHeight: CGFloat = 0
+    @State private var activeTimelineDate: Date?
+    @State private var visibleTimelineDateHeaders: Set<Date> = []
     @FocusState private var composerIsFocused: Bool
 
     init(
@@ -55,6 +127,11 @@ struct ConversationView: View {
         _composerText = State(
             initialValue: initialChat?.draft ?? ""
         )
+        _activeTimelineDate = State(
+            initialValue: initialChat?.timeline.last.map {
+                Calendar.autoupdatingCurrent.startOfDay(for: $0.date)
+            }
+        )
     }
 
     var body: some View {
@@ -69,23 +146,28 @@ struct ConversationView: View {
         ScrollViewReader { proxy in
             conversationBottomSurface {
                 ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(Array(chat.timeline.enumerated()), id: \.element.id) { index, entry in
-                            if showsDateSeparator(at: index) {
-                                Text(PrototypeDateFormatter.separator(for: entry.date))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .accessibilityAddTraits(.isHeader)
+                    LazyVStack(spacing: 0) {
+                        ForEach(timelineDays) { day in
+                            ConversationDateHeader(date: day.date) { isVisible in
+                                setDateHeader(day.date, isVisible: isVisible)
                             }
 
-                            timelineEntry(entry, at: index)
-                                .id(entry.id)
+                            ForEach(day.entries) { indexedEntry in
+                                timelineEntry(indexedEntry.entry, at: indexedEntry.index)
+                                    .padding(.top, timelineTopPadding(at: indexedEntry.index))
+                                    .id(indexedEntry.entry.id)
+                            }
+
+                            if day.id == timelineDays.last?.id {
+                                Color.clear.frame(height: 8).id(bottomID)
+                            }
                         }
 
-                        Color.clear.frame(height: 8).id(bottomID)
+                        if timelineDays.isEmpty {
+                            Color.clear.frame(height: 8).id(bottomID)
+                        }
                     }
+                    .scrollTargetLayout()
                     .padding(.horizontal)
                     .padding(.vertical, 10)
                 }
@@ -93,12 +175,22 @@ struct ConversationView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .scrollIndicators(.hidden)
                 .scrollEdgeEffectStyle(.soft, for: .bottom)
+                .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { identifiers in
+                    updateActiveTimelineDate(from: identifiers)
+                }
+                .overlay(alignment: .top) {
+                    if let activeTimelineDate,
+                       !visibleTimelineDateHeaders.contains(activeTimelineDate) {
+                        ConversationPinnedDateHeader(date: activeTimelineDate)
+                    }
+                }
             }
             .task {
                 await Task.yield()
                 proxy.scrollTo(bottomID, anchor: .bottom)
             }
             .onChange(of: chat.timeline.count) {
+                activeTimelineDate = timelineDays.last?.date
                 withAnimation { proxy.scrollTo(bottomID, anchor: .bottom) }
             }
             .onChange(of: composerIsFocused) { _, isFocused in
@@ -132,6 +224,13 @@ struct ConversationView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { conversationToolbar }
+        .background {
+            ConversationKeyboardDismissInstaller {
+                if composerIsFocused {
+                    composerIsFocused = false
+                }
+            }
+        }
         .fullScreenCover(item: $mediaSelection) { PrototypeMediaViewer(selection: $0) }
         .sheet(isPresented: $isCameraPresented) {
             ConversationCameraCaptureView(onCapture: handleCameraCapture)
@@ -272,7 +371,7 @@ struct ConversationView: View {
                 }
         case .active:
             content()
-                .safeAreaInset(edge: .bottom, spacing: 0) {
+                .safeAreaBar(edge: .bottom, spacing: 0) {
                     composerArea
                 }
         }
@@ -287,7 +386,8 @@ struct ConversationView: View {
                 HStack(spacing: 8) {
                     PrototypeChatAvatarView(
                         avatar: chat.resolvedAvatar(people: profile.people),
-                        size: 44
+                        size: 44,
+                        publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
                     )
                     VStack(alignment: .leading, spacing: 0) {
                         Text(chat.title(people: profile.people))
@@ -333,7 +433,7 @@ struct ConversationView: View {
                     people: profile.people
                 )
             )
-            .font(.caption)
+            .font(.caption.weight(.medium))
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -1041,14 +1141,54 @@ struct ConversationView: View {
         return message.attachments.first?.accessibilityLabel ?? "Message"
     }
 
-    private func showsDateSeparator(at index: Int) -> Bool {
-        if case .notice = chat.timeline[index] { return false }
-        guard index > 0 else { return true }
-        if case .notice = chat.timeline[index - 1] { return true }
-        return !Calendar.autoupdatingCurrent.isDate(
+    private var timelineDays: [ConversationTimelineDay] {
+        let calendar = Calendar.autoupdatingCurrent
+        var days: [ConversationTimelineDay] = []
+
+        for (index, entry) in chat.timeline.enumerated() {
+            let date = calendar.startOfDay(for: entry.date)
+            let indexedEntry = ConversationIndexedTimelineEntry(index: index, entry: entry)
+            if days.last?.date == date {
+                days[days.count - 1].entries.append(indexedEntry)
+            } else {
+                days.append(ConversationTimelineDay(date: date, entries: [indexedEntry]))
+            }
+        }
+        return days
+    }
+
+    private func updateActiveTimelineDate(from visibleIdentifiers: [String]) {
+        let identifiers = Set(visibleIdentifiers)
+        guard let topVisibleEntry = chat.timeline.first(where: { identifiers.contains($0.id) }) else {
+            return
+        }
+        activeTimelineDate = Calendar.autoupdatingCurrent.startOfDay(for: topVisibleEntry.date)
+    }
+
+    private func setDateHeader(_ date: Date, isVisible: Bool) {
+        if isVisible {
+            visibleTimelineDateHeaders.insert(date)
+        } else {
+            visibleTimelineDateHeaders.remove(date)
+        }
+    }
+
+    private func timelineTopPadding(at index: Int) -> CGFloat {
+        guard index > 0 else { return 0 }
+        guard Calendar.autoupdatingCurrent.isDate(
             chat.timeline[index - 1].date,
             inSameDayAs: chat.timeline[index].date
-        )
+        ) else {
+            return 0
+        }
+        switch chat.timeline[index] {
+        case .message:
+            return startsCluster(at: index)
+                ? TimelineSpacing.separateCluster
+                : TimelineSpacing.compactCluster
+        case .event, .notice:
+            return TimelineSpacing.separateCluster
+        }
     }
 
     private func startsCluster(at index: Int) -> Bool {
@@ -1179,6 +1319,96 @@ struct ConversationView: View {
                     continue
                 }
             }
+        }
+    }
+}
+
+private struct ConversationKeyboardDismissInstaller: UIViewRepresentable {
+    let onDismiss: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDismiss: onDismiss)
+    }
+
+    func makeUIView(context: Context) -> WindowObserverView {
+        let view = WindowObserverView()
+        view.isUserInteractionEnabled = false
+        let coordinator = context.coordinator
+        view.onWindowChange = { window in
+            coordinator.install(in: window)
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: WindowObserverView, context: Context) {
+        context.coordinator.onDismiss = onDismiss
+        context.coordinator.install(in: uiView.window)
+    }
+
+    static func dismantleUIView(
+        _ uiView: WindowObserverView,
+        coordinator: Coordinator
+    ) {
+        uiView.onWindowChange = nil
+        coordinator.uninstall()
+    }
+
+    final class WindowObserverView: UIView {
+        var onWindowChange: ((UIWindow?) -> Void)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onWindowChange?(window)
+        }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var onDismiss: () -> Void
+        weak var installedWindow: UIWindow?
+
+        private lazy var recognizer: UITapGestureRecognizer = {
+            let recognizer = UITapGestureRecognizer(
+                target: self,
+                action: #selector(handleTap)
+            )
+            recognizer.cancelsTouchesInView = false
+            recognizer.delegate = self
+            return recognizer
+        }()
+
+        init(onDismiss: @escaping () -> Void) {
+            self.onDismiss = onDismiss
+        }
+
+        func install(in window: UIWindow?) {
+            guard installedWindow !== window else { return }
+            uninstall()
+            window?.addGestureRecognizer(recognizer)
+            installedWindow = window
+        }
+
+        func uninstall() {
+            installedWindow?.removeGestureRecognizer(recognizer)
+            installedWindow = nil
+        }
+
+        @objc private func handleTap() {
+            onDismiss()
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldReceive touch: UITouch
+        ) -> Bool {
+            var touchedView = touch.view
+            while let view = touchedView {
+                if view is UITextField || view is UITextView {
+                    return false
+                }
+                touchedView = view.superview
+            }
+            return true
         }
     }
 }

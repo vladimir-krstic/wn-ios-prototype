@@ -3,6 +3,7 @@ enum ChatListFixtures {
     static let supportChatID = "white-noise-support"
     static let catalogChatIDs = [
         "catalog-direct-text",
+        "catalog-direct-dates",
         "catalog-direct-replies",
         "catalog-direct-reactions",
         "catalog-direct-new-draft",
@@ -10,6 +11,7 @@ enum ChatListFixtures {
         "catalog-media-rich",
         "catalog-voice",
         "catalog-group-messages",
+        "catalog-group-colors",
         "catalog-group-events",
         "catalog-group-member",
         "catalog-group-sole-admin",
@@ -24,7 +26,7 @@ enum ChatListFixtures {
 
     static let supportChat = ChatListItem(
         id: supportChatID,
-        title: "Support — Timeline Notice",
+        title: "Support - Timeline Notice",
         avatar: .systemSymbol("questionmark.bubble"),
         preview: "Ask a question, report a problem, or share a suggestion.",
         timestamp: "Thursday",
@@ -38,39 +40,44 @@ enum ChatListFixtures {
     static let populated: [ChatListItem] = [
         catalogItem(
             id: "catalog-direct-text",
-            title: "Direct — Text & Delivery",
-            preview: "DLV-03 · Failed outgoing message",
+            title: "Direct - Text & Delivery",
+            preview: "DLV-03: Failed outgoing message",
             pinned: true,
             deliveryState: .failed
         ),
         catalogItem(
+            id: "catalog-direct-dates",
+            title: "Direct - Dates & Scrolling",
+            preview: "DATE-15: Long day keeps its date pinned"
+        ),
+        catalogItem(
             id: "catalog-direct-replies",
-            title: "Direct — Replies & Deletion",
-            preview: "RPL-04 · Missing reply target",
+            title: "Direct - Replies & Deletion",
+            preview: "RPL-04: Missing reply target",
             unreadCount: 3
         ),
         catalogItem(
             id: "catalog-direct-reactions",
-            title: "Direct — Reactions & Actions",
-            preview: "ACT-05 · Share available file URL",
+            title: "Direct - Reactions & Actions",
+            preview: "ACT-05: Share available file URL",
             markedUnread: true
         ),
         catalogItem(
             id: "catalog-direct-new-draft",
-            title: "Direct — New Chat & Draft",
-            preview: "STATE-01 · Unsent draft",
+            title: "Direct - New Chat & Draft",
+            preview: "STATE-01: Unsent draft",
             isDraft: true
         ),
         catalogItem(
             id: "catalog-media-photo-video",
-            title: "Media — Photos & Video",
-            preview: "MED-13 · Unavailable image fallback",
+            title: "Media - Photos & Video",
+            preview: "MED-13: Unavailable image fallback",
             muted: true
         ),
         catalogItem(
             id: "catalog-media-rich",
-            title: "Media — Files & Rich Content",
-            preview: "RICH-06 · Stacked attachments"
+            title: "Media - Files & Rich Content",
+            preview: "RICH-06: Stacked attachments"
         ),
         catalogItem(
             id: "catalog-voice",
@@ -80,63 +87,70 @@ enum ChatListFixtures {
         ),
         catalogItem(
             id: "catalog-group-messages",
-            title: "Group — Messages & Mentions",
-            preview: "GRP-RPL-02 · Cross-author reply",
+            title: "Group - Messages & Mentions",
+            preview: "GRP-RPL-02: Cross-author reply",
             previewAuthor: "Maya",
             isGroup: true
         ),
         catalogItem(
+            id: "catalog-group-colors",
+            title: "Group - Identity Colors",
+            preview: "COLOR-09: Brown identity color",
+            previewAuthor: "Imani",
+            isGroup: true
+        ),
+        catalogItem(
             id: "catalog-group-events",
-            title: "Group — Events & Roles",
+            title: "Group - Events & Roles",
             preview: "Elias Moreno turned off disappearing messages.",
             isGroup: true
         ),
         catalogItem(
             id: "catalog-group-member",
-            title: "Group — Member Permissions",
-            preview: "ROLE-02 · Ordinary member permissions",
+            title: "Group - Member Permissions",
+            preview: "ROLE-02: Ordinary member permissions",
             isGroup: true
         ),
         catalogItem(
             id: "catalog-group-sole-admin",
-            title: "Group — Sole Admin",
-            preview: "ROLE-03 · Promote another admin before leaving",
+            title: "Group - Sole Admin",
+            preview: "ROLE-03: Promote another admin before leaving",
             isGroup: true
         ),
         catalogItem(
             id: "catalog-direct-left",
-            title: "Direct — Left",
+            title: "Direct - Left",
             preview: "You left the chat.",
             membershipState: .left
         ),
         catalogItem(
             id: "catalog-group-left",
-            title: "Group — Left",
+            title: "Group - Left",
             preview: "You left the group.",
             isGroup: true,
             membershipState: .left
         ),
         catalogItem(
             id: "catalog-group-removed",
-            title: "Group — Removed",
+            title: "Group - Removed",
             preview: "Maya Chen removed you from the group.",
             isGroup: true,
             membershipState: .removed
         ),
         catalogItem(
             id: "catalog-direct-blocked",
-            title: "Direct — Blocked",
-            preview: "STATE-05 · History remains available"
+            title: "Direct - Blocked",
+            preview: "STATE-05: History remains available"
         ),
         catalogItem(
             id: "catalog-direct-missing-relays",
-            title: "Direct — Missing Relays",
-            preview: "STATE-06 · Check Chat Relays"
+            title: "Direct - Missing Relays",
+            preview: "STATE-06: Check Chat Relays"
         ),
         catalogItem(
             id: "catalog-direct-archived",
-            title: "Direct — Archived",
-            preview: "STATE-07 · Unarchive from Chat Info",
+            title: "Direct - Archived",
+            preview: "STATE-07: Unarchive from Chat Info",
             archived: true
         ),
         supportChat,
@@ -517,7 +531,7 @@ enum ChatListFixtures {
             avatar: .monogram("N"),
             preview: "",
             previewAuthor: "Maya",
-            attachmentPreview: .location,
+            attachmentPreview: .photo,
             timestamp: "7/5/26",
             isArchived: false,
             unreadCount: 0,
@@ -567,12 +581,12 @@ enum ChatListFixtures {
             deliveryState: .none
         ),
         ChatListItem(
-            id: "sticker-swap",
-            title: "Sticker Swap",
+            id: "photo-swap",
+            title: "Photo Swap",
             avatar: .monogram("S"),
             preview: "",
             previewAuthor: "You",
-            attachmentPreview: .sticker,
+            attachmentPreview: .photos(3),
             timestamp: "7/1/26",
             isArchived: false,
             unreadCount: 0,
@@ -656,7 +670,7 @@ enum ChatListFixtures {
         ChatListItem(
             id: id,
             title: title,
-            avatar: .monogram(String(title.prefix(1))),
+            avatar: catalogAvatar(for: id),
             isGroup: isGroup,
             preview: preview,
             previewAuthor: previewAuthor,
@@ -671,6 +685,17 @@ enum ChatListFixtures {
             isDraft: isDraft,
             deliveryState: deliveryState
         )
+    }
+
+    private static func catalogAvatar(for id: String) -> ChatListItem.Avatar {
+        let assets = [
+            "AvatarWebAionyHaust", "AvatarWebAyoOgunseinde",
+            "AvatarWebChristopherCampbell", "AvatarWebIanDooley",
+            "AvatarWebPhilipMartin", "AvatarWebSergioDePaula",
+            "AvatarWebVinceFleming", "AvatarMayaChen",
+        ]
+        let scalarSum = id.unicodeScalars.reduce(0) { $0 + Int($1.value) }
+        return .asset(assets[scalarSum % assets.count])
     }
 
 }

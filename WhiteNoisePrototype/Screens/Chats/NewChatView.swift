@@ -50,7 +50,11 @@ struct PersonRow: View {
 
     var body: some View {
         HStack {
-            PrototypeChatAvatarView(avatar: person.avatar, size: 44)
+            PrototypeChatAvatarView(
+                avatar: person.avatar,
+                size: 44,
+                publicKey: person.publicKey
+            )
             VStack(alignment: .leading, spacing: 2) {
                 Text(person.name).font(.headline)
                 Text(person.shortPublicKey).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -85,7 +89,8 @@ struct PersonProfileView: View {
                 ) { size in
                     PrototypeChatAvatarView(
                         avatar: person.avatar,
-                        size: size
+                        size: size,
+                        publicKey: person.publicKey
                     )
                 }
             }
@@ -198,7 +203,8 @@ struct NewGroupView: View {
                                         ZStack(alignment: .topTrailing) {
                                             PrototypeChatAvatarView(
                                                 avatar: person.avatar,
-                                                size: 64
+                                                size: 64,
+                                                publicKey: person.publicKey
                                             )
                                             .frame(
                                                 width: 72,

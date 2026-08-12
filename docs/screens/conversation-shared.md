@@ -16,7 +16,7 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Messages use stable identities in a `ScrollViewReader`, `ScrollView`, and
   `LazyVStack`. Incoming content is leading; outgoing content is trailing.
   Opening a conversation settles on the true newest timeline entry after the
-  composer safe-area inset is laid out; older history remains reachable by
+  composer bottom bar is laid out; older history remains reachable by
   scrolling to the conversation's beginning.
 - Two existing chats are the durable conversation reference histories. **Maya
   Chen** is the complete one-to-one catalog and **Weekend Walks** is the
@@ -24,13 +24,47 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   activity and proceeds in strict chronological order to the current day.
   Variants form a readable conversation rather than an adjacent checklist of
   unrelated examples.
-- Consecutive messages group by author. Group chats show an incoming author's
-  name and avatar once per cluster. Locale-aware time appears at the cluster
-  end; centered separators cover Today, Yesterday, recent dates, and older full
-  dates.
+- Consecutive messages group by author. Direct chats never show transcript
+  avatars or author labels. Group chats show the incoming author's name above
+  the first bubble in a cluster and the author's avatar beside the final bubble
+  in that cluster. Each incoming group-author name receives one stable color
+  derived from that person's complete public key. The nine-color palette uses
+  the adaptive system red, orange, green, teal, blue, indigo, purple, pink, and
+  brown hues; yellow, mint, and cyan are omitted from this small-text treatment.
+  A hue is adjusted toward the adaptive system label color only as much as
+  needed to preserve a 4.5:1 contrast ratio against the system background.
+  A person without a photo uses the same public-key bucket for a filled
+  monogram avatar, but does not reuse the adjusted author-name foreground as
+  its fill. The avatar surface uses the corresponding adaptive system hue and,
+  by explicit product direction, always renders one uppercase first initial in
+  white in both light and dark appearances. The initial uses a slightly smaller
+  semibold subheadline instead of the previous headline size. This white-only
+  treatment is an approved custom exception; the visible name and profile
+  action continue to carry identity without depending on the monogram color.
+  **Group - Identity Colors** is a separate developer catalog chat with nine
+  consecutive incoming examples, one for every supported identity bucket, so
+  the name and monogram-avatar treatment can be reviewed together without
+  changing state. **Group - Messages & Mentions** remains focused on authorship,
+  clusters, mentions, and replies.
+  The visible name and profile action continue to carry identity without
+  relying on color. Locale-aware time remains visibly outside and below the
+  terminal bubble. Every day boundary remains visible as an inline transcript
+  header with 18 points of space above and below it. Once that header scrolls
+  above the viewport, the same section becomes a noninteractive pinned regular
+  Liquid Glass capsule; later date headers remain visible inline until each
+  reaches the top and replaces the pinned day. The label uses medium footnote
+  text with 12-point horizontal and 3-point vertical insets. It reads **Today**
+  or **Yesterday** when applicable, abbreviated weekday/month/day for dates
+  under six months old, and a locale-aware medium date including the year for
+  older dates. Separate message clusters use 16 points of space; messages
+  inside one cluster remain compact.
 - Deleted messages remain as **You deleted this message.** or **This message
-  was deleted.** Failed outgoing messages expose **Retry**; sent messages do not
-  show delivery checkmarks.
+  was deleted.** A failed outgoing message replaces its timestamp with the red
+  status **Not delivered, hold for options**. Its icon and copy form a compact
+  unit whose leading edge matches the outgoing timestamp at the bubble's inner
+  corner inset. Touching and holding either the bubble or that status opens the
+  native context menu, whose first recovery action is **Retry Send**. Sent
+  messages do not show delivery checkmarks.
 - Native context menus own Reply, Copy, Share, Delete, and the supported
   reactions: ❤, 😀, 👍, 👎, 🤣, 🔥, and 🦫.
 - Search matches text, sender names, file names, and attachment labels. Reply
@@ -40,6 +74,56 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   approved adaptive monochrome bubble palette while adding an underline;
   mentions also use semibold type. VoiceOver reads the rendered words rather
   than Markdown punctuation.
+
+## Message presentation direction
+
+- The message presentation is an original shared SwiftUI implementation. The
+  project does not copy or port Signal source code and does not add Signal or
+  another third-party runtime dependency.
+- Signal provides bounded comparison evidence for message-content composition:
+  reply quotes, reactions attached to their message, media galleries, link
+  previews, mentions, file rows, and audio-message controls. Those behaviors
+  are reimplemented against the prototype's own deterministic models.
+- Signal's current date-header component and conversation layout provide
+  bounded comparison evidence for date sections. Signal keeps every generated
+  date header in the transcript, pins the last header that moved above the
+  viewport, leaves later headers inline, and pushes the pinned header away when
+  the next one arrives. On iOS 26 and later its pinned variant uses a regular
+  glass capsule with medium footnote type and 12-point horizontal and 3-point
+  vertical margins. White Noise recreates that behavior with public SwiftUI
+  visibility APIs: inline date rows remain in the lazy transcript while one
+  conversation-level glass header follows the top visible timeline entry. Its
+  initial value comes from the bottom day so opening a long bottom-anchored chat
+  does not depend on an offscreen lazy header being instantiated. No Signal
+  source is copied.
+- Apple Messages provides the visual direction: semantic San Francisco system
+  typography, generous breathing room, rounded message silhouettes, compact
+  same-author clusters, larger separation between clusters, author identity at
+  the cluster edges, and media that participates in the message silhouette.
+- Message bubbles are tail-free. Incoming bubbles align precisely to the
+  conversation's leading content margin and outgoing bubbles align precisely
+  to its trailing content margin. That margin is shared with the composer and
+  the screen's system-positioned controls instead of adding a second bubble
+  inset.
+- Every bubble keeps the same fully rounded continuous silhouette, including
+  messages in a same-author cluster. Grouping is communicated by compact
+  vertical spacing rather than flattened or joined corners.
+- Time remains visible below the terminal bubble rather than being hidden until
+  a gesture. It sits beneath the bubble on its conversation-center side and is
+  inset from that inner edge by the shared bubble corner radius. This is an
+  explicit user-approved exception to the Apple Messages comparison and keeps
+  delivery and failure state easy to scan.
+- Incoming gray uses the adaptive UIKit `systemGray5` color. Apple does not
+  publish the private Messages bubble color; `systemGray5` is the closest
+  public semantic step that makes the previous `systemGray4` treatment a little
+  lighter without approaching the page background as closely as
+  `systemGray6`.
+- Replies, reactions, gallery layouts, link previews, file rows, GIFs,
+  contacts, and voice messages all use the same shared bubble shell, cluster
+  spacing, timestamp placement, and group-identity rules in catalog and legacy
+  chats.
+- Sticker and shared-location messages are not supported. They are absent from
+  deterministic fixtures, catalog coverage, and the shared renderer.
 
 ## Composer and media
 
@@ -61,6 +145,11 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   timeline returns to its true bottom even if the person had been reading older
   history. The keyboard therefore moves the newest content above the composer;
   manual timeline scrolling remains available after the focus transition.
+- While the software keyboard is open, tapping anywhere in the conversation
+  outside the text field dismisses it. A window-level UIKit tap recognizer
+  ignores `UITextField` and `UITextView`, does not cancel the tapped control's
+  action, and therefore preserves message, menu, attachment, playback, and
+  navigation interactions while clearing composer focus.
 - The attachment control and resting field share the same 44-point interaction
   and visible height. The Send circle is 32 points inside its 44-point trailing
   slot, leaving the user-approved six-point visual inset at the top, bottom, and
@@ -113,8 +202,9 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - A voice bubble does not impose a fixed outer width. Its progress and duration
   reflow as one adaptive unit so longer localized or accessibility-sized time
   labels never collapse into a one-character column.
-- Location, contact, GIF, sticker, and deterministic link preview are polished
-  showcase renderers, not composer options.
+- Contact, GIF, and deterministic link preview are polished showcase renderers,
+  not composer options. Sticker and shared-location messages are intentionally
+  unsupported.
 - In groups, typing `@` offers matching members; inserted mentions are styled
   and open Group Member.
 
@@ -132,11 +222,10 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   from this group.** The status uses a semantic SF Symbol and secondary
   styling. It is not a disabled field, alert, toast, full-screen unavailable
   state, or button; no rejoin action is available in this flow.
-- The membership-status bar combines `safeAreaBar` with SwiftUI's soft bottom
-  scroll-edge effect, allowing timeline content to transition beneath the
-  stationary surface without the composer's hard opaque boundary or a custom
-  blur implementation. The active composer keeps `safeAreaInset` for its
-  keyboard-following layout.
+- Membership statuses and the active composer use `safeAreaBar` with SwiftUI's
+  soft bottom scroll-edge effect, allowing timeline content to transition
+  beneath the stationary surface without a hard opaque boundary or a custom
+  blur implementation. The safe-area bar follows keyboard-safe layout.
 - The composer follows keyboard safe areas. It does not install translucent
   content behind the system keyboard.
 - The active composer has no opaque `systemBackground` backing. The native soft
@@ -145,9 +234,10 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 
 ## Custom exceptions
 
-Apple does not provide a complete message-bubble, reaction, gallery, waveform,
-Messages-style composer, or press-and-hold photo/video shutter. Those bounded
-compositions are custom but use semantic system colors/type, 44-point
+Apple does not provide a public complete message-bubble, reaction, gallery,
+waveform, Messages-style composer, or press-and-hold photo/video shutter.
+Those bounded compositions are original SwiftUI views that use semantic system
+colors/type, 44-point
 interaction targets, interruptible state-driven motion, Reduce Motion, and
 complete VoiceOver actions. Standard navigation, text entry, capture sessions,
 pickers, menus, sharing, playback, permissions, alerts, and keyboard layout stay
@@ -175,6 +265,14 @@ documented bundled pebble artwork. The app performs no runtime download, and
 every showcased file and video has usable local data rather than a decorative
 dead affordance.
 
+## Image asset provenance
+
+Conversation member portraits, abstract identities, and catalog media use
+statically bundled, size-optimized Unsplash images. Each adopted source is
+recorded beside the bundled asset in `docs/references/chat-image-assets.md` with
+its photographer and Unsplash page URL. The app performs no runtime image
+download, remote lookup, or attribution request.
+
 ## Governing sources
 
 - [TextField](https://developer.apple.com/documentation/swiftui/textfield)
@@ -186,6 +284,10 @@ dead affordance.
 - [defaultScrollAnchor](https://developer.apple.com/documentation/swiftui/view/defaultscrollanchor(_:for:))
 - [onGeometryChange](https://developer.apple.com/documentation/swiftui/view/ongeometrychange(for:of:action:))
 - [LazyVStack](https://developer.apple.com/documentation/swiftui/lazyvstack)
+- [Grouping data with lazy stack views](https://developer.apple.com/documentation/swiftui/grouping-data-with-lazy-stack-views)
+- [scrollTargetLayout](https://developer.apple.com/documentation/swiftui/view/scrolltargetlayout(isenabled:))
+- [onScrollTargetVisibilityChange](https://developer.apple.com/documentation/swiftui/view/onscrolltargetvisibilitychange(idtype:threshold:_:))
+- [glassEffect](https://developer.apple.com/documentation/swiftui/view/glasseffect(_:in:))
 - [Context menus](https://developer.apple.com/documentation/swiftui/view/contextmenu)
 - [Menu](https://developer.apple.com/documentation/swiftui/menu)
 - [menuActionDismissBehavior](https://developer.apple.com/documentation/swiftui/view/menuactiondismissbehavior(_:))
@@ -208,17 +310,50 @@ dead affordance.
 - [Quick Look](https://developer.apple.com/documentation/swiftui/view/quicklookpreview)
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
 - [Label](https://developer.apple.com/documentation/swiftui/label)
-- [safeAreaInset](https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:))
 - [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:))
 - [ScrollEdgeEffectStyle](https://developer.apple.com/documentation/swiftui/scrolledgeffectstyle)
+- [Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+- [Color](https://developer.apple.com/design/human-interface-guidelines/color)
+- [Standard colors](https://developer.apple.com/documentation/uikit/standard-colors)
+- [systemGray5](https://developer.apple.com/documentation/uikit/uicolor/systemgray5)
+- [Group conversations in Messages](https://support.apple.com/guide/iphone/group-conversations-iphb10c80fc5/ios)
+- [Signal iOS source and license](https://github.com/signalapp/Signal-iOS)
+- [Signal date-header component](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/Components/CVComponentDateHeader.swift)
+- [Signal sticky conversation layout](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/ConversationViewLayout.swift)
+- [Signal date formatting](https://github.com/signalapp/Signal-iOS/blob/main/SignalServiceKit/Util/DateUtil.swift)
+- [Signal: Troubleshooting sending messages](https://support.signal.org/hc/en-us/articles/360009303072-Troubleshooting-sending-messages)
+- [Signal Desktop English localization](https://github.com/signalapp/Signal-Desktop/blob/main/_locales/en/messages.json)
 
 The shipped app supplied bounded comparison evidence for image/video messages,
 reply, reactions, deletion, sharing, search, mentions, and media galleries.
 This brief records the adopted behaviors locally.
 
+Signal's current public support material describes sending as a distinct
+message status, and its open-source localization keeps **Retry Send** in the
+message options menu for an outgoing message that failed. White Noise follows
+that interaction split while using the user-approved visible copy above.
+
 ## Acceptance criteria
 
 - Every chat row opens the same conversation architecture.
+- Every catalog and legacy chat uses the same message shell, grouping,
+  timestamp, reply, reaction, attachment, and group-identity rules.
+- Direct transcripts never show member avatars. Group transcripts show an
+  incoming author name only above the first message in a cluster and that
+  author's avatar only beside the final message in the cluster.
+- Same-author bubbles form a compact cluster while keeping fully rounded
+  corners and one precise author-side edge. Separate clusters have visibly more
+  breathing room. The terminal bubble's timestamp sits outside the bubble on
+  its conversation-center side, inset by the shared corner radius; delivery or
+  failure state also remains outside the bubble.
+- Incoming gray is the adaptive `systemGray5`. Every day boundary remains an
+  inline header. The last header above the viewport becomes one pinned
+  regular-glass capsule, later headers remain inline, and the next header
+  replaces it at the top. Headers keep equal 18-point spacing to adjacent
+  transcript content and use the accepted relative/recent/old date formats.
+  Separate clusters use 16 points of space.
+- No sticker or shared-location fixture, catalog claim, attachment case, or
+  renderer remains.
 - Maya Chen covers the complete direct-message catalog; Weekend Walks covers
   the complete group/system-event catalog and gallery sizes one through seven.
 - Maya includes short, multiline, and long text in both directions; replies to
@@ -239,11 +374,18 @@ This brief records the adopted behaviors locally.
   and the person can still scroll the timeline normally afterward.
 - Opening the keyboard always brings the true timeline bottom above the
   composer, including when the person had scrolled to older history first.
+- Tapping anywhere outside the focused composer dismisses the keyboard without
+  consuming the tapped message, control, menu, media, or navigation action.
+- A failed outgoing message shows no timestamp. It shows **Not delivered, hold
+  for options**, left-aligned to the outgoing timestamp at the bubble's inner
+  corner inset, and touching and holding the bubble or status exposes **Retry
+  Send** in the native context menu.
 - The attachment control matches the resting field height. Send has a
   six-point visual inset at the top, bottom, and trailing edge. Voice-review
   Play mirrors it at the top, leading, and bottom edge.
-- Timeline content transitions beneath the composer through the native soft
-  progressive blur with no opaque white cutoff.
+- The active composer is installed with the native bottom `safeAreaBar`, and
+  timeline content transitions beneath it through SwiftUI's soft progressive
+  scroll-edge blur with no opaque white cutoff.
 - Camera is present in the attachment menu as a genuine native sheet at the
   large detent. The system owns its corners and bottom attachment; it dismisses
   by swiping down or using Close, without a custom mask or exposed bottom strip.

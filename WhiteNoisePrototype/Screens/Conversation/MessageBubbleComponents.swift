@@ -1,5 +1,16 @@
 import SwiftUI
 
+struct PrototypeMessageBubbleShape: Shape {
+    static let cornerRadius: CGFloat = 20
+
+    func path(in rect: CGRect) -> Path {
+        RoundedRectangle(
+            cornerRadius: Self.cornerRadius,
+            style: .continuous
+        ).path(in: rect)
+    }
+}
+
 struct MessageRow<Content: View>: View {
     let outgoing: Bool
     let time: String
@@ -93,7 +104,10 @@ private struct MessageBubble<Content: View>: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
             .foregroundStyle(foregroundStyle)
-            .background(fill, in: shape)
+            .background(
+                fill,
+                in: PrototypeMessageBubbleShape()
+            )
     }
 
     private var fill: Color {
@@ -108,17 +122,6 @@ private struct MessageBubble<Content: View>: View {
         outgoing ? outgoingMessageColor : incomingMessageColor
     }
 
-    private var shape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            cornerRadii: .init(
-                topLeading: 18,
-                bottomLeading: outgoing ? 18 : 6,
-                bottomTrailing: outgoing ? 6 : 18,
-                topTrailing: 18
-            ),
-            style: .continuous
-        )
-    }
 }
 
 private struct IncomingPrototypeMessageColorKey: EnvironmentKey {

@@ -52,11 +52,9 @@ struct ChatListItem: Identifiable, Equatable {
         case video
         case voiceMessage
         case file(String)
-        case location
         case contact(String)
         case link
         case gif
-        case sticker
 
         var symbol: String {
             switch self {
@@ -70,16 +68,12 @@ struct ChatListItem: Identifiable, Equatable {
                 "waveform"
             case .file:
                 "doc"
-            case .location:
-                "location.fill"
             case .contact:
                 "person.crop.circle"
             case .link:
                 "link"
             case .gif:
                 "play.rectangle.fill"
-            case .sticker:
-                "face.smiling"
             }
         }
 
@@ -95,16 +89,12 @@ struct ChatListItem: Identifiable, Equatable {
                 "Voice message"
             case let .file(name):
                 name
-            case .location:
-                "Location"
             case let .contact(name):
                 "Contact: \(name)"
             case .link:
                 "Link"
             case .gif:
                 "GIF"
-            case .sticker:
-                "Sticker"
             }
         }
     }
@@ -112,6 +102,7 @@ struct ChatListItem: Identifiable, Equatable {
     let id: String
     let title: String
     let avatar: Avatar
+    let avatarPublicKey: String?
     let isGroup: Bool
     var preview: String
     var previewAuthor: String?
@@ -130,6 +121,7 @@ struct ChatListItem: Identifiable, Equatable {
         id: String,
         title: String,
         avatar: Avatar,
+        avatarPublicKey: String? = nil,
         isGroup: Bool = false,
         preview: String,
         previewAuthor: String? = nil,
@@ -147,6 +139,7 @@ struct ChatListItem: Identifiable, Equatable {
         self.id = id
         self.title = title
         self.avatar = avatar
+        self.avatarPublicKey = avatarPublicKey
         self.isGroup = isGroup
         self.preview = preview
         self.previewAuthor = previewAuthor

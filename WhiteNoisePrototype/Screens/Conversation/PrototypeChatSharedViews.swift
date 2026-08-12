@@ -1,6 +1,122 @@
 import AVKit
 import SwiftUI
 
+enum PrototypeAuthorNameColor {
+    static let paletteCount = 9
+
+    static func paletteIndex(for publicKey: String) -> Int {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in publicKey.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 1_099_511_628_211
+        }
+        return Int(hash % UInt64(paletteCount))
+    }
+
+    @MainActor
+    static func color(for publicKey: String) -> Color {
+        let index = paletteIndex(for: publicKey)
+        return Color(
+            uiColor: UIColor { traits in
+                let base = baseColor(at: index).resolvedColor(with: traits)
+                let label = UIColor.label.resolvedColor(with: traits)
+                let background = UIColor.systemBackground.resolvedColor(with: traits)
+                return accessibleColor(base: base, toward: label, over: background)
+            }
+        )
+    }
+
+    @MainActor
+    static func avatarBackground(for publicKey: String) -> Color {
+        let index = paletteIndex(for: publicKey)
+        return Color(
+            uiColor: UIColor { traits in
+                baseColor(at: index).resolvedColor(with: traits)
+            }
+        )
+    }
+
+    private static func baseColor(at index: Int) -> UIColor {
+        switch index {
+        case 0: .systemRed
+        case 1: .systemOrange
+        case 2: .systemGreen
+        case 3: .systemTeal
+        case 4: .systemBlue
+        case 5: .systemIndigo
+        case 6: .systemPurple
+        case 7: .systemPink
+        default: .systemBrown
+        }
+    }
+
+    private static func accessibleColor(
+        base: UIColor,
+        toward label: UIColor,
+        over background: UIColor
+    ) -> UIColor {
+        let minimumContrast: CGFloat = 4.5
+        guard contrastRatio(base, background) < minimumContrast else { return base }
+
+        var lowerBound: CGFloat = 0
+        var upperBound: CGFloat = 1
+        for _ in 0..<12 {
+            let amount = (lowerBound + upperBound) / 2
+            let candidate = mix(base, label, amount: amount)
+            if contrastRatio(candidate, background) >= minimumContrast {
+                upperBound = amount
+            } else {
+                lowerBound = amount
+            }
+        }
+        return mix(base, label, amount: upperBound)
+    }
+
+    private static func mix(_ first: UIColor, _ second: UIColor, amount: CGFloat) -> UIColor {
+        let firstComponents = components(first)
+        let secondComponents = components(second)
+        return UIColor(
+            red: firstComponents.red + (secondComponents.red - firstComponents.red) * amount,
+            green: firstComponents.green + (secondComponents.green - firstComponents.green) * amount,
+            blue: firstComponents.blue + (secondComponents.blue - firstComponents.blue) * amount,
+            alpha: firstComponents.alpha + (secondComponents.alpha - firstComponents.alpha) * amount
+        )
+    }
+
+    private static func contrastRatio(_ first: UIColor, _ second: UIColor) -> CGFloat {
+        let firstLuminance = relativeLuminance(first)
+        let secondLuminance = relativeLuminance(second)
+        return (max(firstLuminance, secondLuminance) + 0.05)
+            / (min(firstLuminance, secondLuminance) + 0.05)
+    }
+
+    private static func relativeLuminance(_ color: UIColor) -> CGFloat {
+        let value = components(color)
+        return 0.2126 * linearized(value.red)
+            + 0.7152 * linearized(value.green)
+            + 0.0722 * linearized(value.blue)
+    }
+
+    private static func linearized(_ value: CGFloat) -> CGFloat {
+        value <= 0.04045
+            ? value / 12.92
+            : pow((value + 0.055) / 1.055, 2.4)
+    }
+
+    private static func components(
+        _ color: UIColor
+    ) -> (red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+            return (0, 0, 0, 1)
+        }
+        return (red, green, blue, alpha)
+    }
+}
+
 @MainActor
 private enum PrototypePreparedImageCache {
     static let cache = NSCache<NSData, UIImage>()
@@ -17,10 +133,11 @@ private enum PrototypePreparedImageCache {
 struct PrototypeChatAvatarView: View {
     let avatar: ChatListItem.Avatar
     var size: CGFloat = 40
+    var publicKey: String? = nil
 
     var body: some View {
         ZStack {
-            Circle().fill(Color(uiColor: .systemGray5))
+            Circle().fill(backgroundColor)
             switch avatar {
             case let .asset(name):
                 Image(name).resizable().scaledToFill()
@@ -29,7 +146,9 @@ struct PrototypeChatAvatarView: View {
                     Image(uiImage: image).resizable().scaledToFill()
                 }
             case let .monogram(value):
-                Text(value).font(.headline).foregroundStyle(.primary)
+                Text(monogramLetter(value))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
             case let .systemSymbol(name):
                 Image(systemName: name).font(.title3)
             }
@@ -37,6 +156,19 @@ struct PrototypeChatAvatarView: View {
         .frame(width: size, height: size)
         .clipShape(.circle)
         .accessibilityHidden(true)
+    }
+
+    private var backgroundColor: Color {
+        guard case .monogram = avatar, let publicKey else {
+            return Color(uiColor: .systemGray5)
+        }
+        return PrototypeAuthorNameColor.avatarBackground(for: publicKey)
+    }
+
+    private func monogramLetter(_ value: String) -> String {
+        String(
+            value.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1)
+        ).uppercased()
     }
 }
 
@@ -125,29 +257,45 @@ enum PrototypeChatEventFormatter {
 }
 
 enum PrototypeDateFormatter {
+    private static let recentDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EE, MMM d")
+        return formatter
+    }()
+
+    private static let oldDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    private static let relativeDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        formatter.doesRelativeDateFormatting = true
+        return formatter
+    }()
+
     static func separator(for date: Date, now: Date = .now) -> String {
         let calendar = Calendar.autoupdatingCurrent
-        if calendar.isDate(date, inSameDayAs: now) { return "Today" }
+        let displayDate = min(date, now)
+        let monthDistance = calendar.dateComponents([.month], from: displayDate, to: now).month ?? 0
+        if monthDistance >= 6 {
+            return oldDateFormatter.string(from: displayDate)
+        }
+
         let startOfToday = calendar.startOfDay(for: now)
-        if let yesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday),
-           calendar.isDate(date, inSameDayAs: yesterday) {
-            return "Yesterday"
-        }
-        if let days = calendar.dateComponents(
+        let dayDistance = calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: date),
+            from: calendar.startOfDay(for: displayDate),
             to: startOfToday
-        ).day,
-           days > 1,
-           days < 7 {
-            return date.formatted(.dateTime.weekday(.wide))
+        ).day ?? 0
+        if dayDistance > 1 {
+            return recentDateFormatter.string(from: displayDate)
         }
-        let year = calendar.component(.year, from: date)
-        let currentYear = calendar.component(.year, from: now)
-        if year == currentYear {
-            return date.formatted(.dateTime.month(.wide).day())
-        }
-        return date.formatted(.dateTime.month(.wide).day().year())
+        return relativeDateFormatter.string(from: displayDate)
     }
 
     static func time(for date: Date) -> String {
@@ -217,12 +365,6 @@ struct PrototypeSingleMediaView: View {
                 .resizable()
                 .scaledToFit()
                 .accessibilityLabel("GIF, \(label)")
-        case let .sticker(_, assetName, label):
-            Image(assetName)
-                .resizable()
-                .scaledToFit()
-                .padding()
-                .accessibilityLabel("Sticker, \(label)")
         default:
             ContentUnavailableView("Preview Unavailable", systemImage: "doc")
         }

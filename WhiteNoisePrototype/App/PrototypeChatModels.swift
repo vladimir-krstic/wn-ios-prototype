@@ -137,15 +137,13 @@ enum PrototypeAttachment: Equatable, Identifiable {
     case voice(id: String, resourceName: String, duration: TimeInterval)
     case link(id: String, title: String, domain: String, summary: String, image: PrototypeImageSource?)
     case gif(id: String, assetName: String, label: String)
-    case sticker(id: String, assetName: String, label: String)
-    case location(id: String, name: String, address: String)
     case contact(id: String, personID: String)
 
     var id: String {
         switch self {
         case let .photo(id, _, _), let .video(id, _, _, _), let .file(id, _, _, _),
              let .voice(id, _, _), let .link(id, _, _, _, _), let .gif(id, _, _),
-             let .sticker(id, _, _), let .location(id, _, _), let .contact(id, _):
+             let .contact(id, _):
             id
         }
     }
@@ -158,8 +156,6 @@ enum PrototypeAttachment: Equatable, Identifiable {
         case .voice: "Voice message"
         case let .link(_, title, domain, _, _): "Link, \(title), \(domain)"
         case let .gif(_, _, label): "GIF, \(label)"
-        case let .sticker(_, _, label): "Sticker, \(label)"
-        case let .location(_, name, address): "Location, \(name), \(address)"
         case .contact: "Contact"
         }
     }
@@ -172,8 +168,6 @@ enum PrototypeAttachment: Equatable, Identifiable {
         case .voice: .voiceMessage
         case .link: .link
         case .gif: .gif
-        case .sticker: .sticker
-        case .location: .location
         case let .contact(_, personID):
             .contact(people.first { $0.id == personID }?.name ?? "Contact")
         }
@@ -364,6 +358,11 @@ struct PrototypeChat: Identifiable, Equatable {
         }
     }
 
+    func resolvedAvatarPublicKey(people: [PrototypePerson]) -> String? {
+        guard case let .direct(personID) = kind else { return nil }
+        return people.first { $0.id == personID }?.publicKey
+    }
+
     func row(
         people: [PrototypePerson],
         currentProfileID: String,
@@ -432,6 +431,7 @@ struct PrototypeChat: Identifiable, Equatable {
             id: id,
             title: title(people: people),
             avatar: resolvedAvatar(people: people),
+            avatarPublicKey: resolvedAvatarPublicKey(people: people),
             isGroup: isGroup,
             preview: previewText,
             previewAuthor: previewAuthor,

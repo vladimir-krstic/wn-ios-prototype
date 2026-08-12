@@ -62,7 +62,11 @@ struct ChatListRow: View {
 
     @ViewBuilder
     private var avatar: some View {
-        PrototypeChatAvatarView(avatar: chat.avatar, size: 56)
+        PrototypeChatAvatarView(
+            avatar: chat.avatar,
+            size: 56,
+            publicKey: chat.avatarPublicKey
+        )
         .overlay(alignment: .bottomTrailing) {
             if chat.isPinned {
                 Image(systemName: "pin.fill")
@@ -123,7 +127,7 @@ struct ChatListRow: View {
                         width: Self.statusRegion,
                         height: Self.statusRegion
                     )
-                    .accessibilityLabel("Not sent")
+                    .accessibilityLabel("Not delivered")
             }
 
             if chat.unreadCount > 0 {

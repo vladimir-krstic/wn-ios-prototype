@@ -195,7 +195,7 @@ enum PrototypeMessageColor: String, CaseIterable, Identifiable {
     var color: Color {
         switch self {
         case .black: Color("AccentColor")
-        case .gray: Color(uiColor: .systemGray4)
+        case .gray: Color(uiColor: .systemGray5)
         case .blue: .blue
         case .green: .green
         case .purple: .purple

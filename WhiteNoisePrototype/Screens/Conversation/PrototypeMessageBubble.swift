@@ -51,70 +51,34 @@ struct PrototypeMessageBubble: View {
     }
 
     private var messageRow: some View {
-        HStack(alignment: .bottom, spacing: 6) {
-            if outgoing { Spacer(minLength: 54) }
+        HStack(alignment: .bottom, spacing: 0) {
+            if outgoing { Spacer(minLength: 48) }
 
-            if !outgoing {
-                if showsAvatar {
-                    PrototypeChatAvatarView(
-                        avatar: author?.avatar ?? .monogram("?"),
-                        size: 28
-                    )
-                } else {
-                    Color.clear.frame(width: isGroup ? 28 : 0, height: 1)
-                }
+            if !outgoing, isGroup {
+                Color.clear.frame(width: 37, height: 1)
             }
 
-            VStack(alignment: outgoing ? .trailing : .leading, spacing: 3) {
+            VStack(alignment: outgoing ? .trailing : .leading, spacing: 4) {
                 if isGroup, !outgoing, showsAuthor {
                     Button {
                         if let author { onOpenPerson(author.id) }
                     } label: {
                         Text(author?.name ?? "Unknown")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(
+                                PrototypeAuthorNameColor.color(
+                                    for: author?.publicKey ?? message.authorID
+                                )
+                            )
                     }
                     .buttonStyle(.plain)
+                    .padding(.leading, 10)
                 }
 
-                bubbleContent
-                    .contextMenu { contextMenu }
-                    .overlay {
-                        if isHighlighted {
-                            shape.stroke(Color.accentColor, lineWidth: 3)
-                        }
-                    }
-
-                if !message.reactions.isEmpty, !message.isDeleted {
-                    reactionRow
-                        .offset(y: -2)
-                        .padding(.horizontal, 8)
-                }
-
-                if showsTimestamp {
-                    HStack(spacing: 4) {
-                        if message.deliveryState == .sending {
-                            ProgressView().controlSize(.mini)
-                        }
-                        Text(PrototypeDateFormatter.time(for: message.sentAt))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                    }
-                    .padding(outgoing ? .trailing : .leading, 8)
-                }
-
-                if message.deliveryState == .failed, outgoing, !message.isDeleted {
-                    Button(action: onRetry) {
-                        Label("Not sent. Retry", systemImage: "exclamationmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                    .buttonStyle(.plain)
-                }
+                decoratedBubble
             }
 
-            if !outgoing { Spacer(minLength: 54) }
+            if !outgoing { Spacer(minLength: 48) }
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
@@ -122,21 +86,89 @@ struct PrototypeMessageBubble: View {
         .accessibilityIdentifier("message.\(message.id)")
     }
 
-    @ViewBuilder
-    private var bubbleContent: some View {
-        if isBorderlessSticker {
-            bubbleBody
-        } else {
-            bubbleBody
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .foregroundStyle(messageColor.foregroundColor)
-                .background(messageColor.color, in: shape)
+    private var decoratedBubble: some View {
+        bubbleContent
+            .contextMenu { contextMenu }
+            .overlay {
+                if isHighlighted {
+                    shape.stroke(Color.accentColor, lineWidth: 3)
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if isGroup, !outgoing, showsAvatar {
+                    PrototypeChatAvatarView(
+                        avatar: author?.avatar ?? .monogram("?"),
+                        size: 30,
+                        publicKey: author?.publicKey
+                    )
+                    .offset(x: -37)
+                }
+            }
+            .overlay(alignment: reactionAlignment) {
+                if !message.reactions.isEmpty, !message.isDeleted {
+                    reactionRow
+                        .offset(x: outgoing ? 10 : -10, y: 19)
+                }
+            }
+            .padding(.bottom, showsReactions ? 18 : 0)
+            .overlay(alignment: timestampAlignment) {
+                if showsVisibleTimestamp {
+                    timestamp
+                        .padding(
+                            outgoing ? .leading : .trailing,
+                            PrototypeMessageBubbleShape.cornerRadius
+                        )
+                        .offset(y: 17)
+                } else if showsFailedDeliveryStatus {
+                    failedDeliveryStatus
+                        .contextMenu { contextMenu }
+                        .offset(y: 18)
+                }
+            }
+            .padding(
+                .bottom,
+                showsVisibleTimestamp ? 17 : (showsFailedDeliveryStatus ? 18 : 0)
+            )
+    }
+
+    private var timestamp: some View {
+        HStack(spacing: 4) {
+            if message.deliveryState == .sending {
+                ProgressView().controlSize(.mini)
+            }
+            Text(PrototypeDateFormatter.time(for: message.sentAt))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
     }
 
+    private var failedDeliveryStatus: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Image(systemName: "exclamationmark.circle.fill")
+
+            Text("Not delivered, hold for options")
+                .multilineTextAlignment(.leading)
+        }
+        .font(.caption)
+        .foregroundStyle(.red)
+        .padding(.leading, PrototypeMessageBubbleShape.cornerRadius)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Not delivered")
+        .accessibilityHint("Touch and hold for options, then choose Retry Send.")
+    }
+
+    @ViewBuilder
+    private var bubbleContent: some View {
+        bubbleBody
+            .padding(.horizontal, hasVisualMedia ? 3 : 13)
+            .padding(.vertical, hasVisualMedia ? 3 : 9)
+            .foregroundStyle(messageColor.foregroundColor)
+            .background(messageColor.color, in: shape)
+    }
+
     private var bubbleBody: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
             if message.isDeleted {
                 Label(deletedText, systemImage: "trash")
                     .font(.subheadline)
@@ -149,6 +181,7 @@ struct PrototypeMessageBubble: View {
                     PrototypeAttachmentCollectionView(
                         attachments: message.attachments,
                         people: people,
+                        tint: messageColor.foregroundColor,
                         onOpenMedia: onOpenMedia,
                         onOpenFile: onOpenFile,
                         onOpenPerson: onOpenPerson
@@ -164,6 +197,8 @@ struct PrototypeMessageBubble: View {
     private var messageText: some View {
         Text(attributedMessageText)
             .textSelection(.enabled)
+            .padding(.horizontal, hasVisualMedia ? 10 : 0)
+            .padding(.bottom, hasVisualMedia ? 7 : 0)
     }
 
     private var attributedMessageText: AttributedString {
@@ -214,9 +249,15 @@ struct PrototypeMessageBubble: View {
                         .lineLimit(2)
                         .opacity(0.75)
                 }
+                Spacer(minLength: 4)
+                replyThumbnail
             }
-            .padding(7)
-            .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 9))
+            .frame(maxWidth: 236, alignment: .leading)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 12))
+            .padding(.horizontal, hasVisualMedia ? 7 : 0)
+            .padding(.top, hasVisualMedia ? 6 : 0)
         }
         .buttonStyle(.plain)
     }
@@ -229,8 +270,57 @@ struct PrototypeMessageBubble: View {
     }
 
     @ViewBuilder
+    private var replyThumbnail: some View {
+        if let attachment = resolvedReply?.attachments.first {
+            switch attachment {
+            case let .photo(_, source, _):
+                PrototypeImageSourceView(source: source)
+                    .scaledToFill()
+                    .frame(width: 38, height: 38)
+                    .clipShape(.rect(cornerRadius: 8))
+            case let .video(_, _, thumbnail, _):
+                ZStack {
+                    PrototypeImageSourceView(source: thumbnail).scaledToFill()
+                    Image(systemName: "play.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .shadow(radius: 1)
+                }
+                .frame(width: 38, height: 38)
+                .clipShape(.rect(cornerRadius: 8))
+            case let .gif(_, assetName, _):
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 38, height: 38)
+                    .clipShape(.rect(cornerRadius: 8))
+            case .file:
+                Image(systemName: "doc.fill")
+                    .frame(width: 38, height: 38)
+                    .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 8))
+            case .voice:
+                Image(systemName: "waveform")
+                    .frame(width: 38, height: 38)
+                    .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 8))
+            case .link:
+                Image(systemName: "link")
+                    .frame(width: 38, height: 38)
+                    .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 8))
+            case .contact:
+                Image(systemName: "person.crop.circle")
+                    .frame(width: 38, height: 38)
+                    .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 8))
+            }
+        }
+    }
+
+    @ViewBuilder
     private var contextMenu: some View {
         if !message.isDeleted {
+            if outgoing, message.deliveryState == .failed {
+                Button("Retry Send", systemImage: "arrow.clockwise", action: onRetry)
+                Divider()
+            }
             Menu("React") {
                 ForEach(PrototypeReaction.supportedEmoji, id: \.self) { emoji in
                     Button(emoji) { onToggleReaction(emoji) }
@@ -271,15 +361,16 @@ struct PrototypeMessageBubble: View {
                                 .font(.caption2.weight(.semibold))
                         }
                     }
-                    .padding(.horizontal, 7)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
                         reaction.personIDs.contains(currentProfileID)
-                            ? Color.accentColor.opacity(0.2)
-                            : Color(uiColor: .systemBackground),
+                            ? Color.accentColor.opacity(0.18)
+                            : Color(uiColor: .secondarySystemBackground),
                         in: .capsule
                     )
-                    .overlay { Capsule().stroke(Color(uiColor: .separator), lineWidth: 0.5) }
+                    .overlay { Capsule().stroke(Color(uiColor: .separator), lineWidth: 0.33) }
+                    .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
                 }
                 .buttonStyle(.plain)
                 .frame(minHeight: 44)
@@ -288,26 +379,37 @@ struct PrototypeMessageBubble: View {
         }
     }
 
-    private var shape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            cornerRadii: .init(
-                topLeading: 18,
-                bottomLeading: outgoing ? 18 : 6,
-                bottomTrailing: outgoing ? 6 : 18,
-                topTrailing: 18
-            ),
-            style: .continuous
-        )
+    private var shape: PrototypeMessageBubbleShape {
+        PrototypeMessageBubbleShape()
     }
 
     private var messageColor: PrototypeMessageColor { outgoing ? outgoingColor : incomingColor }
-    private var isBorderlessSticker: Bool {
-        guard message.replyToMessageID == nil,
-              message.text.isEmpty,
-              message.attachments.count == 1,
-              case .sticker = message.attachments[0]
-        else { return false }
-        return true
+    private var showsVisibleTimestamp: Bool {
+        showsTimestamp && message.deliveryState != .failed
+    }
+    private var showsFailedDeliveryStatus: Bool {
+        message.deliveryState == .failed && outgoing && !message.isDeleted
+    }
+    private var showsReactions: Bool {
+        !message.reactions.isEmpty && !message.isDeleted
+    }
+    private var reactionAlignment: Alignment {
+        outgoing ? .bottomLeading : .bottomTrailing
+    }
+    private var timestampAlignment: Alignment {
+        outgoing ? .bottomLeading : .bottomTrailing
+    }
+    private var hasVisualMedia: Bool {
+        message.attachments.contains { attachment in
+            switch attachment {
+            case .photo, .video, .gif:
+                true
+            case let .link(_, _, _, _, image):
+                image != nil
+            default:
+                false
+            }
+        }
     }
     private var deletedText: String {
         outgoing ? "You deleted this message." : "This message was deleted."
@@ -352,6 +454,7 @@ struct PrototypeMessageBubble: View {
 private struct PrototypeAttachmentCollectionView: View {
     let attachments: [PrototypeAttachment]
     let people: [PrototypePerson]
+    let tint: Color
     let onOpenMedia: ([PrototypeAttachment], Int) -> Void
     let onOpenFile: (URL) -> Void
     let onOpenPerson: (String) -> Void
@@ -378,46 +481,46 @@ private struct PrototypeAttachmentCollectionView: View {
         Group {
             switch PrototypeGalleryLayout(count: media.count) {
             case .one:
-                mediaButton(at: 0, width: 250, height: 250)
+                mediaButton(at: 0, width: 256, height: 246)
             case .two:
-                HStack(spacing: 2) {
-                    mediaButton(at: 0, width: 124, height: 180)
-                    mediaButton(at: 1, width: 124, height: 180)
+                HStack(spacing: 3) {
+                    mediaButton(at: 0, width: 126.5, height: 184)
+                    mediaButton(at: 1, width: 126.5, height: 184)
                 }
             case .three:
-                HStack(spacing: 2) {
-                    mediaButton(at: 0, width: 124, height: 220)
-                    VStack(spacing: 2) {
-                        mediaButton(at: 1, width: 124, height: 109)
-                        mediaButton(at: 2, width: 124, height: 109)
+                HStack(spacing: 3) {
+                    mediaButton(at: 0, width: 126.5, height: 224)
+                    VStack(spacing: 3) {
+                        mediaButton(at: 1, width: 126.5, height: 110.5)
+                        mediaButton(at: 2, width: 126.5, height: 110.5)
                     }
                 }
             case .four:
-                VStack(spacing: 2) {
-                    mediaRow(indices: [0, 1], width: 124, height: 124)
-                    mediaRow(indices: [2, 3], width: 124, height: 124)
+                VStack(spacing: 3) {
+                    mediaRow(indices: [0, 1], width: 126.5, height: 126.5)
+                    mediaRow(indices: [2, 3], width: 126.5, height: 126.5)
                 }
             case .five:
-                VStack(spacing: 2) {
-                    mediaRow(indices: [0, 1], width: 124, height: 124)
-                    mediaRow(indices: [2, 3, 4], width: 82, height: 92)
+                VStack(spacing: 3) {
+                    mediaRow(indices: [0, 1], width: 126.5, height: 126.5)
+                    mediaRow(indices: [2, 3, 4], width: 83.3, height: 94)
                 }
             case .overflow:
-                VStack(spacing: 2) {
-                    mediaRow(indices: [0, 1], width: 124, height: 100)
-                    mediaRow(indices: [2, 3], width: 124, height: 100)
-                    mediaRow(indices: [4, 5], width: 124, height: 100)
+                VStack(spacing: 3) {
+                    mediaRow(indices: [0, 1], width: 126.5, height: 102)
+                    mediaRow(indices: [2, 3], width: 126.5, height: 102)
+                    mediaRow(indices: [4, 5], width: 126.5, height: 102)
                 }
             }
         }
-        .frame(width: 250)
-        .clipShape(.rect(cornerRadius: 12))
+        .frame(width: 256)
+        .clipShape(.rect(cornerRadius: 17))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(media.count) media items")
     }
 
     private func mediaRow(indices: [Int], width: CGFloat, height: CGFloat) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(indices, id: \.self) { index in
                 mediaButton(at: index, width: width, height: height)
             }
@@ -497,35 +600,34 @@ private struct PrototypeAttachmentCollectionView: View {
             }
         case let .gif(_, assetName, label):
             ZStack(alignment: .bottomLeading) {
-                Image(assetName).resizable().scaledToFill().frame(width: 230, height: 180).clipped()
+                Image(assetName).resizable().scaledToFill().frame(width: 256, height: 188).clipped()
                 Label("GIF", systemImage: "play.fill")
                     .font(.caption.bold()).padding(6).background(.black.opacity(0.6), in: .capsule)
                     .foregroundStyle(.white).padding(7)
             }
-            .clipShape(.rect(cornerRadius: 12)).accessibilityLabel("GIF, \(label)")
-        case let .sticker(_, assetName, label):
-            Image(assetName).resizable().scaledToFit().frame(width: 170, height: 170)
-                .accessibilityLabel("Sticker, \(label)")
-        case let .location(_, name, address):
-            VStack(alignment: .leading, spacing: 6) {
-                ZStack {
-                    Color.green.opacity(0.18)
-                    Image(systemName: "map.fill").font(.largeTitle).foregroundStyle(.green)
-                }
-                .frame(width: 230, height: 105).clipShape(.rect(cornerRadius: 10))
-                Text(name).font(.headline)
-                Text(address).font(.caption).foregroundStyle(.secondary)
-            }
+            .clipShape(.rect(cornerRadius: 17))
+            .accessibilityLabel("GIF, \(label)")
         case let .contact(_, personID):
             if let person = people.first(where: { $0.id == personID }) {
                 Button { onOpenPerson(personID) } label: {
-                    HStack {
-                        PrototypeChatAvatarView(avatar: person.avatar)
-                        VStack(alignment: .leading) {
+                    HStack(spacing: 10) {
+                        PrototypeChatAvatarView(
+                            avatar: person.avatar,
+                            size: 38,
+                            publicKey: person.publicKey
+                        )
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(person.name).font(.headline)
-                            Text(person.shortPublicKey).font(.caption).foregroundStyle(.secondary)
+                            Text(person.shortPublicKey).font(.caption).foregroundStyle(tint.opacity(0.72))
                         }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(tint.opacity(0.72))
                     }
+                    .padding(8)
+                    .frame(width: 236)
+                    .background(tint.opacity(0.09), in: .rect(cornerRadius: 13))
                 }
                 .buttonStyle(.plain)
             }
@@ -535,18 +637,23 @@ private struct PrototypeAttachmentCollectionView: View {
     }
 
     private func fileRow(name: String, size: Int, isAvailable: Bool) -> some View {
-        HStack {
-            Image(systemName: "doc").font(.title2)
-            VStack(alignment: .leading) {
+        HStack(spacing: 10) {
+            Image(systemName: fileSymbol(for: name))
+                .font(.title3.weight(.medium))
+                .frame(width: 34, height: 34)
+                .background(tint.opacity(0.1), in: .rect(cornerRadius: 9))
+            VStack(alignment: .leading, spacing: 2) {
                 Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Text(fileMetadata(name: name, size: size))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(tint.opacity(0.72))
             }
             Spacer()
             Image(systemName: isAvailable ? "chevron.right" : "exclamationmark.triangle")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(tint.opacity(0.72))
         }
-        .frame(width: 230)
+        .padding(8)
+        .frame(width: 236)
+        .background(tint.opacity(0.09), in: .rect(cornerRadius: 13))
     }
 
     private func linkPreview(
@@ -555,16 +662,24 @@ private struct PrototypeAttachmentCollectionView: View {
         summary: String,
         image: PrototypeImageSource?
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             if let image {
                 PrototypeImageSourceView(source: image)
-                    .scaledToFill().frame(width: 230, height: 100).clipped()
+                    .scaledToFill().frame(width: 256, height: 124).clipped()
             }
-            Text(title).font(.headline)
-            Text(domain).font(.caption).foregroundStyle(.secondary)
-            Text(summary).font(.subheadline).lineLimit(3)
+            VStack(alignment: .leading, spacing: 4) {
+                Label(domain, systemImage: "link")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(tint.opacity(0.72))
+                    .lineLimit(1)
+                Text(title).font(.headline).lineLimit(2)
+                Text(summary).font(.subheadline).lineLimit(3).opacity(0.78)
+            }
+            .padding(10)
         }
-        .frame(width: 230, alignment: .leading)
+        .frame(width: image == nil ? 236 : 256, alignment: .leading)
+        .background(tint.opacity(0.09), in: .rect(cornerRadius: 14))
+        .clipShape(.rect(cornerRadius: 14))
     }
 
     private func safeLinkDestination(domain: String) -> URL? {
@@ -579,6 +694,16 @@ private struct PrototypeAttachmentCollectionView: View {
         let fileType = URL(fileURLWithPath: name).pathExtension.uppercased()
         let formattedSize = size.formatted(.byteCount(style: .file))
         return fileType.isEmpty ? formattedSize : "\(fileType) • \(formattedSize)"
+    }
+
+    private func fileSymbol(for name: String) -> String {
+        switch URL(fileURLWithPath: name).pathExtension.lowercased() {
+        case "pdf": "doc.richtext"
+        case "doc", "docx", "txt": "doc.text"
+        case "xls", "xlsx": "tablecells"
+        case "zip": "archivebox"
+        default: "doc"
+        }
     }
 }
 

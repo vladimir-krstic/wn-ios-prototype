@@ -460,5 +460,6 @@ working style remains authoritative.
   disables sending but preserves history.
 - The functional composer sends text, links, images, videos, files, replies,
   mentions, and a simulated press-and-hold voice message. Voice uses one
-  bundled locally generated recording and no microphone API. Location,
-  contact, GIF, and sticker remain deterministic showcase renderers.
+  bundled locally generated recording and no microphone API. Contact and GIF
+  remain deterministic showcase renderers. Shared-location and sticker
+  messages are not supported and do not appear in fixtures or catalog coverage.

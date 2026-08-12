@@ -167,17 +167,19 @@ Nora Bennett failed-send fixture remains below the initial viewport.
 
 ## Attachment previews
 
-- Every attachment preview is present in the active Chats scope: Photo, multiple Photos, Video, Voice message, File, Location, Contact, Link, GIF, and Sticker.
+- Every supported attachment preview is present in the active Chats scope:
+  Photo, multiple Photos, Video, Voice message, File, Contact, Link, and GIF.
 - Each uses a baseline-aligned SF Symbol plus concise text in the same regular secondary `subheadline` style as an ordinary message preview.
 - Photos, videos, files, and voice messages also exercise the shared composer.
-  Location, Contact, GIF, and Sticker remain deterministic showcase-only
-  renderers.
+  Contact and GIF remain deterministic showcase-only renderers. Sticker and
+  shared-location messages are unsupported.
 
 ## Avatar provenance
 
-The list mixes 25 locally bundled image avatars, 13 native one-letter
-monograms, and the White Noise Support SF Symbol avatar. The images represent
-fixture identities only; they are not White Noise users. The app performs no
+Every person row and transcript member resolves to the documented bundled
+Unsplash image pool. Group rows may use bundled group artwork or a monogram,
+and White Noise Support uses its SF Symbol avatar. The images represent fixture
+identities only; they are not White Noise users. The app performs no
 runtime fetching.
 The source links in this section preserve asset provenance only. The local
 asset names, uses, transformations, and acceptance criteria are complete; an
@@ -200,7 +202,10 @@ agent does not need to open these sources to implement or evaluate the screen.
 | AvatarDanielKim | Daniel Kim | Ludovic Migneault | [EZ4TYgXPNWk](https://unsplash.com/photos/EZ4TYgXPNWk) |
 | AvatarGardenClub | Garden Club member | alex starnes | [WYE2UhXsU1Y](https://unsplash.com/photos/WYE2UhXsU1Y) |
 
-Fiatjaf uses the approved bundled Figma artwork documented in `conversation-fiatjaf.md`, rather than an Unsplash portrait.
+Within Chats, Fiatjaf and other legacy identities that previously used
+non-Unsplash portraits resolve through the same deterministic Unsplash member
+pool. The approved Fiatjaf artwork remains documented for its original bounded
+story reference but is not used as a conversation-member portrait.
 
 - Retrieval date: 2026-07-24
 - Transformation: Unsplash CDN face crop to a 512-by-512 JPEG, then clipped into a circle at runtime

@@ -10,38 +10,46 @@ and does not depend on those legacy fixtures for coverage.
 Coverage is branch-based rather than a full Cartesian product. Every item
 below has one stable fixture identifier and one intentional home.
 
+Developer catalog chat titles use a regular spaced hyphen. Visible labeled
+fixture messages and row previews use `Scenario ID: Description`; em dashes
+and centered dots are not used for catalog separators.
+
 ## Catalog order
 
-- [ ] **Direct — Text & Delivery** — text styles, clustering, date separators,
-  and delivery states.
-- [ ] **Direct — Replies & Deletion** — reply resolution, navigation, and both
+- [ ] **Direct - Text & Delivery** - text styles, clustering, and delivery
+  states.
+- [ ] **Direct - Dates & Scrolling** - inline day boundaries, sparse-day
+  sequences, long-day sections, and pinned-header handoff.
+- [ ] **Direct - Replies & Deletion** - reply resolution, navigation, and both
   deletion directions.
-- [ ] **Direct — Reactions & Actions** — reaction treatments and every native
+- [ ] **Direct - Reactions & Actions** - reaction treatments and every native
   context-menu capability combination.
-- [ ] **Direct — New Chat & Draft** — direct inception with no sent messages
+- [ ] **Direct - New Chat & Draft** - direct inception with no sent messages
   and a persisted draft.
-- [ ] **Media — Photos & Video** — gallery layouts, captions, video, and media
+- [ ] **Media - Photos & Video** - gallery layouts, captions, video, and media
   unavailability.
-- [ ] **Media — Files & Rich Content** — files, links, GIF, sticker, location,
-  contact, and stacked attachments.
-- [ ] **Voice Messages** — incoming and outgoing playback presentations.
-- [ ] **Group — Messages & Mentions** — group authorship, clusters, mentions,
+- [ ] **Media - Files & Rich Content** - files, links, GIF, contact, and
+  stacked attachments.
+- [ ] **Voice Messages** - incoming and outgoing playback presentations.
+- [ ] **Group - Messages & Mentions** - group authorship, clusters, mentions,
   and cross-author replies.
-- [ ] **Group — Events & Roles** — complete group event history and admin
+- [ ] **Group - Identity Colors** - every stable public-key author color paired
+  with its one-letter no-photo avatar treatment.
+- [ ] **Group - Events & Roles** - complete group event history and admin
   management prerequisites.
-- [ ] **Group — Member Permissions** — ordinary-member information and action
+- [ ] **Group - Member Permissions** - ordinary-member information and action
   boundaries.
-- [ ] **Group — Sole Admin** — protected leave and promotion recovery.
-- [ ] **Direct — Left** — ended direct chat with direct-specific copy.
-- [ ] **Group — Left** — voluntarily ended group membership.
-- [ ] **Group — Removed** — group membership ended by another admin.
-- [ ] **Direct — Blocked** — retained history and unblock recovery.
-- [ ] **Direct — Missing Relays** — retained history and per-chat relay
+- [ ] **Group - Sole Admin** - protected leave and promotion recovery.
+- [ ] **Direct - Left** - ended direct chat with direct-specific copy.
+- [ ] **Group - Left** - voluntarily ended group membership.
+- [ ] **Group - Removed** - group membership ended by another admin.
+- [ ] **Direct - Blocked** - retained history and unblock recovery.
+- [ ] **Direct - Missing Relays** - retained history and per-chat relay
   recovery.
-- [ ] **Direct — Archived** — active chat in Archived scope.
-- [ ] **Support — Timeline Notice** — the special guidance notice.
+- [ ] **Direct - Archived** - active chat in Archived scope.
+- [ ] **Support - Timeline Notice** - the special guidance notice.
 
-Only **Direct — Text & Delivery** starts pinned. Catalog rows remain in this
+Only **Direct - Text & Delivery** starts pinned. Catalog rows remain in this
 order; retained story chats are unpinned and follow the catalog.
 
 ## Scenario matrix
@@ -54,70 +62,73 @@ coverage, but have not yet been accepted in a simulator pass.
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `TXT-01` | Direct — Text & Delivery | `TXT-01` | Incoming short text | React, Reply, Copy, Share | Implemented; review pending |
-| [ ] | `TXT-02` | Direct — Text & Delivery | `TXT-02` | Outgoing short text | React, Reply, Copy, Share, Delete | Implemented; review pending |
-| [ ] | `TXT-03`–`TXT-05` | Direct — Text & Delivery | same IDs | Same-author cluster start, middle, end | Standard message actions | Implemented; review pending |
-| [ ] | `TXT-06` | Direct — Text & Delivery | `TXT-06` | Multiline text | Standard message actions | Implemented; review pending |
-| [ ] | `TXT-07` | Direct — Text & Delivery | `TXT-07` | Long wrapping text | Standard message actions | Implemented; review pending |
-| [ ] | `TXT-08` | Direct — Text & Delivery | `TXT-08` | Emoji-only text | Standard message actions | Implemented; review pending |
-| [ ] | `TXT-09` | Direct — Text & Delivery | `TXT-09` | Markdown emphasis and inline link | Open link; standard actions | Implemented; review pending |
-| [ ] | `TXT-10` | Direct — Text & Delivery | `TXT-10` | Raw URL | Open URL; standard actions | Implemented; review pending |
-| [ ] | `DLV-01` | Direct — Text & Delivery | `DLV-01` | Sending outgoing state | Standard outgoing actions | Implemented; review pending |
-| [ ] | `DLV-02` | Direct — Text & Delivery | `DLV-02` | Sent outgoing state | Standard outgoing actions | Implemented; review pending |
-| [ ] | `DLV-03` | Direct — Text & Delivery | `DLV-03` | Failed outgoing state | Retry; standard outgoing actions | Implemented; review pending |
-| [ ] | `DATE-01` | Direct — Text & Delivery | `CLUSTER-03` | Today separator | None | Implemented; review pending |
-| [ ] | `DATE-02` | Direct — Text & Delivery | `TXT-06` | Yesterday separator | None | Implemented; review pending |
-| [ ] | `DATE-03` | Direct — Text & Delivery | `TXT-03` | Weekday separator | None | Implemented; review pending |
-| [ ] | `DATE-04` | Direct — Text & Delivery | `TXT-02` | Same-year full date | None | Implemented; review pending |
-| [ ] | `DATE-05` | Direct — Text & Delivery | `TXT-01` | Prior-year full date | None | Implemented; review pending |
-| [ ] | `CLUSTER-01` | Direct — Text & Delivery | `CLUSTER-01` | Author change starts a cluster | None | Implemented; review pending |
-| [ ] | `CLUSTER-02` | Direct — Text & Delivery | `CLUSTER-02` | More than five minutes starts a cluster | None | Implemented; review pending |
-| [ ] | `CLUSTER-03` | Direct — Text & Delivery | `CLUSTER-03` | New day starts a cluster | None | Implemented; review pending |
+| [ ] | `TXT-01` | Direct - Text & Delivery | `TXT-01` | Incoming short text | React, Reply, Copy, Share | Implemented; review pending |
+| [ ] | `TXT-02` | Direct - Text & Delivery | `TXT-02` | Outgoing short text | React, Reply, Copy, Share, Delete | Implemented; review pending |
+| [ ] | `TXT-03`–`TXT-05` | Direct - Text & Delivery | same IDs | Same-author cluster start, middle, end | Standard message actions | Implemented; review pending |
+| [ ] | `TXT-06` | Direct - Text & Delivery | `TXT-06` | Multiline text | Standard message actions | Implemented; review pending |
+| [ ] | `TXT-07` | Direct - Text & Delivery | `TXT-07` | Long wrapping text | Standard message actions | Implemented; review pending |
+| [ ] | `TXT-08` | Direct - Text & Delivery | `TXT-08` | Emoji-only text | Standard message actions | Implemented; review pending |
+| [ ] | `TXT-09` | Direct - Text & Delivery | `TXT-09` | Markdown emphasis and inline link | Open link; standard actions | Implemented; review pending |
+| [ ] | `TXT-10` | Direct - Text & Delivery | `TXT-10` | Raw URL | Open URL; standard actions | Implemented; review pending |
+| [ ] | `DLV-01` | Direct - Text & Delivery | `DLV-01` | Sending outgoing state | Standard outgoing actions | Implemented; review pending |
+| [ ] | `DLV-02` | Direct - Text & Delivery | `DLV-02` | Sent outgoing state | Standard outgoing actions | Implemented; review pending |
+| [ ] | `DLV-03` | Direct - Text & Delivery | `DLV-03` | Red **Not delivered, hold for options** status, left-aligned like the outgoing timestamp at the bubble's inner corner inset; no timestamp | Touch and hold → Retry Send; standard outgoing actions | Implemented; review pending |
+| [ ] | `CLUSTER-01` | Direct - Text & Delivery | `CLUSTER-01` | Author change starts a cluster | None | Implemented; review pending |
+| [ ] | `CLUSTER-02` | Direct - Text & Delivery | `CLUSTER-02` | More than five minutes starts a cluster | None | Implemented; review pending |
+| [ ] | `CLUSTER-03` | Direct - Text & Delivery | `CLUSTER-03` | New day starts a cluster | None | Implemented; review pending |
+
+### Dates and scrolling
+
+| Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
+| --- | --- | --- | --- | --- | --- | --- |
+| [ ] | `DATE-01` | Direct - Dates & Scrolling | `DATE-01` | A date at least six calendar months old uses a locale-aware medium date including the year | None | Implemented; review pending |
+| [ ] | `DATE-02` | Direct - Dates & Scrolling | `DATE-02` | A recent date older than Yesterday uses locale-aware abbreviated weekday, month, and day | None | Implemented; review pending |
+| [ ] | `DATE-03`–`DATE-07` | Direct - Dates & Scrolling | same IDs | Consecutive one-message days allow multiple inline date headers to remain visible together | Scroll | Implemented; review pending |
+| [ ] | `DATE-08`–`DATE-15` | Direct - Dates & Scrolling | same IDs | A long Today section spans more than one viewport and keeps Today pinned after its inline header scrolls away | Scroll | Implemented; review pending |
+| [ ] | `DATE-PIN-01` | Direct - Dates & Scrolling | `DATE-03`–`DATE-07` | The most recent header above the viewport is the only pinned regular-glass pill while later date headers remain inline | Scroll | Implemented; review pending |
+| [ ] | `DATE-PIN-02` | Direct - Dates & Scrolling | `DATE-07`–`DATE-08` | The approaching next header pushes out and replaces the pinned header at the top | Scroll | Implemented; review pending |
 
 ### Replies, deletion, reactions, and message actions
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `RPL-01` | Direct — Replies & Deletion | `RPL-01` → `RPL-01-source` | Outgoing reply to incoming text | Tap quote to highlight source | Implemented; review pending |
-| [ ] | `RPL-02` | Direct — Replies & Deletion | `RPL-02` → `RPL-02-source` | Incoming reply to outgoing attachment | Tap quote to highlight source | Implemented; review pending |
-| [ ] | `RPL-03` | Direct — Replies & Deletion | `RPL-03` → `DEL-02` | Deleted target says **Message deleted** | Tap quote to highlight deleted source | Implemented; review pending |
-| [ ] | `RPL-04` | Direct — Replies & Deletion | `RPL-04` → `RPL-missing` | Missing target says **Message unavailable** | No target navigation | Implemented; review pending |
-| [ ] | `DEL-01` | Direct — Replies & Deletion | `DEL-01-caption`, `DEL-01` | **You deleted this message.** | No context menu | Implemented; review pending |
-| [ ] | `DEL-02` | Direct — Replies & Deletion | `DEL-02-caption`, `DEL-02` | **This message was deleted.** | No context menu | Implemented; review pending |
-| [ ] | `RCT-01` | Direct — Reactions & Actions | `RCT-01` | One reaction from another person; no count | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-02` | Direct — Reactions & Actions | `RCT-02` | Current-profile reaction; selected treatment | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-03` | Direct — Reactions & Actions | `RCT-03` | Count >1 without current profile | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-04` | Direct — Reactions & Actions | `RCT-04` | Count >1 including current profile | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-05` | Direct — Reactions & Actions | `RCT-05` | Multiple chips | Toggle each chip | Implemented; review pending |
-| [ ] | `RCT-06`–`RCT-12` | Direct — Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented | React submenu | Implemented; review pending |
-| [ ] | `ACT-01` | Direct — Reactions & Actions | `ACT-01` | Incoming text excludes Delete | Long press | Implemented; review pending |
-| [ ] | `ACT-02` | Direct — Reactions & Actions | `ACT-02` | Outgoing text includes Delete | Long press; confirm Delete | Implemented; review pending |
-| [ ] | `ACT-03` | Direct — Reactions & Actions | `ACT-03-caption`, `ACT-03` | Incoming attachment-only excludes Copy/Delete | Long press | Implemented; review pending |
-| [ ] | `ACT-04` | Direct — Reactions & Actions | `ACT-04-caption`, `ACT-04` | Outgoing attachment-only includes Delete, not Copy | Long press | Implemented; review pending |
-| [ ] | `ACT-05` | Direct — Reactions & Actions | `ACT-05-caption`, `ACT-05` | Available file shares its file URL | Long press; Share | Implemented; review pending |
+| [ ] | `RPL-01` | Direct - Replies & Deletion | `RPL-01` → `RPL-01-source` | Outgoing reply to incoming text | Tap quote to highlight source | Implemented; review pending |
+| [ ] | `RPL-02` | Direct - Replies & Deletion | `RPL-02` → `RPL-02-source` | Incoming reply to outgoing attachment | Tap quote to highlight source | Implemented; review pending |
+| [ ] | `RPL-03` | Direct - Replies & Deletion | `RPL-03` → `DEL-02` | Deleted target says **Message deleted** | Tap quote to highlight deleted source | Implemented; review pending |
+| [ ] | `RPL-04` | Direct - Replies & Deletion | `RPL-04` → `RPL-missing` | Missing target says **Message unavailable** | No target navigation | Implemented; review pending |
+| [ ] | `DEL-01` | Direct - Replies & Deletion | `DEL-01-caption`, `DEL-01` | **You deleted this message.** | No context menu | Implemented; review pending |
+| [ ] | `DEL-02` | Direct - Replies & Deletion | `DEL-02-caption`, `DEL-02` | **This message was deleted.** | No context menu | Implemented; review pending |
+| [ ] | `RCT-01` | Direct - Reactions & Actions | `RCT-01` | One reaction from another person; no count | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-02` | Direct - Reactions & Actions | `RCT-02` | Current-profile reaction; selected treatment | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-03` | Direct - Reactions & Actions | `RCT-03` | Count >1 without current profile | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-04` | Direct - Reactions & Actions | `RCT-04` | Count >1 including current profile | Toggle chip | Implemented; review pending |
+| [ ] | `RCT-05` | Direct - Reactions & Actions | `RCT-05` | Multiple chips | Toggle each chip | Implemented; review pending |
+| [ ] | `RCT-06`–`RCT-12` | Direct - Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented | React submenu | Implemented; review pending |
+| [ ] | `ACT-01` | Direct - Reactions & Actions | `ACT-01` | Incoming text excludes Delete | Long press | Implemented; review pending |
+| [ ] | `ACT-02` | Direct - Reactions & Actions | `ACT-02` | Outgoing text includes Delete | Long press; confirm Delete | Implemented; review pending |
+| [ ] | `ACT-03` | Direct - Reactions & Actions | `ACT-03-caption`, `ACT-03` | Incoming attachment-only excludes Copy/Delete | Long press | Implemented; review pending |
+| [ ] | `ACT-04` | Direct - Reactions & Actions | `ACT-04-caption`, `ACT-04` | Outgoing attachment-only includes Delete, not Copy | Long press | Implemented; review pending |
+| [ ] | `ACT-05` | Direct - Reactions & Actions | `ACT-05-caption`, `ACT-05` | Available file shares its file URL | Long press; Share | Implemented; review pending |
 
 ### Media, files, rich content, and voice
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `MED-01`–`MED-02` | Media — Photos & Video | captions + same IDs | Incoming/outgoing photo-only bubbles | Open media | Implemented; review pending |
-| [ ] | `MED-03` | Media — Photos & Video | `MED-03` | Photo with caption | Open media; text actions | Implemented; review pending |
-| [ ] | `MED-04`–`MED-09` | Media — Photos & Video | same IDs | Galleries of 2–7; 7 shows overflow | Open selected page | Implemented; review pending |
-| [ ] | `MED-10` | Media — Photos & Video | `MED-10` | Mixed photo/video grid | Open media viewer | Implemented; review pending |
-| [ ] | `MED-11` | Media — Photos & Video | `MED-11` | Available video with duration | Play/pause | Implemented; review pending |
-| [ ] | `MED-12` | Media — Photos & Video | `MED-12` | Video without playable URL | Unavailable presentation | Implemented; review pending |
-| [ ] | `MED-13` | Media — Photos & Video | `MED-13` | Invalid image data | Unavailable image presentation | Implemented; review pending |
-| [ ] | `FILE-01`–`FILE-05` | Media — Files & Rich Content | same IDs | Available PDF, DOCX, XLSX, ZIP, TXT rows | Open preview | Implemented; review pending |
-| [ ] | `FILE-06` | Media — Files & Rich Content | `FILE-06` | Unavailable file | No preview; unavailable value | Implemented; review pending |
-| [ ] | `LINK-01` | Media — Files & Rich Content | `LINK-01` | Link preview with image | Open link | Implemented; review pending |
-| [ ] | `LINK-02` | Media — Files & Rich Content | `LINK-02` | Link preview without image | Open link | Implemented; review pending |
-| [ ] | `LINK-03` | Media — Files & Rich Content | `LINK-03` | Invalid destination | No open action; unavailable value | Implemented; review pending |
-| [ ] | `RICH-01` | Media — Files & Rich Content | `RICH-01` | GIF | Standard message actions | Implemented; review pending |
-| [ ] | `RICH-02` | Media — Files & Rich Content | `RICH-02-caption`, `RICH-02` | Borderless sticker-only | Attachment-only actions | Implemented; review pending |
-| [ ] | `RICH-03` | Media — Files & Rich Content | `RICH-03` | Sticker with text in bubble | Text and attachment actions | Implemented; review pending |
-| [ ] | `RICH-04` | Media — Files & Rich Content | `RICH-04` | Location | Attachment actions | Implemented; review pending |
-| [ ] | `RICH-05` | Media — Files & Rich Content | `RICH-05` | Valid contact | Open profile | Implemented; review pending |
-| [ ] | `RICH-06` | Media — Files & Rich Content | `RICH-06` | Stacked nonmedia attachments | Attachment actions | Implemented; review pending |
+| [ ] | `MED-01`–`MED-02` | Media - Photos & Video | captions + same IDs | Incoming/outgoing photo-only bubbles | Open media | Implemented; review pending |
+| [ ] | `MED-03` | Media - Photos & Video | `MED-03` | Photo with caption | Open media; text actions | Implemented; review pending |
+| [ ] | `MED-04`–`MED-09` | Media - Photos & Video | same IDs | Galleries of 2–7; 7 shows overflow | Open selected page | Implemented; review pending |
+| [ ] | `MED-10` | Media - Photos & Video | `MED-10` | Mixed photo/video grid | Open media viewer | Implemented; review pending |
+| [ ] | `MED-11` | Media - Photos & Video | `MED-11` | Available video with duration | Play/pause | Implemented; review pending |
+| [ ] | `MED-12` | Media - Photos & Video | `MED-12` | Video without playable URL | Unavailable presentation | Implemented; review pending |
+| [ ] | `MED-13` | Media - Photos & Video | `MED-13` | Invalid image data | Unavailable image presentation | Implemented; review pending |
+| [ ] | `FILE-01`–`FILE-05` | Media - Files & Rich Content | same IDs | Available PDF, DOCX, XLSX, ZIP, TXT rows | Open preview | Implemented; review pending |
+| [ ] | `FILE-06` | Media - Files & Rich Content | `FILE-06` | Unavailable file | No preview; unavailable value | Implemented; review pending |
+| [ ] | `LINK-01` | Media - Files & Rich Content | `LINK-01` | Link preview with image | Open link | Implemented; review pending |
+| [ ] | `LINK-02` | Media - Files & Rich Content | `LINK-02` | Link preview without image | Open link | Implemented; review pending |
+| [ ] | `LINK-03` | Media - Files & Rich Content | `LINK-03` | Invalid destination | No open action; unavailable value | Implemented; review pending |
+| [ ] | `RICH-01` | Media - Files & Rich Content | `RICH-01` | GIF | Standard message actions | Implemented; review pending |
+| [ ] | `RICH-05` | Media - Files & Rich Content | `RICH-05` | Valid contact | Open profile | Implemented; review pending |
+| [ ] | `RICH-06` | Media - Files & Rich Content | `RICH-06` | Stacked nonmedia attachments | Attachment actions | Implemented; review pending |
 | [ ] | `VOICE-01` | Voice Messages | `VOICE-01-caption`, `VOICE-01` | Incoming short voice bubble | Play/pause, progress | Implemented; review pending |
 | [ ] | `VOICE-02` | Voice Messages | `VOICE-02-caption`, `VOICE-02` | Outgoing short voice bubble | Play/pause, progress | Implemented; review pending |
 | [ ] | `VOICE-03` | Voice Messages | `VOICE-03-caption`, `VOICE-03` | Duration over one minute | Play/pause, elapsed/remaining | Implemented; review pending |
@@ -127,56 +138,57 @@ coverage, but have not yet been accepted in a simulator pass.
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `GRP-01`–`GRP-05` | Group — Messages & Mentions | same IDs | Avatars/names, clusters, author switch, outgoing interruption, time/day breaks | Standard message actions | Implemented; review pending |
-| [ ] | `MENTION-01` | Group — Messages & Mentions | `MENTION-01` | Mention current profile | Open profile | Implemented; review pending |
-| [ ] | `MENTION-02` | Group — Messages & Mentions | `MENTION-02` | Mention another member | Open profile | Implemented; review pending |
-| [ ] | `MENTION-03` | Group — Messages & Mentions | `MENTION-03` | Multiple valid mentions | Open either profile | Implemented; review pending |
-| [ ] | `MENTION-04` | Group — Messages & Mentions | `MENTION-04` | Unmatched `@` remains plain | Standard text actions | Implemented; review pending |
-| [ ] | `GRP-RPL-01`–`GRP-RPL-02` | Group — Messages & Mentions | same IDs + source | Cross-author replies | Tap quote to highlight source | Implemented; review pending |
-| [ ] | `EVT-01` | Group — Events & Roles | `EVT-01` | You created the group | None | Implemented; review pending |
-| [ ] | `EVT-02` | Group — Messages & Mentions | `EVT-02` | Maya created the group | None | Implemented; review pending |
-| [ ] | `EVT-03` | Group — Events & Roles | `EVT-03` | You added one person | None | Implemented; review pending |
-| [ ] | `EVT-04` | Group — Member Permissions | `EVT-04-member` | Maya added you and another person | None | Implemented; review pending |
-| [ ] | `EVT-05` | Group — Events & Roles | `EVT-05` | Another member joined | None | Implemented; review pending |
-| [ ] | `EVT-06` | Group — Messages & Mentions | `EVT-06` | You joined the group | None | Implemented; review pending |
-| [ ] | `EVT-07` | Group — Events & Roles | `EVT-07` | Another member left | None | Implemented; review pending |
-| [ ] | `EVT-08` | Group — Events & Roles | `EVT-08` | You removed a member | None | Implemented; review pending |
-| [ ] | `EVT-09` | Group — Events & Roles | `EVT-09` | Another admin removed another member | None | Implemented; review pending |
-| [ ] | `EVT-10` | Group — Removed | `EVT-10` | Maya removed You | Delete ended group | Implemented; review pending |
-| [ ] | `EVT-11` | Group — Events & Roles | `EVT-11` | You made another member admin | None | Implemented; review pending |
-| [ ] | `EVT-12` | Group — Events & Roles | `EVT-12` | Another admin made you admin | None | Implemented; review pending |
-| [ ] | `EVT-13` | Group — Events & Roles | `EVT-13` | You removed another admin | None | Implemented; review pending |
-| [ ] | `EVT-14` | Group — Events & Roles | `EVT-14` | Another admin removed you as admin | None | Implemented; review pending |
-| [ ] | `EVT-15` | Group — Events & Roles | `EVT-15` | Group name changed | None | Implemented; review pending |
-| [ ] | `EVT-16` | Group — Events & Roles | `EVT-16` | Group photo changed | None | Implemented; review pending |
-| [ ] | `EVT-17` | Group — Events & Roles | `EVT-17` | Group photo removed | None | Implemented; review pending |
-| [ ] | `EVT-18` | Group — Events & Roles | `EVT-18` | Description changed | None | Implemented; review pending |
-| [ ] | `EVT-19` | Group — Events & Roles | `EVT-19` | Description removed | None | Implemented; review pending |
-| [ ] | `EVT-20`–`EVT-23` | Group — Events & Roles | same IDs | Disappearing messages: 1 Day, 1 Week, 4 Weeks, Off | Change setting | Implemented; review pending |
-| [ ] | `ROLE-01` | Group — Events & Roles | `ROLE-01` + admin roster state | All management controls visible | Native group-info actions | Implemented; review pending |
-| [ ] | `ROLE-02` | Group — Member Permissions | `ROLE-02` + member roster state | Admin controls hidden; member controls remain | Native group-info actions | Implemented; review pending |
-| [ ] | `ROLE-03` | Group — Sole Admin | `ROLE-03` + sole-admin roster state | Leave blocked until promotion | Alert, Promote, Leave | Implemented; review pending |
+| [ ] | `GRP-01`–`GRP-05` | Group - Messages & Mentions | same IDs | Avatars/names, clusters, author switch, outgoing interruption, time/day breaks | Standard message actions | Implemented; review pending |
+| [ ] | `MENTION-01` | Group - Messages & Mentions | `MENTION-01` | Mention current profile | Open profile | Implemented; review pending |
+| [ ] | `MENTION-02` | Group - Messages & Mentions | `MENTION-02` | Mention another member | Open profile | Implemented; review pending |
+| [ ] | `MENTION-03` | Group - Messages & Mentions | `MENTION-03` | Multiple valid mentions | Open either profile | Implemented; review pending |
+| [ ] | `MENTION-04` | Group - Messages & Mentions | `MENTION-04` | Unmatched `@` remains plain | Standard text actions | Implemented; review pending |
+| [ ] | `GRP-RPL-01`–`GRP-RPL-02` | Group - Messages & Mentions | same IDs + source | Cross-author replies | Tap quote to highlight source | Implemented; review pending |
+| [ ] | `COLOR-01`–`COLOR-09` | Group - Identity Colors | same IDs | All nine stable public-key identity colors; each example pairs the author-name color with its adaptive one-letter, white-monogram avatar surface | Open each profile | Implemented; review pending |
+| [ ] | `EVT-01` | Group - Events & Roles | `EVT-01` | You created the group | None | Implemented; review pending |
+| [ ] | `EVT-02` | Group - Messages & Mentions | `EVT-02` | Maya created the group | None | Implemented; review pending |
+| [ ] | `EVT-03` | Group - Events & Roles | `EVT-03` | You added one person | None | Implemented; review pending |
+| [ ] | `EVT-04` | Group - Member Permissions | `EVT-04-member` | Maya added you and another person | None | Implemented; review pending |
+| [ ] | `EVT-05` | Group - Events & Roles | `EVT-05` | Another member joined | None | Implemented; review pending |
+| [ ] | `EVT-06` | Group - Messages & Mentions | `EVT-06` | You joined the group | None | Implemented; review pending |
+| [ ] | `EVT-07` | Group - Events & Roles | `EVT-07` | Another member left | None | Implemented; review pending |
+| [ ] | `EVT-08` | Group - Events & Roles | `EVT-08` | You removed a member | None | Implemented; review pending |
+| [ ] | `EVT-09` | Group - Events & Roles | `EVT-09` | Another admin removed another member | None | Implemented; review pending |
+| [ ] | `EVT-10` | Group - Removed | `EVT-10` | Maya removed You | Delete ended group | Implemented; review pending |
+| [ ] | `EVT-11` | Group - Events & Roles | `EVT-11` | You made another member admin | None | Implemented; review pending |
+| [ ] | `EVT-12` | Group - Events & Roles | `EVT-12` | Another admin made you admin | None | Implemented; review pending |
+| [ ] | `EVT-13` | Group - Events & Roles | `EVT-13` | You removed another admin | None | Implemented; review pending |
+| [ ] | `EVT-14` | Group - Events & Roles | `EVT-14` | Another admin removed you as admin | None | Implemented; review pending |
+| [ ] | `EVT-15` | Group - Events & Roles | `EVT-15` | Group name changed | None | Implemented; review pending |
+| [ ] | `EVT-16` | Group - Events & Roles | `EVT-16` | Group photo changed | None | Implemented; review pending |
+| [ ] | `EVT-17` | Group - Events & Roles | `EVT-17` | Group photo removed | None | Implemented; review pending |
+| [ ] | `EVT-18` | Group - Events & Roles | `EVT-18` | Description changed | None | Implemented; review pending |
+| [ ] | `EVT-19` | Group - Events & Roles | `EVT-19` | Description removed | None | Implemented; review pending |
+| [ ] | `EVT-20`–`EVT-23` | Group - Events & Roles | same IDs | Disappearing messages: 1 Day, 1 Week, 4 Weeks, Off | Change setting | Implemented; review pending |
+| [ ] | `ROLE-01` | Group - Events & Roles | `ROLE-01` + admin roster state | All management controls visible | Native group-info actions | Implemented; review pending |
+| [ ] | `ROLE-02` | Group - Member Permissions | `ROLE-02` + member roster state | Admin controls hidden; member controls remain | Native group-info actions | Implemented; review pending |
+| [ ] | `ROLE-03` | Group - Sole Admin | `ROLE-03` + sole-admin roster state | Leave blocked until promotion | Alert, Promote, Leave | Implemented; review pending |
 
 ### Ended, recovery, and list states
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `STATE-01` | Direct — New Chat & Draft | `STATE-01`, draft row | Inception event, no messages, prefilled draft; clearing restores new-chat state | Edit/clear draft | Implemented; review pending |
-| [ ] | `STATE-02` | Direct — Left | `STATE-02-message`, `STATE-02` | History ends **You left the chat.**; chat-specific read-only copy | Delete ended chat | Implemented; review pending |
-| [ ] | `STATE-03` | Group — Left | `STATE-03-message`, `STATE-03` | History ends **You left the group.**; profile absent from roster | Delete ended group | Implemented; review pending |
-| [ ] | `STATE-04` | Group — Removed | `STATE-04-message`, `EVT-10` | History ends **Maya Chen removed you from the group.** | Delete ended group | Implemented; review pending |
-| [ ] | `STATE-05` | Direct — Blocked | `STATE-05` | History retained; composer says **Unblock to Send Messages** | Unblock | Implemented; review pending |
-| [ ] | `STATE-06` | Direct — Missing Relays | `STATE-06` | Empty chat relays; history retained | Check Chat Relays; restore/add relay | Implemented; review pending |
-| [ ] | `STATE-07` | Direct — Archived | `STATE-07` | Active chat in Archived scope | Unarchive | Implemented; review pending |
-| [ ] | `STATE-08` | Support — Timeline Notice | `STATE-08` notice | Guidance notice renders distinctly and is excluded from row activity | Standard support composer | Implemented; review pending |
-| [ ] | `LIST-01` | Direct — Text & Delivery | row `catalog-direct-text` | Pinned | Unpin | Implemented; review pending |
-| [ ] | `LIST-02` | Direct — Replies & Deletion | row `catalog-direct-replies` | Unread count | Read | Implemented; review pending |
-| [ ] | `LIST-03` | Direct — Reactions & Actions | row `catalog-direct-reactions` | Marked unread | Read | Implemented; review pending |
-| [ ] | `LIST-04` | Media — Photos & Video | row `catalog-media-photo-video` | Muted | Unmute | Implemented; review pending |
-| [ ] | `LIST-05` | Direct — New Chat & Draft | row `catalog-direct-new-draft` | Draft preview | Open/edit draft | Implemented; review pending |
-| [ ] | `LIST-06` | Direct — Text & Delivery | row `catalog-direct-text` | Failed delivery indicator | Retry | Implemented; review pending |
-| [ ] | `LIST-07` | Direct — Archived | row `catalog-direct-archived` | Archived | Unarchive | Implemented; review pending |
-| [ ] | `LIST-08` | Direct/Group — Left/Removed | four ended rows | Left scope and ended-membership copy | Delete | Implemented; review pending |
+| [ ] | `STATE-01` | Direct - New Chat & Draft | `STATE-01`, draft row | Inception event, no messages, prefilled draft; clearing restores new-chat state | Edit/clear draft | Implemented; review pending |
+| [ ] | `STATE-02` | Direct - Left | `STATE-02-message`, `STATE-02` | History ends **You left the chat.**; chat-specific read-only copy | Delete ended chat | Implemented; review pending |
+| [ ] | `STATE-03` | Group - Left | `STATE-03-message`, `STATE-03` | History ends **You left the group.**; profile absent from roster | Delete ended group | Implemented; review pending |
+| [ ] | `STATE-04` | Group - Removed | `STATE-04-message`, `EVT-10` | History ends **Maya Chen removed you from the group.** | Delete ended group | Implemented; review pending |
+| [ ] | `STATE-05` | Direct - Blocked | `STATE-05` | History retained; composer says **Unblock to Send Messages** | Unblock | Implemented; review pending |
+| [ ] | `STATE-06` | Direct - Missing Relays | `STATE-06` | Empty chat relays; history retained | Check Chat Relays; restore/add relay | Implemented; review pending |
+| [ ] | `STATE-07` | Direct - Archived | `STATE-07` | Active chat in Archived scope | Unarchive | Implemented; review pending |
+| [ ] | `STATE-08` | Support - Timeline Notice | `STATE-08` notice | Guidance notice renders distinctly and is excluded from row activity | Standard support composer | Implemented; review pending |
+| [ ] | `LIST-01` | Direct - Text & Delivery | row `catalog-direct-text` | Pinned | Unpin | Implemented; review pending |
+| [ ] | `LIST-02` | Direct - Replies & Deletion | row `catalog-direct-replies` | Unread count | Read | Implemented; review pending |
+| [ ] | `LIST-03` | Direct - Reactions & Actions | row `catalog-direct-reactions` | Marked unread | Read | Implemented; review pending |
+| [ ] | `LIST-04` | Media - Photos & Video | row `catalog-media-photo-video` | Muted | Unmute | Implemented; review pending |
+| [ ] | `LIST-05` | Direct - New Chat & Draft | row `catalog-direct-new-draft` | Draft preview | Open/edit draft | Implemented; review pending |
+| [ ] | `LIST-06` | Direct - Text & Delivery | row `catalog-direct-text` | Failed delivery indicator | Retry | Implemented; review pending |
+| [ ] | `LIST-07` | Direct - Archived | row `catalog-direct-archived` | Archived | Unarchive | Implemented; review pending |
+| [ ] | `LIST-08` | Direct/Group - Left/Removed | four ended rows | Left scope and ended-membership copy | Delete | Implemented; review pending |
 
 Textless targets use a preceding caption message containing the scenario ID;
 the target remains structurally authentic. Malformed references without an
@@ -186,7 +198,9 @@ intentional product fallback are outside catalog scope.
 
 - Message actions remain the native SwiftUI context menu: React, Reply, Copy
   when text exists, Share, and Delete only for outgoing messages.
-- Deleted messages have no context menu. Failed outgoing messages expose Retry.
+- Deleted messages have no context menu. Failed outgoing messages replace the
+  timestamp with **Not delivered, hold for options** and expose **Retry Send**
+  through the native context menu.
 - Chat list actions remain the native UIKit swipe actions: Read/Unread,
   Pin/Unpin, Archive/Unarchive, Mute/Unmute, Leave, and Delete where permitted.
 - Mute values remain **1 Hour**, **8 Hours**, **1 Day**, **1 Week**, and
@@ -205,7 +219,7 @@ intentional product fallback are outside catalog scope.
 | [ ] | `MSG-ACT-03` | `ACT-01`, `ACT-02` | Copy appears only when text exists | Implemented; review pending |
 | [ ] | `MSG-ACT-04` | `ACT-01`–`ACT-05` | Share uses text/attachment labels, except a single available file shares its URL | Implemented; review pending |
 | [ ] | `MSG-ACT-05` | `ACT-02`, `ACT-04` | Delete appears only for outgoing nondeleted messages and requires confirmation | Implemented; review pending |
-| [ ] | `MSG-ACT-06` | `DLV-03` | Retry changes failed delivery to sent | Implemented; review pending |
+| [ ] | `MSG-ACT-06` | `DLV-03` | Touch and hold exposes Retry Send; retry changes failed delivery to sent | Implemented; review pending |
 | [ ] | `MSG-ACT-07` | `RPL-01`–`RPL-03` | Quote tap scrolls to and temporarily highlights the target | Implemented; review pending |
 | [ ] | `MSG-ACT-08` | `MENTION-01`–`MENTION-03` | Mention tap opens the matching profile | Implemented; review pending |
 | [ ] | `MSG-ACT-09` | `MED-01`–`MED-10` | Media opens at the tapped gallery index and pages within that message | Implemented; review pending |

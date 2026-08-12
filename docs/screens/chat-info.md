@@ -35,7 +35,7 @@ management remain in **User Profile**.
 - **Photos & Videos** uses a plain scrolling, edge-to-edge three-column grid
   rather than a grouped `List` row. Photos and videos occupy square cells with
   no rounded outer container corners regardless of their source aspect ratio;
-  GIFs and stickers do not appear in this category. Opening a cell presents
+  GIFs do not appear in this category. Opening a cell presents
   that selected item and permits horizontal swiping through the other photos
   and videos in the chat. The viewer does not expose page dots or a page
   counter because the collection can be large. Each grid occurrence owns a
@@ -183,7 +183,7 @@ position and total.
   title, domain, summary, and artwork rather than fetching remote metadata.
   Document rows and message surfaces use the outline document symbol.
 - Chat Info contains no custom category selector or horizontal pager.
-- Photos, videos, GIFs, and stickers render as consistent square grid cells.
+- Photos and videos render as consistent square grid cells.
   Opening one item does not create pagination across the full chat history;
   sender, sent date, Share, Forward, Save, and Go to Message remain available.
 - Share and Forward retain equal regular glass controls and no longer read
