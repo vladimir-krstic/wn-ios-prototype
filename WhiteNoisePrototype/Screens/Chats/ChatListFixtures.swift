@@ -89,7 +89,7 @@ enum ChatListFixtures {
         catalogItem(
             id: "catalog-media-rich",
             title: "Media - Files & Rich Content",
-            preview: "RICH-06: Stacked attachments"
+            preview: "RICH-05: Valid contact"
         ),
         catalogItem(
             id: "catalog-voice",

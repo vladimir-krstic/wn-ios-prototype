@@ -240,7 +240,15 @@ struct PrototypeChatModelTests {
         #expect(Set(fileNames).isSuperset(of: [
             "Project Brief.pdf", "Review Notes.docx", "Budget.xlsx", "Assets.zip", "Read Me.txt",
         ]))
-        #expect(messages.contains { $0.id == "RICH-06" && $0.attachments.count > 1 })
+        #expect(messages.contains { message in
+            guard message.id == "RICH-05", message.attachments.count == 1 else {
+                return false
+            }
+            if case .contact = message.attachments[0] {
+                return true
+            }
+            return false
+        })
         #expect(messages.contains { $0.replyToMessageID == "RPL-missing" })
         #expect(messages.contains { $0.deletionState == .deletedByCurrentProfile })
         #expect(messages.contains { $0.deletionState == .deletedByOther })

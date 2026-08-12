@@ -32,8 +32,8 @@ and centered dots are not used for catalog separators.
   captions, and overflow.
 - [ ] **Media - Viewer & Actions** - chat-wide paging, zoom, video playback,
   sharing/export, forwarding, and source-message navigation.
-- [ ] **Media - Files & Rich Content** - files, links, GIF, contact, and
-  stacked attachments.
+- [ ] **Media - Files & Rich Content** - files, deterministic link-preview
+  renderers, GIF, and contact sharing.
 - [ ] **Voice Messages** - incoming and outgoing playback presentations.
 - [ ] **Group - Messages & Mentions** - group authorship, clusters, mentions,
   and cross-author replies.
@@ -133,8 +133,7 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `LINK-02` | Media - Files & Rich Content | `LINK-02` | Link preview without image | Open link | Implemented; review pending |
 | [ ] | `LINK-03` | Media - Files & Rich Content | `LINK-03` | Invalid destination | No open action; unavailable value | Implemented; review pending |
 | [ ] | `RICH-01` | Media - Files & Rich Content | `RICH-01` | GIF | Standard message actions | Implemented; review pending |
-| [ ] | `RICH-05` | Media - Files & Rich Content | `RICH-05` | Valid contact | Open profile | Implemented; review pending |
-| [ ] | `RICH-06` | Media - Files & Rich Content | `RICH-06` | Stacked nonmedia attachments | Attachment actions | Implemented; review pending |
+| [ ] | `RICH-05` | Media - Files & Rich Content | `RICH-05` | Contact selected from **+ > Contact** renders one valid profile card | Choose Contact; open profile | Implemented; review pending |
 | [ ] | `VOICE-01` | Voice Messages | `VOICE-01-caption`, `VOICE-01` | Incoming short voice bubble | Play/pause, progress | Implemented; review pending |
 | [ ] | `VOICE-02` | Voice Messages | `VOICE-02-caption`, `VOICE-02` | Outgoing short voice bubble | Play/pause, progress | Implemented; review pending |
 | [ ] | `VOICE-03` | Voice Messages | `VOICE-03-caption`, `VOICE-03` | Duration over one minute | Play/pause, elapsed/remaining | Implemented; review pending |

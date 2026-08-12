@@ -5,6 +5,7 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
     let onCamera: () -> Void
     let onPhotosAndVideos: () -> Void
     let onFiles: () -> Void
+    let onContact: () -> Void
     let onMenuVisibilityChanged: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -12,6 +13,7 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
             onCamera: onCamera,
             onPhotosAndVideos: onPhotosAndVideos,
             onFiles: onFiles,
+            onContact: onContact,
             onMenuVisibilityChanged: onMenuVisibilityChanged
         )
     }
@@ -45,6 +47,7 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
             onCamera: onCamera,
             onPhotosAndVideos: onPhotosAndVideos,
             onFiles: onFiles,
+            onContact: onContact,
             onMenuVisibilityChanged: onMenuVisibilityChanged
         )
     }
@@ -54,17 +57,20 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
         private var onCamera: () -> Void
         private var onPhotosAndVideos: () -> Void
         private var onFiles: () -> Void
+        private var onContact: () -> Void
         private(set) var onMenuVisibilityChanged: (Bool) -> Void
 
         init(
             onCamera: @escaping () -> Void,
             onPhotosAndVideos: @escaping () -> Void,
             onFiles: @escaping () -> Void,
+            onContact: @escaping () -> Void,
             onMenuVisibilityChanged: @escaping (Bool) -> Void
         ) {
             self.onCamera = onCamera
             self.onPhotosAndVideos = onPhotosAndVideos
             self.onFiles = onFiles
+            self.onContact = onContact
             self.onMenuVisibilityChanged = onMenuVisibilityChanged
         }
 
@@ -72,11 +78,13 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
             onCamera: @escaping () -> Void,
             onPhotosAndVideos: @escaping () -> Void,
             onFiles: @escaping () -> Void,
+            onContact: @escaping () -> Void,
             onMenuVisibilityChanged: @escaping (Bool) -> Void
         ) {
             self.onCamera = onCamera
             self.onPhotosAndVideos = onPhotosAndVideos
             self.onFiles = onFiles
+            self.onContact = onContact
             self.onMenuVisibilityChanged = onMenuVisibilityChanged
         }
 
@@ -99,6 +107,12 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
                     image: UIImage(systemName: "folder")
                 ) { [weak self] _ in
                     self?.onFiles()
+                },
+                UIAction(
+                    title: "Contact",
+                    image: UIImage(systemName: "person.crop.circle")
+                ) { [weak self] _ in
+                    self?.onContact()
                 }
             ])
         }

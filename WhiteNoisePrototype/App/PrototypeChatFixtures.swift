@@ -686,8 +686,7 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "LINK-02", authorID: profileID, sentAt: start.addingTimeInterval(900), text: "LINK-02: Link preview without image", attachments: [.link(id: "LINK-02-link", title: "White Noise", domain: "whitenoise.chat", summary: "Private, resilient conversations.", image: nil)])),
             .message(PrototypeMessage(id: "LINK-03", authorID: otherID, sentAt: start.addingTimeInterval(1_020), text: "LINK-03: Invalid destination", attachments: [.link(id: "LINK-03-link", title: "Unavailable preview", domain: "", summary: "This destination cannot be opened.", image: nil)])),
             .message(PrototypeMessage(id: "RICH-01", authorID: profileID, sentAt: start.addingTimeInterval(1_200), text: "RICH-01: GIF", attachments: [.gif(id: "RICH-01-gif", assetName: "FiatjafMediaMarmot", label: "Marmot looking around")])),
-            .message(PrototypeMessage(id: "RICH-05", authorID: otherID, sentAt: start.addingTimeInterval(1_740), text: "RICH-05: Valid contact", attachments: [.contact(id: "RICH-05-contact", personID: "avery-stone")])),
-            .message(PrototypeMessage(id: "RICH-06", authorID: profileID, sentAt: start.addingTimeInterval(1_920), text: "RICH-06: Stacked nonmedia attachments", attachments: [availableFiles[0], .link(id: "RICH-06-link", title: "White Noise", domain: "whitenoise.chat", summary: "A valid stacked link preview.", image: nil), .contact(id: "RICH-06-contact", personID: "avery-stone")]))
+            .message(PrototypeMessage(id: "RICH-05", authorID: otherID, sentAt: start.addingTimeInterval(1_740), text: "RICH-05: Valid contact", attachments: [.contact(id: "RICH-05-contact", personID: "avery-stone")]))
         ]
     }
 

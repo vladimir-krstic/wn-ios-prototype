@@ -81,5 +81,6 @@ contain more than one support conversation.
 - Start Chat and the Chats row always push the same conversation.
 - The centered system guidance explains what a person can ask, report, or
   suggest.
-- Text, Photos, Files, and voice-control interactions have coherent outcomes.
+- Text, Photos, Files, Contacts, and voice-control interactions have coherent
+  outcomes.
 - No product surface claims to create a ticket or contact a live backend.

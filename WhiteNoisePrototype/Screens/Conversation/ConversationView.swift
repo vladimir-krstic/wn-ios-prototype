@@ -93,6 +93,7 @@ struct ConversationView: View {
     @State private var isCameraPresented = false
     @State private var queuedAttachments: [PrototypeAttachment] = []
     @State private var isFileImporterPresented = false
+    @State private var isContactPickerPresented = false
     @State private var mediaSelection: PrototypeMediaSelection?
     @State private var pendingMediaMessageID: String?
     @State private var quickLookURL: URL?
@@ -259,6 +260,15 @@ struct ConversationView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $isContactPickerPresented) {
+            NavigationStack {
+                ConversationContactPicker(people: shareableContacts) { person in
+                    queueContact(person)
+                }
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .quickLookPreview($quickLookURL)
         .fileImporter(
             isPresented: $isFileImporterPresented,
@@ -279,6 +289,9 @@ struct ConversationView: View {
             restoreComposerInteractionIfPossible()
         }
         .onChange(of: isFileImporterPresented) { _, _ in
+            restoreComposerInteractionIfPossible()
+        }
+        .onChange(of: isContactPickerPresented) { _, _ in
             restoreComposerInteractionIfPossible()
         }
         .task(id: selectedPhotoItems) { await preparePhotoItems() }
@@ -573,6 +586,9 @@ struct ConversationView: View {
                         onFiles: {
                             presentAttachmentDestination(.files)
                         },
+                        onContact: {
+                            presentAttachmentDestination(.contact)
+                        },
                         onMenuVisibilityChanged: { shown in
                             attachmentMenuVisibilityDidChange(shown)
                         }
@@ -779,6 +795,21 @@ struct ConversationView: View {
         case let .file(_, name, _, _):
             VStack { Image(systemName: "doc"); Text(name).font(.caption2).lineLimit(2) }
                 .frame(width: 72, height: 72).background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
+        case let .contact(_, personID):
+            if let person = profile.people.first(where: { $0.id == personID }) {
+                VStack(spacing: 4) {
+                    PrototypeChatAvatarView(
+                        avatar: person.avatar,
+                        size: 40,
+                        publicKey: person.publicKey
+                    )
+                    Text(person.name)
+                        .font(.caption2)
+                        .lineLimit(1)
+                }
+                .frame(width: 72, height: 72)
+                .background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
+            }
         default:
             Label(attachment.accessibilityLabel, systemImage: "paperclip")
         }
@@ -922,6 +953,8 @@ struct ConversationView: View {
                 isPhotoPickerPresented = true
             case .files:
                 isFileImporterPresented = true
+            case .contact:
+                isContactPickerPresented = true
             }
         }
     }
@@ -949,6 +982,7 @@ struct ConversationView: View {
         guard !isCameraPresented,
               !isPhotoPickerPresented,
               !isFileImporterPresented,
+              !isContactPickerPresented,
               !isAttachmentMenuPresented,
               attachmentPresentationTask == nil,
               attachmentMenuDismissalTask == nil
@@ -959,6 +993,23 @@ struct ConversationView: View {
     private var isRecording: Bool {
         if case .recording = voiceState { return true }
         return false
+    }
+
+    private var shareableContacts: [PrototypePerson] {
+        profile.selectableChatPeople.filter(\.isFollowing)
+    }
+
+    private func queueContact(_ person: PrototypePerson) {
+        queuedAttachments.removeAll { attachment in
+            if case .contact = attachment { return true }
+            return false
+        }
+        queuedAttachments.append(
+            .contact(
+                id: "composer-contact-\(person.id)-\(UUID().uuidString)",
+                personID: person.id
+            )
+        )
     }
 
     private var voiceReview: (id: String, duration: TimeInterval)? {
@@ -1493,6 +1544,50 @@ private enum ComposerAttachmentDestination {
     case camera
     case photosAndVideos
     case files
+    case contact
+}
+
+private struct ConversationContactPicker: View {
+    let people: [PrototypePerson]
+    let onSelect: (PrototypePerson) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    var body: some View {
+        List(filteredPeople) { person in
+            Button {
+                onSelect(person)
+                dismiss()
+            } label: {
+                PersonRow(person: person)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Shares this contact in the current chat.")
+        }
+        .overlay {
+            if filteredPeople.isEmpty {
+                ContentUnavailableView.search(text: query)
+            }
+        }
+        .navigationTitle("Share Contact")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $query, prompt: "Name or Public Key")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+        }
+    }
+
+    private var filteredPeople: [PrototypePerson] {
+        let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return people }
+        return people.filter {
+            $0.name.localizedCaseInsensitiveContains(value)
+                || $0.publicKey.localizedCaseInsensitiveContains(value)
+        }
+    }
 }
 
 private struct ChatMessageSearchView: View {

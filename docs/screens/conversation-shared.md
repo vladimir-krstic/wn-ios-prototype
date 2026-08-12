@@ -268,14 +268,19 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   visible preserves composer focus and keeps the keyboard in place. The
   button and the presented menu are excluded from the conversation's global
   outside-tap keyboard dismissal, while composer mutations remain blocked
-  beneath the menu. Choosing Camera, Photos and Videos, or Files then dismisses
-  the keyboard before presenting that system-owned destination. A menu row can
+  beneath the menu. Choosing Camera, Photos and Videos, Files, or Contact then
+  dismisses the keyboard before presenting that destination. Contact opens a
+  native searchable list of followed White Noise profiles. Choosing a profile
+  queues one shareable contact card and closes the picker; reopening the picker
+  and choosing another profile replaces the queued contact card. A menu row can
   therefore never focus or blink the field beneath it.
 - The attachment strip supports removal before sending. Messages may combine
-  text, images, videos, and files. Media opens a paged viewer; videos use
-  `VideoPlayer`, images use native `UIScrollView` pinch, pan, and double-tap
-  zoom, files use Quick Look where supported, and sharing uses the system share
-  sheet.
+  text, images, videos, files, and one contact card. A typed or pasted URL stays
+  ordinary tappable message text, including when a file is queued; choosing a
+  file does not synthesize a link-preview card. Media opens a paged viewer;
+  videos use `VideoPlayer`, images use native `UIScrollView` pinch, pan, and
+  double-tap zoom, files use Quick Look where supported, and sharing uses the
+  system share sheet.
 - Holding the empty-composer waveform for the native `LongPressGesture`
   threshold of 0.5 seconds, within its ten-point movement allowance, replaces
   the input with an animated red waveform, elapsed timer, and explicit Stop
@@ -301,9 +306,9 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   waveform-to-duration spacing while its control retains the full 44-point hit
   target, so the controls keep their intended geometry without introducing a
   narrower one-off attachment width.
-- Contact, GIF, and deterministic link preview are polished showcase renderers,
-  not composer options. Sticker and shared-location messages are intentionally
-  unsupported.
+- Contact is available from the composer attachment menu. GIF and deterministic
+  link preview remain polished showcase renderers rather than composer options.
+  Sticker and shared-location messages are intentionally unsupported.
 - In groups, typing `@` offers matching members. A resolved mention has no
   underline; the entire `@Name` run uses semibold type on a subtle rounded
   four-point-radius surface and opens Group Member. The surface follows the
@@ -503,7 +508,9 @@ that interaction split while using the user-approved visible copy above.
   by swiping down or using Close, without a custom mask or exposed bottom strip.
   Tap captures a photo, hold captures video, and either result returns to the
   removable attachment queue.
-- Camera, Photos and Videos, and Files each open from one menu selection.
+- Camera, Photos and Videos, Files, and Contact each open from one menu
+  selection. Contact presents followed White Noise profiles and queues one
+  removable contact card.
 - Camera is the first attachment-menu item, and selecting any item cannot also
   focus or activate the composer beneath the menu.
 - Recording and voice-message bubbles both present an accessible waveform with
