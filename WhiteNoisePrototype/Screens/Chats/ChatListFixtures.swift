@@ -7,7 +7,9 @@ enum ChatListFixtures {
         "catalog-direct-replies",
         "catalog-direct-reactions",
         "catalog-direct-new-draft",
-        "catalog-media-photo-video",
+        "catalog-media-single",
+        "catalog-media-gallery",
+        "catalog-media-viewer",
         "catalog-media-rich",
         "catalog-voice",
         "catalog-group-messages",
@@ -69,10 +71,20 @@ enum ChatListFixtures {
             isDraft: true
         ),
         catalogItem(
-            id: "catalog-media-photo-video",
-            title: "Media - Photos & Video",
-            preview: "MED-13: Unavailable image fallback",
+            id: "catalog-media-single",
+            title: "Media - Single Photos & Video",
+            preview: "MED-SINGLE-10: Unavailable video",
             muted: true
+        ),
+        catalogItem(
+            id: "catalog-media-gallery",
+            title: "Media - Gallery Layouts",
+            preview: "MED-GALLERY-08: Larger overflow"
+        ),
+        catalogItem(
+            id: "catalog-media-viewer",
+            title: "Media - Viewer & Actions",
+            preview: "MED-VIEW-07: Unavailable media excluded"
         ),
         catalogItem(
             id: "catalog-media-rich",

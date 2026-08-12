@@ -304,50 +304,55 @@ enum PrototypeDateFormatter {
 }
 
 struct PrototypeMediaSelection: Identifiable {
-    let id: String
-    let attachments: [PrototypeAttachment]
-    let initialIndex: Int
-}
+    let items: [PrototypeMediaItem]
+    let initialItemID: String
 
-struct PrototypeMediaViewer: View {
-    let selection: PrototypeMediaSelection
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedIndex: Int
-
-    init(selection: PrototypeMediaSelection) {
-        self.selection = selection
-        _selectedIndex = State(initialValue: selection.initialIndex)
-    }
-
-    var body: some View {
-        NavigationStack {
-            TabView(selection: $selectedIndex) {
-                ForEach(Array(selection.attachments.enumerated()), id: \.element.id) { index, attachment in
-                    PrototypeSingleMediaView(attachment: attachment)
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
-            .background(.black)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
+    init?(chat: PrototypeChat, selectedItemID: String) {
+        let availableItems = PrototypeMediaIndex.availableItems(in: chat)
+        guard availableItems.contains(where: { $0.id == selectedItemID }) else {
+            return nil
         }
+        items = availableItems
+        initialItemID = selectedItemID
     }
 
+    init?(
+        chat: PrototypeChat,
+        messageID: String,
+        attachmentID: String
+    ) {
+        let availableItems = PrototypeMediaIndex.availableItems(in: chat)
+        guard let selectedItem = availableItems.first(where: {
+            $0.messageID == messageID && $0.attachmentID == attachmentID
+        }) else {
+            return nil
+        }
+        items = availableItems
+        initialItemID = selectedItem.id
+    }
+
+    var id: String { initialItemID }
+
+    var initialIndex: Int {
+        items.firstIndex { $0.id == initialItemID } ?? 0
+    }
 }
 
 struct PrototypeSingleMediaView: View {
     let attachment: PrototypeAttachment
+    var isSelected = true
+    var onZoomStateChange: (Bool) -> Void = { _ in }
 
     @ViewBuilder
     var body: some View {
         switch attachment {
-        case let .photo(_, source, label):
+        case let .photo(_, source, label, _):
             if prototypeImage(source) != nil {
-                ZoomablePrototypeImage(source: source)
+                ZoomablePrototypeImage(
+                    source: source,
+                    isSelected: isSelected,
+                    onZoomStateChange: onZoomStateChange
+                )
                     .accessibilityLabel(label)
             } else {
                 ContentUnavailableView(
@@ -358,9 +363,13 @@ struct PrototypeSingleMediaView: View {
                 .foregroundStyle(.white)
                 .accessibilityLabel("Photo unavailable, \(label)")
             }
-        case let .video(_, url, thumbnail, duration):
+        case let .video(_, url, thumbnail, duration, _):
             if let url {
-                PrototypeVideoPage(url: url, duration: duration)
+                PrototypeVideoPage(
+                    url: url,
+                    duration: duration,
+                    isSelected: isSelected
+                )
             } else {
                 ZStack(alignment: .bottom) {
                     PrototypeImageSourceView(source: thumbnail)
@@ -398,61 +407,28 @@ struct PrototypeSingleMediaView: View {
 private struct PrototypeVideoPage: View {
     let url: URL
     let duration: TimeInterval
+    let isSelected: Bool
     @State private var player: AVPlayer
-    @State private var isPlaying = false
 
-    init(url: URL, duration: TimeInterval) {
+    init(url: URL, duration: TimeInterval, isSelected: Bool) {
         self.url = url
         self.duration = duration
+        self.isSelected = isSelected
         _player = State(initialValue: AVPlayer(url: url))
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            VideoPlayer(player: player)
-                .allowsHitTesting(false)
-
-            TimelineView(.periodic(from: .now, by: 0.25)) { _ in
-                HStack(spacing: 12) {
-                    Button {
-                        togglePlayback()
-                    } label: {
-                        Label(
-                            isPlaying ? "Pause Video" : "Play Video",
-                            systemImage: isPlaying ? "pause.fill" : "play.fill"
-                        )
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                    }
-                    .buttonStyle(.plain)
-                    .background(.black.opacity(0.55), in: .circle)
-                    .accessibilityLabel(isPlaying ? "Pause Video" : "Play Video")
-
-                    ProgressView(
-                        value: min(elapsed, duration),
-                        total: max(duration, 0.1)
-                    )
-                    .tint(.white)
-
-                    Text(prototypeDurationString(max(duration - elapsed, 0)))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(.black.opacity(0.45))
-            }
-        }
+        VideoPlayer(player: player)
+            .accessibilityLabel("Video, (prototypeDurationString(duration))")
         .onAppear {
-            PrototypePlaybackCoordinator.shared.stopAll()
-            player.play()
-            isPlaying = true
+            updatePlayback()
+        }
+        .onChange(of: isSelected) { _, _ in
+            updatePlayback()
         }
         .onDisappear {
             player.pause()
             player.seek(to: .zero)
-            isPlaying = false
         }
         .onReceive(
             NotificationCenter.default.publisher(
@@ -461,46 +437,50 @@ private struct PrototypeVideoPage: View {
             )
         ) { _ in
             player.seek(to: .zero)
-            isPlaying = false
         }
     }
 
-    private var elapsed: TimeInterval {
-        let seconds = player.currentTime().seconds
-        return seconds.isFinite ? max(seconds, 0) : 0
-    }
-
-    private func togglePlayback() {
-        if isPlaying {
-            player.pause()
-        } else {
-            if elapsed >= duration {
-                player.seek(to: .zero)
-            }
+    private func updatePlayback() {
+        if isSelected {
+            PrototypePlaybackCoordinator.shared.stopAll()
             player.play()
+        } else {
+            player.pause()
         }
-        isPlaying.toggle()
     }
 }
 
 private struct ZoomablePrototypeImage: View {
     let source: PrototypeImageSource
+    let isSelected: Bool
+    let onZoomStateChange: (Bool) -> Void
 
     var body: some View {
-        PrototypeZoomScrollView(source: source)
+        PrototypeZoomScrollView(
+            source: source,
+            isSelected: isSelected,
+            onZoomStateChange: onZoomStateChange
+        )
             .accessibilityHint("Pinch or double-tap to zoom.")
     }
 }
 
 private struct PrototypeZoomScrollView: UIViewRepresentable {
     let source: PrototypeImageSource
+    let isSelected: Bool
+    let onZoomStateChange: (Bool) -> Void
 
     final class Coordinator: NSObject, UIScrollViewDelegate {
         let imageView = UIImageView()
         var currentSource: PrototypeImageSource?
+        var onZoomStateChange: (Bool) -> Void = { _ in }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             imageView
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            onZoomStateChange(scrollView.zoomScale > scrollView.minimumZoomScale + 0.01)
         }
 
         @objc func toggleZoom(_ recognizer: UITapGestureRecognizer) {
@@ -527,7 +507,9 @@ private struct PrototypeZoomScrollView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        let coordinator = Coordinator()
+        coordinator.onZoomStateChange = onZoomStateChange
+        return coordinator
     }
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -562,6 +544,10 @@ private struct PrototypeZoomScrollView: UIViewRepresentable {
     }
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        context.coordinator.onZoomStateChange = onZoomStateChange
+        if !isSelected, scrollView.zoomScale != scrollView.minimumZoomScale {
+            scrollView.setZoomScale(scrollView.minimumZoomScale, animated: false)
+        }
         guard context.coordinator.currentSource != source else { return }
         context.coordinator.currentSource = source
         context.coordinator.imageView.image = image(for: source)

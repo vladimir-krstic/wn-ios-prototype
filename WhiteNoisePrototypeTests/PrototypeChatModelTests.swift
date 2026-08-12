@@ -150,7 +150,9 @@ struct PrototypeChatModelTests {
             "Direct - Replies & Deletion",
             "Direct - Reactions & Actions",
             "Direct - New Chat & Draft",
-            "Media - Photos & Video",
+            "Media - Single Photos & Video",
+            "Media - Gallery Layouts",
+            "Media - Viewer & Actions",
             "Media - Files & Rich Content",
             "Voice Messages",
             "Group - Messages & Mentions",
@@ -223,11 +225,11 @@ struct PrototypeChatModelTests {
         #expect(attachments.contains { if case .gif = $0 { true } else { false } })
         #expect(attachments.contains { if case .contact = $0 { true } else { false } })
         #expect(attachments.contains { attachment in
-            guard case let .photo(_, source, _) = attachment else { return false }
+            guard case let .photo(_, source, _, _) = attachment else { return false }
             if case .data = source { return true }
             return false
         })
-        #expect(attachments.contains { if case let .video(_, url, _, _) = $0 { url == nil } else { false } })
+        #expect(attachments.contains { if case let .video(_, url, _, _, _) = $0 { url == nil } else { false } })
         #expect(attachments.contains { if case let .file(_, _, _, url) = $0 { url == nil } else { false } })
         #expect(attachments.contains { if case let .link(_, _, domain, _, _) = $0 { domain.isEmpty } else { false } })
 
@@ -414,16 +416,103 @@ struct PrototypeChatModelTests {
         #expect(chat.messages.first { $0.id == "DLV-03" }?.deliveryState == .sent)
     }
 
-    @Test("Gallery layouts cover one through seven")
+    @Test("Gallery layouts cover one through seven with exact Signal-informed frames")
     func galleryLayouts() {
-        #expect(PrototypeGalleryLayout(count: 1) == .one)
-        #expect(PrototypeGalleryLayout(count: 2) == .two)
-        #expect(PrototypeGalleryLayout(count: 3) == .three)
-        #expect(PrototypeGalleryLayout(count: 4) == .four)
-        #expect(PrototypeGalleryLayout(count: 5) == .five)
-        #expect(PrototypeGalleryLayout(count: 6) == .overflow(0))
-        #expect(PrototypeGalleryLayout(count: 7) == .overflow(1))
-        #expect(PrototypeGalleryLayout(count: 7).visibleCount == 6)
+        let one = PrototypeMediaLayout(count: 1)
+        let two = PrototypeMediaLayout(count: 2)
+        let three = PrototypeMediaLayout(count: 3)
+        let four = PrototypeMediaLayout(count: 4)
+        let five = PrototypeMediaLayout(count: 5)
+        let six = PrototypeMediaLayout(count: 6)
+        let seven = PrototypeMediaLayout(count: 7)
+
+        #expect(one.size == CGSize(width: 256, height: 256))
+        #expect(one.frames == [CGRect(x: 0, y: 0, width: 256, height: 256)])
+        #expect(two.size == CGSize(width: 256, height: 127))
+        #expect(two.frames == [
+            CGRect(x: 0, y: 0, width: 127, height: 127),
+            CGRect(x: 129, y: 0, width: 127, height: 127),
+        ])
+        #expect(three.size == CGSize(width: 256, height: 170))
+        #expect(three.frames == [
+            CGRect(x: 0, y: 0, width: 170, height: 170),
+            CGRect(x: 172, y: 0, width: 84, height: 84),
+            CGRect(x: 172, y: 86, width: 84, height: 84),
+        ])
+        #expect(four.size == CGSize(width: 256, height: 256))
+        #expect(four.frames == [
+            CGRect(x: 0, y: 0, width: 127, height: 127),
+            CGRect(x: 129, y: 0, width: 127, height: 127),
+            CGRect(x: 0, y: 129, width: 127, height: 127),
+            CGRect(x: 129, y: 129, width: 127, height: 127),
+        ])
+        let fiveTileFrames = [
+            CGRect(x: 0, y: 0, width: 127, height: 127),
+            CGRect(x: 129, y: 0, width: 127, height: 127),
+            CGRect(x: 0, y: 129, width: 84, height: 84),
+            CGRect(x: 86, y: 129, width: 84, height: 84),
+            CGRect(x: 172, y: 129, width: 84, height: 84),
+        ]
+        #expect(five.size == CGSize(width: 256, height: 213))
+        #expect(five.frames == fiveTileFrames)
+        #expect(six.frames == fiveTileFrames)
+        #expect(seven.frames == fiveTileFrames)
+        #expect(six.overflowCount == 1)
+        #expect(seven.overflowCount == 2)
+        #expect(!five.isOverflowTile(at: 4))
+        #expect(six.isOverflowTile(at: 4))
+        #expect(!six.isOverflowTile(at: 3))
+    }
+
+    @Test("Single media ratios clamp and invalid dimensions fall back to square")
+    func singleMediaSizing() {
+        #expect(PrototypeMediaLayout.singleSize(dimensions: nil) == CGSize(width: 256, height: 256))
+        #expect(PrototypeMediaLayout.singleSize(
+            dimensions: PrototypeMediaDimensions(pixelWidth: 1_600, pixelHeight: 800)
+        ) == CGSize(width: 256, height: 128))
+        #expect(PrototypeMediaLayout.singleSize(
+            dimensions: PrototypeMediaDimensions(pixelWidth: 1_080, pixelHeight: 1_920)
+        ) == CGSize(width: 192, height: 256))
+        #expect(PrototypeMediaLayout.singleSize(
+            dimensions: PrototypeMediaDimensions(pixelWidth: 3_000, pixelHeight: 500)
+        ).height == 256 / PrototypeMediaLayout.maximumAspectRatio)
+        #expect(PrototypeMediaLayout.singleSize(
+            dimensions: PrototypeMediaDimensions(pixelWidth: 40, pixelHeight: 40)
+        ) == CGSize(width: 192, height: 192))
+        #expect(PrototypeMediaDimensions(pixelWidth: 0, pixelHeight: 100) == nil)
+        #expect(PrototypeMediaDimensions(pixelWidth: .infinity, pixelHeight: 100) == nil)
+    }
+
+    @Test("Media index preserves chronology and excludes deleted and unavailable viewer pages")
+    func mediaIndex() throws {
+        let chat = try #require(
+            PrototypeProfile.marmota.chats.first { $0.id == "catalog-media-viewer" }
+        )
+        let all = PrototypeMediaIndex.allItems(in: chat)
+        let available = PrototypeMediaIndex.availableItems(in: chat)
+        #expect(all.map(\.messageID) == [
+            "MED-VIEW-01", "MED-VIEW-02", "MED-VIEW-03", "MED-VIEW-04",
+            "MED-VIEW-05", "MED-VIEW-07",
+        ])
+        #expect(available.map(\.messageID) == [
+            "MED-VIEW-01", "MED-VIEW-02", "MED-VIEW-03", "MED-VIEW-04",
+            "MED-VIEW-05",
+        ])
+        #expect(available.map(\.sentAt) == available.map(\.sentAt).sorted())
+
+        let conversationSelection = try #require(PrototypeMediaSelection(
+            chat: chat,
+            messageID: available[2].messageID,
+            attachmentID: available[2].attachmentID
+        ))
+        let chatInfoSelection = try #require(PrototypeMediaSelection(
+            chat: chat,
+            selectedItemID: available[2].id
+        ))
+        #expect(conversationSelection.items == chatInfoSelection.items)
+        #expect(conversationSelection.initialItemID == chatInfoSelection.initialItemID)
+        #expect(conversationSelection.initialIndex == 2)
+        #expect(PrototypeMediaSelection(chat: chat, selectedItemID: all.last!.id) == nil)
     }
 
     @Test("Composer availability follows membership, blocks, and per-chat relays")
@@ -494,7 +583,7 @@ struct PrototypeChatModelTests {
         #expect(chat.messages.flatMap(\.attachments).contains { if case .link = $0 { true } else { false } })
         #expect(chat.messages.flatMap(\.attachments).allSatisfy { attachment in
             if case let .file(_, _, _, url) = attachment { return url != nil }
-            if case let .video(_, url, _, _) = attachment { return url != nil }
+            if case let .video(_, url, _, _, _) = attachment { return url != nil }
             return true
         })
     }
@@ -553,7 +642,7 @@ struct PrototypeChatModelTests {
         #expect(attachments.contains { if case .contact = $0 { true } else { false } })
         #expect(attachments.allSatisfy { attachment in
             if case let .file(_, _, _, url) = attachment { return url != nil }
-            if case let .video(_, url, _, _) = attachment { return url != nil }
+            if case let .video(_, url, _, _, _) = attachment { return url != nil }
             return true
         })
         #expect(group.messages.contains { $0.text.contains("@Marmota") })

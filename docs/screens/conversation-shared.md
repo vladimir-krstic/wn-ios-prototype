@@ -85,8 +85,13 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   another third-party runtime dependency.
 - Signal provides bounded comparison evidence for message-content composition:
   reply quotes, reactions attached to their message, media galleries, link
-  previews, mentions, file rows, and audio-message controls. Those behaviors
-  are reimplemented against the prototype's own deterministic models.
+  previews, mentions, file rows, audio-message controls, and full-screen media
+  browsing. Those behaviors are reimplemented against the prototype's own
+  deterministic models. Signal's AGPL-licensed source is not copied or ported.
+  The adopted media conclusions come from its current album and media-page
+  implementations: deterministic count-based arrangements, a five-tile
+  overflow limit, source-order paging, intrinsic single-media sizing, and one
+  viewer shared by conversation and media-library entry points.
 - Signal's current date-header component and conversation layout provide
   bounded comparison evidence for date sections. Signal keeps every generated
   date header in the transcript, pins the last header that moved above the
@@ -131,9 +136,9 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Unavailable photo data and video attachments without a playable destination
   retain their visible fallback tile but are static, noninteractive content.
   They expose no preview hint or button trait, do nothing when tapped, and are
-  excluded from the page set when another available item in the same gallery
-  opens the media viewer. The viewer's unavailable state remains only as a
-  defensive fallback for stale data that becomes unavailable after opening.
+  excluded from the chat-wide viewer page set. The viewer's unavailable state
+  remains only as a defensive fallback for stale data that becomes unavailable
+  after opening.
 - File rows use a bare semantic file glyph rather than nesting the glyph in a
   second rounded container. File and contact accessories share one compact
   caption-sized symbol and a trailing slot with four points of breathing room.
@@ -155,12 +160,64 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   internal inset and a concentric 12-point corner radius; photo/video galleries
   and GIFs fill the canvas edge to edge.
   Rich components and mixed-content sections use 6 points of vertical spacing,
-  while gallery tiles retain their tighter 3-point gap. These fixed values are
+  while gallery tiles use a 2-point gap. These fixed values are
   an approved custom composition metric, not an inferred system-control size.
 - Sticker and shared-location messages are not supported. They are absent from
   deterministic fixtures, catalog coverage, and the shared renderer.
 
 ## Composer and media
+
+### Photo and video layout
+
+- Every photo and video stores normalized display pixel dimensions. Video
+  dimensions apply the asset track's preferred transform before normalization.
+  Zero, negative, nonfinite, or unavailable dimensions are unknown and use a
+  square fallback.
+- A lone photo or video is the intentional exception to the fixed 256-point
+  rich-content canvas. Its width-to-height ratio is clamped to `0.35...2.857`
+  and laid out inside a maximum 256-by-256-point frame. Following the useful
+  part of Signal's sizing behavior, portrait media has a 192-point minimum
+  bubble-content width instead of collapsing into a narrow column; the media
+  center-crops only where that minimum-width floor or the ratio clamp requires
+  it. Low-resolution sources retain the 150-point practical display safeguard.
+  A caption wraps below at the resulting media width.
+- Albums retain a 256-point width, use 2-point gutters, preserve attachment
+  order, and clip once with the 12-point inner-media radius. Each tile is
+  hard-clipped to its calculated rectangle before overlays are added, so image
+  aspect ratios can never stretch, overlap, or resize the album grid:
+  - two: two 127-point squares;
+  - three: one 170-point square beside two stacked 84-point squares;
+  - four: a 2-by-2 grid of 127-point squares;
+  - five: two 127-point squares above three 84-point squares;
+  - six or more: the five-item layout, with tile five dimmed and labeled `+N`
+    for the number of hidden attachments.
+- Album tiles crop independently around center. Video play and duration
+  overlays remain inside their tile; the overflow treatment replaces both on
+  tile five. Selecting an available tile opens that exact attachment. Selecting
+  the overflow tile starts at attachment five and hidden attachments follow by
+  normal paging. An unavailable tile remains inert even if it occupies the
+  overflow position.
+
+### Unified media viewer
+
+- Conversation and Chat Info present the same full-screen viewer and the same
+  chronological media index. The index preserves message order followed by
+  attachment order, excludes deleted messages, and excludes unavailable media
+  from paging while leaving those items visible in source bubbles and Shared
+  Media.
+- The viewer uses a black full-screen surface, horizontal paging through every
+  available photo/video in the chat, image pinch/double-tap zoom, native video
+  playback, sender and localized time in top chrome, Share and Forward in the
+  bottom toolbar, and Save plus Go to Message in More. Source-message captions
+  are not repeated over media.
+- The initially selected video autoplays. Paging pauses the prior video and
+  resets image zoom; dismissal stops playback. Tapping media toggles chrome.
+  A downward gesture dismisses only from minimum image zoom and outside a page
+  transition or video scrub. Ordinary dismissal preserves the conversation's
+  exact scroll position; Go to Message dismisses and scrolls to the source.
+- VoiceOver announces sender, media type, position, timestamp, duration, and
+  availability, and provides explicit controls for gesture-only behaviors.
+  Reduced Motion uses the native simple dismissal.
 
 - The shared multiline field uses **Message**. Draft text and the pending reply
   remain with their chat through navigation; queued attachments remain ordered
@@ -292,7 +349,7 @@ pickers, menus, sharing, playback, permissions, alerts, and keyboard layout stay
 system-owned. The capsule one-line treatment, 18-point expanded bubble radius,
 12-point horizontal and 8-point vertical text insets, 6-point rich shell and
 card insets, 256-point rich-content canvas, 12-point rich-component
-radius, and 3-point gallery gap are explicit user-approved visual metrics for
+radius, and 2-point gallery gap are explicit user-approved visual metrics for
 message composition.
 The 32-point Send and voice-review Play circles inside 44-point hit targets and
 the two-point waveform bars are explicit user-approved visual metrics for this

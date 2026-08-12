@@ -23,7 +23,7 @@ struct PrototypeMessageBubble: View {
     let onToggleReaction: (String) -> Void
     let onOpenReply: () -> Void
     let onOpenPerson: (String) -> Void
-    let onOpenMedia: ([PrototypeAttachment], Int) -> Void
+    let onOpenMedia: (PrototypeAttachment) -> Void
     let onOpenFile: (URL) -> Void
 
     @ViewBuilder
@@ -154,7 +154,7 @@ struct PrototypeMessageBubble: View {
         bubbleBody
             .frame(
                 width: hasRichContent
-                    ? PrototypeMessageBubbleMetrics.richContentWidth
+                    ? richContentWidth
                     : nil,
                 alignment: .leading
             )
@@ -190,6 +190,7 @@ struct PrototypeMessageBubble: View {
                 if !message.attachments.isEmpty {
                     PrototypeAttachmentCollectionView(
                         attachments: message.attachments,
+                        canvasWidth: richContentWidth,
                         people: people,
                         tint: messageColor.foregroundColor,
                         surfaceOpacity: richSurfaceOpacity,
@@ -341,12 +342,12 @@ struct PrototypeMessageBubble: View {
     private var replyThumbnail: some View {
         if let attachment = resolvedReply?.attachments.first {
             switch attachment {
-            case let .photo(_, source, _):
+            case let .photo(_, source, _, _):
                 PrototypeImageSourceView(source: source)
                     .scaledToFill()
                     .frame(width: 38, height: 38)
                     .clipShape(.rect(cornerRadius: 8))
-            case let .video(_, _, thumbnail, _):
+            case let .video(_, _, thumbnail, _, _):
                 ZStack {
                     PrototypeImageSourceView(source: thumbnail).scaledToFill()
                     Image(systemName: "play.fill")
@@ -475,6 +476,15 @@ struct PrototypeMessageBubble: View {
         !message.isDeleted
             && (message.replyToMessageID != nil || !message.attachments.isEmpty)
     }
+    private var richContentWidth: CGFloat {
+        let media = message.attachments.filter(\.prototypeIsPhotoOrVideo)
+        guard media.count == 1, message.attachments.count == 1 else {
+            return PrototypeMessageBubbleMetrics.richContentWidth
+        }
+        return PrototypeMediaLayout.singleSize(
+            dimensions: media[0].prototypeMediaDimensions
+        ).width
+    }
     private var deletedText: String {
         outgoing ? "You deleted this message." : "This message was deleted."
     }
@@ -542,10 +552,11 @@ private struct PrototypeMentionTextRenderer: TextRenderer {
 
 private struct PrototypeAttachmentCollectionView: View {
     let attachments: [PrototypeAttachment]
+    let canvasWidth: CGFloat
     let people: [PrototypePerson]
     let tint: Color
     let surfaceOpacity: Double
-    let onOpenMedia: ([PrototypeAttachment], Int) -> Void
+    let onOpenMedia: (PrototypeAttachment) -> Void
     let onOpenFile: (URL) -> Void
     let onOpenPerson: (String) -> Void
 
@@ -555,20 +566,6 @@ private struct PrototypeAttachmentCollectionView: View {
             if case .video = $0 { return true }
             return false
         }
-    }
-
-    private var twoColumnWidth: CGFloat {
-        (
-            PrototypeMessageBubbleMetrics.richContentWidth
-                - PrototypeMessageBubbleMetrics.gallerySpacing
-        ) / 2
-    }
-
-    private var threeColumnWidth: CGFloat {
-        (
-            PrototypeMessageBubbleMetrics.richContentWidth
-                - (2 * PrototypeMessageBubbleMetrics.gallerySpacing)
-        ) / 3
     }
 
     var body: some View {
@@ -582,53 +579,21 @@ private struct PrototypeAttachmentCollectionView: View {
             }
         }
         .frame(
-            width: PrototypeMessageBubbleMetrics.richContentWidth,
+            width: canvasWidth,
             alignment: .leading
         )
     }
 
     @ViewBuilder
     private var mediaGrid: some View {
-        Group {
-            switch PrototypeGalleryLayout(count: media.count) {
-            case .one:
-                mediaButton(
-                    at: 0,
-                    width: PrototypeMessageBubbleMetrics.richContentWidth,
-                    height: 246
-                )
-            case .two:
-                HStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-                    mediaButton(at: 0, width: twoColumnWidth, height: 184)
-                    mediaButton(at: 1, width: twoColumnWidth, height: 184)
-                }
-            case .three:
-                HStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-                    mediaButton(at: 0, width: twoColumnWidth, height: 224)
-                    VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-                        mediaButton(at: 1, width: twoColumnWidth, height: 110.5)
-                        mediaButton(at: 2, width: twoColumnWidth, height: 110.5)
-                    }
-                }
-            case .four:
-                VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-                    mediaRow(indices: [0, 1], width: twoColumnWidth, height: twoColumnWidth)
-                    mediaRow(indices: [2, 3], width: twoColumnWidth, height: twoColumnWidth)
-                }
-            case .five:
-                VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-                    mediaRow(indices: [0, 1], width: twoColumnWidth, height: twoColumnWidth)
-                    mediaRow(indices: [2, 3, 4], width: threeColumnWidth, height: 94)
-                }
-            case .overflow:
-                VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-                    mediaRow(indices: [0, 1], width: twoColumnWidth, height: 102)
-                    mediaRow(indices: [2, 3], width: twoColumnWidth, height: 102)
-                    mediaRow(indices: [4, 5], width: twoColumnWidth, height: 102)
-                }
+        let layout = resolvedMediaLayout
+        ZStack(alignment: .topLeading) {
+            ForEach(Array(layout.frames.enumerated()), id: \.offset) { index, frame in
+                mediaButton(at: index, frame: frame)
+                    .position(x: frame.midX, y: frame.midY)
             }
         }
-        .frame(width: PrototypeMessageBubbleMetrics.richContentWidth)
+        .frame(width: layout.size.width, height: layout.size.height)
         .clipShape(
             .rect(
                 cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
@@ -638,88 +603,100 @@ private struct PrototypeAttachmentCollectionView: View {
         .accessibilityLabel("\(media.count) media items")
     }
 
-    private func mediaRow(indices: [Int], width: CGFloat, height: CGFloat) -> some View {
-        HStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
-            ForEach(indices, id: \.self) { index in
-                mediaButton(at: index, width: width, height: height)
-            }
+    private var resolvedMediaLayout: PrototypeMediaLayout {
+        if media.count == 1 {
+            let size = PrototypeMediaLayout.singleSize(
+                dimensions: media[0].prototypeMediaDimensions
+            )
+            return PrototypeMediaLayout(
+                size: size,
+                frames: [CGRect(origin: .zero, size: size)],
+                overflowCount: 0
+            )
         }
+        return PrototypeMediaLayout(count: media.count)
     }
 
     @ViewBuilder
-    private func mediaButton(at index: Int, width: CGFloat, height: CGFloat) -> some View {
+    private func mediaButton(at index: Int, frame: CGRect) -> some View {
         let attachment = media[index]
+        let isOverflow = resolvedMediaLayout.isOverflowTile(at: index)
 
-        if isMediaAvailable(attachment) {
+        if attachment.prototypeMediaIsAvailable {
             Button {
-                let availableMedia = media.filter(isMediaAvailable)
-                let availableIndex = availableMedia.firstIndex {
-                    $0.id == attachment.id
-                } ?? 0
-                onOpenMedia(availableMedia, availableIndex)
+                onOpenMedia(attachment)
             } label: {
-                mediaTile(attachment, index: index)
-                    .frame(width: width, height: height)
-                    .contentShape(.rect)
+                mediaTile(
+                    attachment,
+                    size: frame.size,
+                    isOverflow: isOverflow
+                )
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
+            .frame(width: frame.width, height: frame.height)
             .contentShape(.rect)
             .accessibilityLabel(
                 "\(attachment.accessibilityLabel), \(index + 1) of \(media.count)"
             )
             .accessibilityHint("Opens a preview.")
         } else {
-            mediaTile(attachment, index: index)
-                .frame(width: width, height: height)
+            mediaTile(
+                attachment,
+                size: frame.size,
+                isOverflow: isOverflow
+            )
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(attachment.accessibilityLabel), unavailable")
         }
     }
 
-    private func isMediaAvailable(_ attachment: PrototypeAttachment) -> Bool {
-        switch attachment {
-        case let .photo(_, source, _):
-            switch source {
-            case let .asset(name):
-                UIImage(named: name) != nil
-            case let .data(data):
-                PrototypePreparedImageCache.image(from: data) != nil
-            }
-        case let .video(_, url, _, _):
-            url != nil
-        default:
-            false
-        }
-    }
-
     @ViewBuilder
-    private func mediaTile(_ attachment: PrototypeAttachment, index: Int) -> some View {
+    private func mediaTile(
+        _ attachment: PrototypeAttachment,
+        size: CGSize,
+        isOverflow: Bool
+    ) -> some View {
         ZStack {
             switch attachment {
-            case let .photo(_, source, _):
-                PrototypeImageSourceView(source: source).scaledToFill()
-            case let .video(_, _, thumbnail, duration):
-                PrototypeImageSourceView(source: thumbnail).scaledToFill()
-                Image(systemName: "play.circle.fill")
-                    .font(.largeTitle).foregroundStyle(.white)
-                    .shadow(radius: 2)
-                Text(prototypeDurationString(duration))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(5)
-                    .background(.black.opacity(0.55), in: .capsule)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                    .padding(5)
+            case let .photo(_, source, _, _):
+                PrototypeImageSourceView(source: source)
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+            case let .video(_, _, thumbnail, duration, _):
+                PrototypeImageSourceView(source: thumbnail)
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                if attachment.prototypeMediaIsAvailable, !isOverflow {
+                    Image(systemName: "play.circle.fill")
+                        .font(.largeTitle).foregroundStyle(.white)
+                        .shadow(radius: 2)
+                    Text(prototypeDurationString(duration))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(5)
+                        .background(.black.opacity(0.55), in: .capsule)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                        .padding(6)
+                } else if !attachment.prototypeMediaIsAvailable, !isOverflow {
+                    Color.black.opacity(0.16)
+                    Image(systemName: "video.badge.exclamationmark")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                }
             default:
                 EmptyView()
             }
-            if index == 5, media.count > 6 {
+            if isOverflow {
                 Color.black.opacity(0.5)
-                Text("+\(media.count - 6)")
+                Text("+\(media.count - PrototypeMediaLayout.maximumVisibleItems)")
                     .font(.title2.bold()).foregroundStyle(.white)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(width: size.width, height: size.height)
         .clipped()
     }
 

@@ -588,7 +588,7 @@ private struct ChatInfoSharedContentView: View {
     let chatID: String
     let category: ChatInfoSharedContent
     let onOpenMessage: (String) -> Void
-    @State private var mediaSelection: ChatInfoMediaItem?
+    @State private var mediaSelection: PrototypeMediaSelection?
     @State private var pendingOpenMessageID: String?
     @State private var quickLookURL: URL?
 
@@ -598,7 +598,11 @@ private struct ChatInfoSharedContentView: View {
             case .photos:
                 ScrollView {
                     ChatInfoMediaSection(items: mediaItems) {
-                        mediaSelection = $0
+                        guard $0.isAvailable else { return }
+                        mediaSelection = PrototypeMediaSelection(
+                            chat: chat,
+                            selectedItemID: $0.id
+                        )
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -615,12 +619,11 @@ private struct ChatInfoSharedContentView: View {
         }
         .navigationTitle(category.rawValue)
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(item: $mediaSelection, onDismiss: openPendingMessage) { item in
-            ChatInfoMediaPreview(
+        .fullScreenCover(item: $mediaSelection, onDismiss: openPendingMessage) { selection in
+            PrototypeMediaViewer(
                 profile: $profile,
                 sourceChatID: chatID,
-                items: mediaItems,
-                initialIndex: mediaItems.firstIndex { $0.id == item.id } ?? 0,
+                selection: selection,
                 onRequestOpenMessage: { messageID in
                     pendingOpenMessageID = messageID
                     mediaSelection = nil
@@ -634,21 +637,8 @@ private struct ChatInfoSharedContentView: View {
         profile.chats.first { $0.id == chatID }!
     }
 
-    private var mediaItems: [ChatInfoMediaItem] {
-        chat.messages
-            .filter { !$0.isDeleted }
-            .flatMap { message in
-                message.attachments.enumerated().compactMap { index, attachment in
-                    guard attachment.isChatInfoMedia else { return nil }
-                    return ChatInfoMediaItem(
-                        id: "\(message.id)-\(attachment.id)-\(index)",
-                        attachment: attachment,
-                        messageID: message.id,
-                        authorID: message.authorID,
-                        sentAt: message.sentAt
-                    )
-                }
-            }
+    private var mediaItems: [PrototypeMediaItem] {
+        PrototypeMediaIndex.allItems(in: chat)
     }
 
     private func openPendingMessage() {
@@ -702,26 +692,9 @@ private struct ChatInfoSharedCategorySections: View {
     }
 }
 
-private struct ChatInfoMediaItem: Identifiable {
-    let id: String
-    let attachment: PrototypeAttachment
-    let messageID: String
-    let authorID: String
-    let sentAt: Date
-}
-
-private extension PrototypeAttachment {
-    var isChatInfoMedia: Bool {
-        switch self {
-        case .photo, .video: true
-        default: false
-        }
-    }
-}
-
 private struct ChatInfoMediaSection: View {
-    let items: [ChatInfoMediaItem]
-    let onOpen: (ChatInfoMediaItem) -> Void
+    let items: [PrototypeMediaItem]
+    let onOpen: (PrototypeMediaItem) -> Void
     private let columns = Array(
         repeating: GridItem(.flexible(), spacing: 2),
         count: 3
@@ -739,17 +712,15 @@ private struct ChatInfoMediaSection: View {
             } else {
                 LazyVGrid(columns: columns, spacing: 2) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        Button {
-                            onOpen(item)
-                        } label: {
-                            Color.clear
-                                .aspectRatio(1, contentMode: .fit)
-                                .overlay {
-                                    mediaTile(item.attachment)
-                                }
-                                .clipped()
+                        Group {
+                            if item.isAvailable {
+                                Button { onOpen(item) } label: { mediaGridTile(item) }
+                                    .buttonStyle(.borderless)
+                            } else {
+                                mediaGridTile(item)
+                            }
                         }
-                        .buttonStyle(.borderless)
+                        .accessibilityElement(children: .combine)
                         .accessibilityLabel(
                             "\(item.attachment.accessibilityLabel), \(index + 1) of \(items.count)"
                         )
@@ -760,15 +731,22 @@ private struct ChatInfoMediaSection: View {
         }
     }
 
+    private func mediaGridTile(_ item: PrototypeMediaItem) -> some View {
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay { mediaTile(item.attachment) }
+            .clipped()
+    }
+
     @ViewBuilder
     private func mediaTile(_ attachment: PrototypeAttachment) -> some View {
         ZStack {
             Color(uiColor: .secondarySystemBackground)
             switch attachment {
-            case let .photo(_, source, _):
+            case let .photo(_, source, _, _):
                 PrototypeImageSourceView(source: source)
                     .scaledToFill()
-            case let .video(_, _, thumbnail, duration):
+            case let .video(_, _, thumbnail, duration, _):
                 PrototypeImageSourceView(source: thumbnail)
                     .scaledToFill()
                 Image(systemName: "play.circle.fill")
@@ -802,10 +780,10 @@ private struct ChatInfoMediaSection: View {
     }
 }
 
-private struct ChatInfoMediaPreview: View {
+struct PrototypeMediaViewer: View {
     @Binding var profile: PrototypeProfile
     let sourceChatID: String
-    let items: [ChatInfoMediaItem]
+    let selection: PrototypeMediaSelection
     let onRequestOpenMessage: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -815,34 +793,53 @@ private struct ChatInfoMediaPreview: View {
     @State private var isShowingFileExporter = false
     @State private var isShowingForwardSheet = false
     @State private var isShowingSaveError = false
+    @State private var isChromeVisible = true
+    @State private var isCurrentImageZoomed = false
+    @State private var dismissalOffset: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         profile: Binding<PrototypeProfile>,
         sourceChatID: String,
-        items: [ChatInfoMediaItem],
-        initialIndex: Int,
+        selection: PrototypeMediaSelection,
         onRequestOpenMessage: @escaping (String) -> Void
     ) {
         _profile = profile
         self.sourceChatID = sourceChatID
-        self.items = items
+        self.selection = selection
         self.onRequestOpenMessage = onRequestOpenMessage
         _selectedIndex = State(
-            initialValue: min(max(initialIndex, 0), max(items.count - 1, 0))
+            initialValue: min(max(selection.initialIndex, 0), max(selection.items.count - 1, 0))
         )
     }
 
     var body: some View {
         NavigationStack {
             TabView(selection: $selectedIndex) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    PrototypeSingleMediaView(attachment: item.attachment)
+                ForEach(Array(selection.items.enumerated()), id: \.element.id) { index, item in
+                    PrototypeSingleMediaView(
+                        attachment: item.attachment,
+                        isSelected: index == selectedIndex,
+                        onZoomStateChange: { isZoomed in
+                            guard index == selectedIndex else { return }
+                            isCurrentImageZoomed = isZoomed
+                        }
+                    )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel(accessibilityLabel(for: item, at: index))
                         .tag(index)
                 }
             }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .background(Color(uiColor: .systemBackground))
+                .background(.black)
+                .offset(y: max(0, dismissalOffset))
+                .simultaneousGesture(chromeToggleGesture)
+                .simultaneousGesture(dismissalGesture)
+                .onChange(of: selectedIndex) { _, _ in
+                    isCurrentImageZoomed = false
+                    dismissalOffset = 0
+                }
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
@@ -867,7 +864,7 @@ private struct ChatInfoMediaPreview: View {
                                 )
                             )
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.white.opacity(0.7))
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -893,52 +890,61 @@ private struct ChatInfoMediaPreview: View {
 
                 }
                 .safeAreaBar(edge: .bottom, spacing: 0) {
-                    HStack {
-                        if let preparedMedia {
-                            ShareLink(item: preparedMedia.url) {
+                    if isChromeVisible {
+                        HStack {
+                            if let preparedMedia {
+                                ShareLink(item: preparedMedia.url) {
+                                    ChatInfoMediaControlLabel(
+                                        title: "Share",
+                                        systemImage: "square.and.arrow.up"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .modifier(ChatInfoMediaBottomControl())
+                                .accessibilityIdentifier("media-preview.share")
+                            } else {
+                                Button {} label: {
+                                    ChatInfoMediaControlLabel(
+                                        title: "Share",
+                                        systemImage: "square.and.arrow.up"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .modifier(ChatInfoMediaBottomControl())
+                                .accessibilityIdentifier("media-preview.share")
+                                .disabled(true)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                isShowingForwardSheet = true
+                            } label: {
                                 ChatInfoMediaControlLabel(
-                                    title: "Share",
-                                    systemImage: "square.and.arrow.up"
+                                    title: "Forward",
+                                    systemImage: "arrowshape.turn.up.right"
                                 )
                             }
                             .buttonStyle(.plain)
                             .modifier(ChatInfoMediaBottomControl())
-                            .accessibilityIdentifier("media-preview.share")
-                        } else {
-                            Button {} label: {
-                                ChatInfoMediaControlLabel(
-                                    title: "Share",
-                                    systemImage: "square.and.arrow.up"
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .modifier(ChatInfoMediaBottomControl())
-                            .accessibilityIdentifier("media-preview.share")
-                            .disabled(true)
+                            .accessibilityIdentifier("media-preview.forward")
                         }
-
-                        Spacer()
-
-                        Button {
-                            isShowingForwardSheet = true
-                        } label: {
-                            ChatInfoMediaControlLabel(
-                                title: "Forward",
-                                systemImage: "arrowshape.turn.up.right"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .modifier(ChatInfoMediaBottomControl())
-                        .accessibilityIdentifier("media-preview.forward")
+                        .frame(maxWidth: .infinity)
+                        .safeAreaPadding(.horizontal, 20)
+                        .padding(.vertical, 8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .safeAreaPadding(.horizontal, 20)
-                    .padding(.vertical, 8)
                 }
         }
+        .background(.black)
+        .preferredColorScheme(.dark)
+        .toolbar(isChromeVisible ? .visible : .hidden, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .task(id: item.id) {
             preparedMedia = nil
-            preparedMedia = await ChatInfoMediaPreparer.prepare(item.attachment)
+            let result = await ChatInfoMediaPreparer.prepare(item.attachment)
+            guard !Task.isCancelled else { return }
+            preparedMedia = result
         }
         .sheet(isPresented: $isShowingForwardSheet) {
             NavigationStack {
@@ -964,13 +970,60 @@ private struct ChatInfoMediaPreview: View {
         }
     }
 
-    private var item: ChatInfoMediaItem {
-        items[min(max(selectedIndex, 0), max(items.count - 1, 0))]
+    private var item: PrototypeMediaItem {
+        selection.items[min(max(selectedIndex, 0), max(selection.items.count - 1, 0))]
     }
 
     private var senderName: String {
-        if item.authorID == profile.id { return "You" }
-        return profile.people.first { $0.id == item.authorID }?.name ?? "Unknown"
+        if item.senderID == profile.id { return "You" }
+        return profile.people.first { $0.id == item.senderID }?.name ?? "Unknown"
+    }
+
+    private var chromeToggleGesture: some Gesture {
+        TapGesture().onEnded {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
+                isChromeVisible.toggle()
+            }
+        }
+    }
+
+    private var dismissalGesture: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { value in
+                guard !isCurrentImageZoomed,
+                      value.translation.height > 0,
+                      abs(value.translation.height) > abs(value.translation.width)
+                else { return }
+                dismissalOffset = value.translation.height
+            }
+            .onEnded { value in
+                guard dismissalOffset > 0 else { return }
+                if value.translation.height > 120 {
+                    dismiss()
+                } else {
+                    withAnimation(reduceMotion ? nil : .snappy) {
+                        dismissalOffset = 0
+                    }
+                }
+            }
+    }
+
+    private func accessibilityLabel(for item: PrototypeMediaItem, at index: Int) -> String {
+        let kind: String
+        let duration: String
+        switch item.attachment {
+        case .photo:
+            kind = "Photo"
+            duration = ""
+        case let .video(_, _, _, seconds, _):
+            kind = "Video"
+            duration = ", " + prototypeDurationString(seconds)
+        default:
+            kind = "Media"
+            duration = ""
+        }
+        let timestamp = item.sentAt.formatted(date: .abbreviated, time: .shortened)
+        return "\(kind) from \(senderName), \(index + 1) of \(selection.items.count), \(timestamp)\(duration)"
     }
 
     private func saveToFiles() {
@@ -1013,7 +1066,7 @@ private struct ChatInfoMediaBottomControl: ViewModifier {
 private struct ChatInfoForwardMediaView: View {
     @Binding var profile: PrototypeProfile
     let sourceChatID: String
-    let item: ChatInfoMediaItem
+    let item: PrototypeMediaItem
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var message = ""
@@ -1272,14 +1325,14 @@ private struct ChatInfoPreparedMedia {
 private enum ChatInfoMediaPreparer {
     static func prepare(_ attachment: PrototypeAttachment) async -> ChatInfoPreparedMedia? {
         switch attachment {
-        case let .photo(id, source, _):
+        case let .photo(id, source, _, _):
             guard let data = await jpegData(for: source) else { return nil }
             return await prepared(
                 data: data,
                 contentType: .jpeg,
                 filename: "Photo-\(id).jpg"
             )
-        case let .video(id, url, _, _):
+        case let .video(id, url, _, _, _):
             guard let url,
                   let data = await readData(from: url)
             else { return nil }
@@ -1379,10 +1432,10 @@ private func chatInfoForwardedCopy(
 ) -> PrototypeAttachment {
     let id = UUID().uuidString
     switch attachment {
-    case let .photo(_, source, label):
-        return .photo(id: id, source: source, label: label)
-    case let .video(_, url, thumbnail, duration):
-        return .video(id: id, url: url, thumbnail: thumbnail, duration: duration)
+    case let .photo(_, source, label, dimensions):
+        return .photo(id: id, source: source, label: label, dimensions: dimensions)
+    case let .video(_, url, thumbnail, duration, dimensions):
+        return .video(id: id, url: url, thumbnail: thumbnail, duration: duration, dimensions: dimensions)
     case let .gif(_, assetName, label):
         return .gif(id: id, assetName: assetName, label: label)
     default:

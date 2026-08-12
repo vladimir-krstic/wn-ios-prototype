@@ -391,32 +391,6 @@ private extension ChatListItem.Avatar {
     }
 }
 
-enum PrototypeGalleryLayout: Equatable {
-    case one, two, three, four, five, overflow(Int)
-
-    init(count: Int) {
-        switch count {
-        case ...1: self = .one
-        case 2: self = .two
-        case 3: self = .three
-        case 4: self = .four
-        case 5: self = .five
-        default: self = .overflow(max(0, count - 6))
-        }
-    }
-
-    var visibleCount: Int {
-        switch self {
-        case .one: 1
-        case .two: 2
-        case .three: 3
-        case .four: 4
-        case .five: 5
-        case .overflow: 6
-        }
-    }
-}
-
 enum PrototypeMessageGrouping {
     static func belongsToSameCluster(
         _ first: PrototypeMessage,

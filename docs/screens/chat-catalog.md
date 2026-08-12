@@ -26,8 +26,12 @@ and centered dots are not used for catalog separators.
   context-menu capability combination.
 - [ ] **Direct - New Chat & Draft** - direct inception with no sent messages
   and a persisted draft.
-- [ ] **Media - Photos & Video** - gallery layouts, captions, video, and media
-  unavailability.
+- [ ] **Media - Single Photos & Video** - intrinsic photo/video ratios,
+  captions, orientation, low-resolution safeguards, and unavailable media.
+- [ ] **Media - Gallery Layouts** - deterministic album counts, mixed media,
+  captions, and overflow.
+- [ ] **Media - Viewer & Actions** - chat-wide paging, zoom, video playback,
+  sharing/export, forwarding, and source-message navigation.
 - [ ] **Media - Files & Rich Content** - files, links, GIF, contact, and
   stacked attachments.
 - [ ] **Voice Messages** - incoming and outgoing playback presentations.
@@ -114,13 +118,15 @@ coverage, but have not yet been accepted in a simulator pass.
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `MED-01`–`MED-02` | Media - Photos & Video | captions + same IDs | Incoming/outgoing photo-only bubbles | Open media | Implemented; review pending |
-| [ ] | `MED-03` | Media - Photos & Video | `MED-03` | Photo with caption | Open media; text actions | Implemented; review pending |
-| [ ] | `MED-04`–`MED-09` | Media - Photos & Video | same IDs | Galleries of 2–7; 7 shows overflow | Open selected page | Implemented; review pending |
-| [ ] | `MED-10` | Media - Photos & Video | `MED-10` | Mixed photo/video grid | Open media viewer | Implemented; review pending |
-| [ ] | `MED-11` | Media - Photos & Video | `MED-11` | Available video with duration | Play/pause | Implemented; review pending |
-| [ ] | `MED-12` | Media - Photos & Video | `MED-12` | Video without playable URL | Unavailable presentation | Implemented; review pending |
-| [ ] | `MED-13` | Media - Photos & Video | `MED-13` | Invalid image data | Unavailable image presentation | Implemented; review pending |
+| [ ] | `MED-01`–`MED-03` | Media - Single Photos & Video | same IDs | Incoming/outgoing photo-only and captioned single media use natural constrained sizing | Open exact item in chat-wide viewer | Implemented; review pending |
+| [ ] | `MED-SINGLE-01`–`MED-SINGLE-05` | Media - Single Photos & Video | same IDs | Landscape, square, portrait, panorama-clamped, tall-clamped, and low-resolution sizing | Open exact item | Implemented; review pending |
+| [ ] | `MED-11`, `MED-VIDEO-01` | Media - Single Photos & Video | same IDs | Available landscape and portrait video with play and duration overlays | Open exact item; native playback | Implemented; review pending |
+| [ ] | `MED-12`–`MED-13` | Media - Single Photos & Video | same IDs | Unavailable video/photo remain visible and fully noninteractive | None | Implemented; review pending |
+| [ ] | `MED-04`–`MED-09` | Media - Gallery Layouts | same IDs | Counts 2–7 use Signal-informed five-tile layouts and 2-point gutters | Open selected attachment | Implemented; review pending |
+| [ ] | `MED-GALLERY-08` | Media - Gallery Layouts | same ID | Larger overflow shows the hidden count on tile five | Open at attachment five | Implemented; review pending |
+| [ ] | `MED-10` | Media - Gallery Layouts | `MED-10` | Mixed photo/video album; overflow replaces competing video overlays | Open exact available item | Implemented; review pending |
+| [ ] | `MED-VIEW-01`–`MED-VIEW-06` | Media - Viewer & Actions | same IDs | Multiple senders/dates prove chat-wide paging, zoom, autoplay, Share, Forward, Save, and Go to Message | Viewer actions | Implemented; review pending |
+| [ ] | `MED-VIEW-07` | Media - Viewer & Actions | same ID | Unavailable source remains in transcript/grid but is excluded from paging | None | Implemented; review pending |
 | [ ] | `FILE-01`–`FILE-05` | Media - Files & Rich Content | same IDs | Available PDF, DOCX, XLSX, ZIP, TXT rows | Open preview | Implemented; review pending |
 | [ ] | `FILE-06` | Media - Files & Rich Content | `FILE-06` | Unavailable file | No preview; unavailable value | Implemented; review pending |
 | [ ] | `LINK-01` | Media - Files & Rich Content | `LINK-01` | Link preview with image | Open link | Implemented; review pending |
@@ -184,7 +190,7 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `LIST-01` | Direct - Text & Delivery | row `catalog-direct-text` | Pinned | Unpin | Implemented; review pending |
 | [ ] | `LIST-02` | Direct - Replies & Deletion | row `catalog-direct-replies` | Unread count | Read | Implemented; review pending |
 | [ ] | `LIST-03` | Direct - Reactions & Actions | row `catalog-direct-reactions` | Marked unread | Read | Implemented; review pending |
-| [ ] | `LIST-04` | Media - Photos & Video | row `catalog-media-photo-video` | Muted | Unmute | Implemented; review pending |
+| [ ] | `LIST-04` | Media - Single Photos & Video | row `catalog-media-single` | Muted | Unmute | Implementation pending |
 | [ ] | `LIST-05` | Direct - New Chat & Draft | row `catalog-direct-new-draft` | Draft preview | Open/edit draft | Implemented; review pending |
 | [ ] | `LIST-06` | Direct - Text & Delivery | row `catalog-direct-text` | Failed delivery indicator | Retry | Implemented; review pending |
 | [ ] | `LIST-07` | Direct - Archived | row `catalog-direct-archived` | Archived | Unarchive | Implemented; review pending |
@@ -220,9 +226,9 @@ intentional product fallback are outside catalog scope.
 | [ ] | `MSG-ACT-04` | `ACT-01`–`ACT-05` | Share uses text/attachment labels, except a single available file shares its URL | Implemented; review pending |
 | [ ] | `MSG-ACT-05` | `ACT-02`, `ACT-04` | Delete appears only for outgoing nondeleted messages and requires confirmation | Implemented; review pending |
 | [ ] | `MSG-ACT-06` | `DLV-03` | Touch and hold exposes Retry Send; retry changes failed delivery to sent | Implemented; review pending |
-| [ ] | `MSG-ACT-07` | `RPL-01`–`RPL-03` | Quote tap scrolls to and temporarily highlights the target | Implemented; review pending |
+| [ ] | `MSG-ACT-07` | `RPL-01`–`RPL-03` | Quote tap scrolls to the target without adding a temporary highlight | Implemented; review pending |
 | [ ] | `MSG-ACT-08` | `MENTION-01`–`MENTION-03` | Mention tap opens the matching profile | Implemented; review pending |
-| [ ] | `MSG-ACT-09` | `MED-01`–`MED-10` | Media opens at the tapped gallery index and pages within that message | Implemented; review pending |
+| [ ] | `MSG-ACT-09` | `MED-01`–`MED-VIEW-07` | Media opens at the exact tapped attachment and pages chronologically across all available chat photos/videos | Implemented; review pending |
 | [ ] | `MSG-ACT-10` | `MED-11` | Available video opens native playback; unavailable video does not | Implemented; review pending |
 | [ ] | `MSG-ACT-11` | `FILE-01`–`FILE-06` | Available file opens native preview; unavailable file does not | Implemented; review pending |
 | [ ] | `MSG-ACT-12` | `LINK-01`–`LINK-03` | Valid destination opens; invalid destination exposes no open action | Implemented; review pending |

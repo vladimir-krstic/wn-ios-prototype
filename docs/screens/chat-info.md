@@ -36,14 +36,16 @@ management remain in **User Profile**.
   rather than a grouped `List` row. Photos and videos occupy square cells with
   no rounded outer container corners regardless of their source aspect ratio;
   GIFs do not appear in this category. Opening a cell presents
-  that selected item and permits horizontal swiping through the other photos
-  and videos in the chat. The viewer does not expose page dots or a page
-  counter because the collection can be large. Each grid occurrence owns a
+  that selected item in the same chat-wide viewer used by Conversation and
+  permits horizontal swiping through every other available photo and video in
+  chronological message/attachment order. Unavailable items remain visible in
+  the grid but are inert and excluded from paging. The viewer does not expose
+  page dots or a persistent page counter because the collection can be large.
+  Each grid occurrence owns a
   stable message-scoped identity even when a fixture reuses the same underlying
   attachment, so no duplicate cell is dropped or rendered blank. Videos begin
-  playing when opened and keep a compact, always-visible play/pause control,
-  progress indicator, and remaining duration over the media.
-- The full-screen preview shows only the media plus the sender and
+  playing when opened and use the native AVKit playback controls.
+- The shared full-screen preview shows only the media plus the sender and
   locale-formatted sent date. Media sent by the active profile identifies its
   sender as **You** rather than repeating the profile name. It does not repeat
   the source message text. Back and More are native navigation-toolbar items.
@@ -58,8 +60,8 @@ management remain in **User Profile**.
   icon-only label component and Apple's large image scale. More contains exactly **Save** and **Go
   to Message**. Save uses the system file destination picker. Go to Message
   closes the complete Chat Info navigation subtree through the conversation's
-  authoritative presentation state, returns to the conversation, scrolls to
-  the source message, and briefly highlights it.
+  authoritative presentation state, returns to the conversation, and scrolls
+  to the source message without adding a temporary highlight.
 - Forward presents a large native sheet with a native Search field and compact
   chat rows. It omits unsupported Stories, permits multiple chat selections,
   and retains selected chats while filtering. Close uses the modal cancellation

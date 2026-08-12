@@ -110,8 +110,12 @@ enum PrototypeChatFixtures {
                 chat.timeline = directReactionsTimeline(profileID: profileID, now: now)
             case "catalog-direct-new-draft":
                 chat.timeline = directNewChatTimeline(profileID: profileID, now: now)
-            case "catalog-media-photo-video":
-                chat.timeline = mediaTimeline(profileID: profileID, now: now)
+            case "catalog-media-single":
+                chat.timeline = singleMediaTimeline(profileID: profileID, now: now)
+            case "catalog-media-gallery":
+                chat.timeline = mediaGalleryTimeline(profileID: profileID, now: now)
+            case "catalog-media-viewer":
+                chat.timeline = mediaViewerTimeline(profileID: profileID, now: now)
             case "catalog-media-rich":
                 chat.timeline = richContentTimeline(profileID: profileID, now: now)
             case "catalog-voice":
@@ -523,47 +527,137 @@ enum PrototypeChatFixtures {
         ]
     }
 
-    private static func mediaTimeline(
+    private static func singleMediaTimeline(
         profileID: String,
         now: Date
     ) -> [PrototypeTimelineEntry] {
-        let otherID = "catalog-media-photo-video"
+        let otherID = "catalog-media-single"
         let start = now.addingTimeInterval(-14_000)
-        func photo(_ id: String, _ asset: String, _ label: String) -> PrototypeAttachment {
-            .photo(id: id, source: .asset(asset), label: label)
+        func photo(
+            _ id: String,
+            _ asset: String,
+            _ label: String,
+            _ width: Double,
+            _ height: Double
+        ) -> PrototypeAttachment {
+            .photo(
+                id: id,
+                source: .asset(asset),
+                label: label,
+                dimensions: PrototypeMediaDimensions(pixelWidth: width, pixelHeight: height)
+            )
         }
-        let gallery = [
-            photo("MED-gallery-1", "AvatarWebAionyHaust", "Portrait in soft daylight"),
-            photo("MED-gallery-2", "AvatarGardenClub", "Green leaves in sunlight"),
-            photo("MED-gallery-3", "AvatarWebAyoOgunseinde", "Portrait against a dark background"),
-            photo("MED-gallery-4", "AvatarWebIanDooley", "Portrait outdoors"),
-            photo("MED-gallery-5", "AvatarWebSergioDePaula", "Portrait in warm light"),
-            photo("MED-gallery-6", "AvatarWebVinceFleming", "Portrait near a window"),
-            photo("MED-gallery-7", "AvatarWebPhilipMartin", "Portrait with a bright background"),
-        ]
-        let video = PrototypeAttachment.video(
-            id: "MED-11-video",
+
+        let landscape = photo("MED-01-photo", "FiatjafMediaFox", "Fox in landscape", 1_200, 800)
+        let square = photo("MED-02-photo", "AvatarGardenClub", "Square portrait", 1_200, 1_200)
+        let portrait = photo("MED-03-photo", "LegacyAvatarSatoshiNakamoto", "Portrait photograph", 800, 1_200)
+        let panorama = photo("MED-SINGLE-04-photo", "FiatjafMediaOstrich", "Clamped panorama", 3_000, 700)
+        let tall = photo("MED-SINGLE-05-photo", "QRScannerBackdrop", "Clamped tall photograph", 700, 3_000)
+        let lowResolution = photo("MED-SINGLE-06-photo", "LegacyAvatarMarmots", "Low resolution photograph", 96, 64)
+        let landscapeVideo = PrototypeAttachment.video(
+            id: "MED-11-video-landscape",
             url: showcaseVideoURL,
             thumbnail: .asset("AvatarGardenClub"),
-            duration: 8
+            duration: 8,
+            dimensions: PrototypeMediaDimensions(pixelWidth: 1_920, pixelHeight: 1_080)
+        )
+        let portraitVideo = PrototypeAttachment.video(
+            id: "MED-SINGLE-08-video-portrait",
+            url: showcaseVideoURL,
+            thumbnail: .asset("LegacyAvatarSatoshiNakamoto"),
+            duration: 18,
+            dimensions: PrototypeMediaDimensions(pixelWidth: 1_080, pixelHeight: 1_920)
         )
 
         return [
-            .message(PrototypeMessage(id: "MED-01-caption", authorID: profileID, sentAt: start, text: "MED-01 → next bubble: Incoming photo-only")),
-            .message(PrototypeMessage(id: "MED-01", authorID: otherID, sentAt: start.addingTimeInterval(60), attachments: [gallery[0]])),
-            .message(PrototypeMessage(id: "MED-02-caption", authorID: otherID, sentAt: start.addingTimeInterval(180), text: "MED-02 → next bubble: Outgoing photo-only")),
-            .message(PrototypeMessage(id: "MED-02", authorID: profileID, sentAt: start.addingTimeInterval(240), attachments: [gallery[1]])),
-            .message(PrototypeMessage(id: "MED-03", authorID: otherID, sentAt: start.addingTimeInterval(360), text: "MED-03: Photo with caption", attachments: [gallery[2]])),
-            .message(PrototypeMessage(id: "MED-04", authorID: profileID, sentAt: start.addingTimeInterval(540), text: "MED-04: Gallery of 2", attachments: Array(gallery.prefix(2)))),
-            .message(PrototypeMessage(id: "MED-05", authorID: otherID, sentAt: start.addingTimeInterval(720), text: "MED-05: Gallery of 3", attachments: Array(gallery.prefix(3)))),
-            .message(PrototypeMessage(id: "MED-06", authorID: profileID, sentAt: start.addingTimeInterval(900), text: "MED-06: Gallery of 4", attachments: Array(gallery.prefix(4)))),
-            .message(PrototypeMessage(id: "MED-07", authorID: otherID, sentAt: start.addingTimeInterval(1_080), text: "MED-07: Gallery of 5", attachments: Array(gallery.prefix(5)))),
-            .message(PrototypeMessage(id: "MED-08", authorID: profileID, sentAt: start.addingTimeInterval(1_260), text: "MED-08: Gallery of 6", attachments: Array(gallery.prefix(6)))),
-            .message(PrototypeMessage(id: "MED-09", authorID: otherID, sentAt: start.addingTimeInterval(1_440), text: "MED-09: Gallery of 7 with overflow", attachments: gallery)),
-            .message(PrototypeMessage(id: "MED-10", authorID: profileID, sentAt: start.addingTimeInterval(1_620), text: "MED-10: Mixed photo and video grid", attachments: [gallery[0], video])),
-            .message(PrototypeMessage(id: "MED-11", authorID: otherID, sentAt: start.addingTimeInterval(1_800), text: "MED-11: Available video with duration", attachments: [video])),
-            .message(PrototypeMessage(id: "MED-12", authorID: profileID, sentAt: start.addingTimeInterval(1_980), text: "MED-12: Video without playable URL", attachments: [.video(id: "MED-12-video", url: nil, thumbnail: .asset("AvatarWebChristopherCampbell"), duration: 42)])),
-            .message(PrototypeMessage(id: "MED-13", authorID: otherID, sentAt: start.addingTimeInterval(2_160), text: "MED-13: Unavailable image fallback", attachments: [.photo(id: "MED-13-photo", source: .data(Data([0x00, 0x01, 0x02])), label: "Unavailable photo")])),
+            .message(PrototypeMessage(id: "MED-01", authorID: otherID, sentAt: start, text: "MED-01: Incoming landscape", attachments: [landscape])),
+            .message(PrototypeMessage(id: "MED-02", authorID: profileID, sentAt: start.addingTimeInterval(180), text: "MED-02: Outgoing square", attachments: [square])),
+            .message(PrototypeMessage(id: "MED-03", authorID: otherID, sentAt: start.addingTimeInterval(360), text: "MED-03: Captioned portrait", attachments: [portrait])),
+            .message(PrototypeMessage(id: "MED-SINGLE-04", authorID: profileID, sentAt: start.addingTimeInterval(540), text: "MED-SINGLE-04: Panorama ratio clamped", attachments: [panorama])),
+            .message(PrototypeMessage(id: "MED-SINGLE-05", authorID: otherID, sentAt: start.addingTimeInterval(720), text: "MED-SINGLE-05: Tall ratio clamped", attachments: [tall])),
+            .message(PrototypeMessage(id: "MED-SINGLE-06", authorID: profileID, sentAt: start.addingTimeInterval(900), text: "MED-SINGLE-06: Low-resolution safeguard", attachments: [lowResolution])),
+            .message(PrototypeMessage(id: "MED-11", authorID: otherID, sentAt: start.addingTimeInterval(1_080), text: "MED-11: Landscape video with duration", attachments: [landscapeVideo])),
+            .message(PrototypeMessage(id: "MED-SINGLE-08", authorID: profileID, sentAt: start.addingTimeInterval(1_260), text: "MED-SINGLE-08: Portrait video", attachments: [portraitVideo])),
+            .message(PrototypeMessage(id: "MED-13", authorID: otherID, sentAt: start.addingTimeInterval(1_440), text: "MED-13: Unavailable photo", attachments: [.photo(id: "MED-13-photo", source: .data(Data([0x00, 0x01, 0x02])), label: "Unavailable photo", dimensions: PrototypeMediaDimensions(pixelWidth: 1_200, pixelHeight: 800))])),
+            .message(PrototypeMessage(id: "MED-12", authorID: profileID, sentAt: start.addingTimeInterval(1_620), text: "MED-SINGLE-10: Unavailable video", attachments: [.video(id: "MED-12-video", url: nil, thumbnail: .asset("AvatarWebChristopherCampbell"), duration: 42, dimensions: PrototypeMediaDimensions(pixelWidth: 1_080, pixelHeight: 1_920))])),
+        ]
+    }
+
+    private static func mediaGalleryTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-media-gallery"
+        let start = now.addingTimeInterval(-11_000)
+        let specs: [(String, String, Double, Double)] = [
+            ("AvatarWebAionyHaust", "Portrait in soft daylight", 800, 1_200),
+            ("FiatjafMediaFox", "Fox in landscape", 1_200, 800),
+            ("AvatarWebAyoOgunseinde", "Square portrait", 1_000, 1_000),
+            ("FiatjafMediaOstrich", "Ostrich in landscape", 1_400, 800),
+            ("LegacyAvatarSatoshiNakamoto", "Tall portrait", 700, 1_200),
+            ("FiatjafMediaBadger", "Badger in landscape", 1_200, 800),
+            ("AvatarWebPhilipMartin", "Portrait in bright light", 900, 1_100),
+            ("AvatarMayaChen", "Square portrait outdoors", 1_000, 1_000),
+        ]
+        let gallery = specs.enumerated().map { index, spec in
+            PrototypeAttachment.photo(
+                id: "MED-gallery-\(index + 1)",
+                source: .asset(spec.0),
+                label: spec.1,
+                dimensions: PrototypeMediaDimensions(pixelWidth: spec.2, pixelHeight: spec.3)
+            )
+        }
+        let video = PrototypeAttachment.video(
+            id: "MED-gallery-video",
+            url: showcaseVideoURL,
+            thumbnail: .asset("AvatarGardenClub"),
+            duration: 8,
+            dimensions: PrototypeMediaDimensions(pixelWidth: 1_920, pixelHeight: 1_080)
+        )
+
+        return [
+            .message(PrototypeMessage(id: "MED-04", authorID: profileID, sentAt: start, text: "MED-04: Gallery of 2", attachments: Array(gallery.prefix(2)))),
+            .message(PrototypeMessage(id: "MED-05", authorID: otherID, sentAt: start.addingTimeInterval(180), text: "MED-05: Gallery of 3", attachments: Array(gallery.prefix(3)))),
+            .message(PrototypeMessage(id: "MED-06", authorID: profileID, sentAt: start.addingTimeInterval(360), text: "MED-06: Gallery of 4", attachments: Array(gallery.prefix(4)))),
+            .message(PrototypeMessage(id: "MED-07", authorID: otherID, sentAt: start.addingTimeInterval(540), text: "MED-07: Captioned gallery of 5", attachments: Array(gallery.prefix(5)))),
+            .message(PrototypeMessage(id: "MED-08", authorID: profileID, sentAt: start.addingTimeInterval(720), text: "MED-08: Gallery of 6 with +1", attachments: Array(gallery.prefix(6)))),
+            .message(PrototypeMessage(id: "MED-09", authorID: otherID, sentAt: start.addingTimeInterval(900), text: "MED-09: Gallery of 7 with +2", attachments: Array(gallery.prefix(7)))),
+            .message(PrototypeMessage(id: "MED-10", authorID: profileID, sentAt: start.addingTimeInterval(1_080), text: "MED-10: Mixed photo and video album", attachments: [gallery[0], video, gallery[2], gallery[3], gallery[4]])),
+            .message(PrototypeMessage(id: "MED-GALLERY-08", authorID: otherID, sentAt: start.addingTimeInterval(1_260), text: "MED-GALLERY-08: Larger overflow +3", attachments: gallery)),
+        ]
+    }
+
+    private static func mediaViewerTimeline(
+        profileID: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        let otherID = "catalog-media-viewer"
+        func viewerPhoto(_ id: String, _ asset: String, _ label: String) -> PrototypeAttachment {
+            .photo(
+                id: id,
+                source: .asset(asset),
+                label: label,
+                dimensions: PrototypeMediaDimensions(pixelWidth: 1_200, pixelHeight: 800)
+            )
+        }
+        let video = PrototypeAttachment.video(
+            id: "MED-VIEW-04-video",
+            url: showcaseVideoURL,
+            thumbnail: .asset("AvatarGardenClub"),
+            duration: 8,
+            dimensions: PrototypeMediaDimensions(pixelWidth: 1_920, pixelHeight: 1_080)
+        )
+        let dayOne = catalogDate(daysAgo: 3, hour: 9, now: now)
+        let dayTwo = catalogDate(daysAgo: 1, hour: 14, now: now)
+        let today = catalogDate(daysAgo: 0, hour: 10, now: now)
+        return [
+            .message(PrototypeMessage(id: "MED-VIEW-01", authorID: otherID, sentAt: dayOne, text: "MED-VIEW-01: Paging starts across dates", attachments: [viewerPhoto("MED-VIEW-01-photo", "FiatjafMediaFox", "Fox in grass")])),
+            .message(PrototypeMessage(id: "MED-VIEW-02", authorID: profileID, sentAt: dayOne.addingTimeInterval(120), text: "MED-VIEW-02: Zoom and Share", attachments: [viewerPhoto("MED-VIEW-02-photo", "FiatjafMediaOstrich", "Ostrich portrait")])),
+            .message(PrototypeMessage(id: "MED-VIEW-03", authorID: otherID, sentAt: dayTwo, text: "MED-VIEW-03: Save and Forward", attachments: [viewerPhoto("MED-VIEW-03-photo", "FiatjafMediaBadger", "Badger in grass")])),
+            .message(PrototypeMessage(id: "MED-VIEW-04", authorID: profileID, sentAt: dayTwo.addingTimeInterval(120), text: "MED-VIEW-04: Initial video autoplays", attachments: [video])),
+            .message(PrototypeMessage(id: "MED-VIEW-05", authorID: otherID, sentAt: today, text: "MED-VIEW-05: Go to Message", attachments: [viewerPhoto("MED-VIEW-05-photo", "FiatjafMediaMarmot", "Marmot in landscape")])),
+            .message(PrototypeMessage(id: "MED-VIEW-06", authorID: profileID, sentAt: today.addingTimeInterval(120), text: "MED-VIEW-06: Deleted media excluded", attachments: [viewerPhoto("MED-VIEW-06-photo", "AvatarMayaChen", "Deleted portrait")], deletionState: .deletedByCurrentProfile)),
+            .message(PrototypeMessage(id: "MED-VIEW-07", authorID: otherID, sentAt: today.addingTimeInterval(240), text: "MED-VIEW-07: Unavailable media excluded", attachments: [.photo(id: "MED-VIEW-07-photo", source: .data(Data([0x00])), label: "Unavailable media", dimensions: PrototypeMediaDimensions(pixelWidth: 1_200, pixelHeight: 800))])),
         ]
     }
 

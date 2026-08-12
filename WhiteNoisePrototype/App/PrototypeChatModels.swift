@@ -130,9 +130,37 @@ enum PrototypeImageSource: Equatable {
     case data(Data)
 }
 
+struct PrototypeMediaDimensions: Equatable, Sendable {
+    let pixelWidth: Double
+    let pixelHeight: Double
+
+    init?(pixelWidth: Double, pixelHeight: Double) {
+        guard pixelWidth.isFinite,
+              pixelHeight.isFinite,
+              pixelWidth > 0,
+              pixelHeight > 0
+        else { return nil }
+        self.pixelWidth = pixelWidth
+        self.pixelHeight = pixelHeight
+    }
+
+    var aspectRatio: Double { pixelWidth / pixelHeight }
+}
+
 enum PrototypeAttachment: Equatable, Identifiable {
-    case photo(id: String, source: PrototypeImageSource, label: String)
-    case video(id: String, url: URL?, thumbnail: PrototypeImageSource, duration: TimeInterval)
+    case photo(
+        id: String,
+        source: PrototypeImageSource,
+        label: String,
+        dimensions: PrototypeMediaDimensions? = nil
+    )
+    case video(
+        id: String,
+        url: URL?,
+        thumbnail: PrototypeImageSource,
+        duration: TimeInterval,
+        dimensions: PrototypeMediaDimensions? = nil
+    )
     case file(id: String, name: String, size: Int, url: URL?)
     case voice(id: String, resourceName: String, duration: TimeInterval)
     case link(id: String, title: String, domain: String, summary: String, image: PrototypeImageSource?)
@@ -141,7 +169,7 @@ enum PrototypeAttachment: Equatable, Identifiable {
 
     var id: String {
         switch self {
-        case let .photo(id, _, _), let .video(id, _, _, _), let .file(id, _, _, _),
+        case let .photo(id, _, _, _), let .video(id, _, _, _, _), let .file(id, _, _, _),
              let .voice(id, _, _), let .link(id, _, _, _, _), let .gif(id, _, _),
              let .contact(id, _):
             id
@@ -150,7 +178,7 @@ enum PrototypeAttachment: Equatable, Identifiable {
 
     var accessibilityLabel: String {
         switch self {
-        case let .photo(_, _, label): label
+        case let .photo(_, _, label, _): label
         case .video: "Video"
         case let .file(_, name, _, _): "File, \(name)"
         case .voice: "Voice message"

@@ -94,6 +94,7 @@ struct ConversationView: View {
     @State private var queuedAttachments: [PrototypeAttachment] = []
     @State private var isFileImporterPresented = false
     @State private var mediaSelection: PrototypeMediaSelection?
+    @State private var pendingMediaMessageID: String?
     @State private var quickLookURL: URL?
     @State private var messagePendingDeletion: String?
     @State private var highlightedMessageID: String?
@@ -242,7 +243,17 @@ struct ConversationView: View {
                 }
             }
         }
-        .fullScreenCover(item: $mediaSelection) { PrototypeMediaViewer(selection: $0) }
+        .fullScreenCover(item: $mediaSelection, onDismiss: openPendingMediaMessage) { selection in
+            PrototypeMediaViewer(
+                profile: $profile,
+                sourceChatID: chatID,
+                selection: selection,
+                onRequestOpenMessage: { messageID in
+                    pendingMediaMessageID = messageID
+                    mediaSelection = nil
+                }
+            )
+        }
         .sheet(isPresented: $isCameraPresented) {
             ConversationCameraCaptureView(onCapture: handleCameraCapture)
                 .presentationDetents([.large])
@@ -501,12 +512,12 @@ struct ConversationView: View {
                     }
                 },
                 onOpenPerson: { selectedPersonID = $0 },
-                onOpenMedia: { attachments, index in
+                onOpenMedia: { attachment in
                     PrototypePlaybackCoordinator.shared.stopAll()
                     mediaSelection = PrototypeMediaSelection(
-                        id: UUID().uuidString,
-                        attachments: attachments,
-                        initialIndex: index
+                        chat: chat,
+                        messageID: message.id,
+                        attachmentID: attachment.id
                     )
                 },
                 onOpenFile: { quickLookURL = $0 }
@@ -756,10 +767,10 @@ struct ConversationView: View {
     @ViewBuilder
     private func queuedPreview(_ attachment: PrototypeAttachment) -> some View {
         switch attachment {
-        case let .photo(_, source, _):
+        case let .photo(_, source, _, _):
             PrototypeImageSourceView(source: source).scaledToFill()
                 .frame(width: 72, height: 72).clipShape(.rect(cornerRadius: 10))
-        case let .video(_, _, thumbnail, _):
+        case let .video(_, _, thumbnail, _, _):
             ZStack {
                 PrototypeImageSourceView(source: thumbnail).scaledToFill()
                 Image(systemName: "play.circle.fill").foregroundStyle(.white)
@@ -1201,6 +1212,18 @@ struct ConversationView: View {
         }
     }
 
+    private func openPendingMediaMessage() {
+        guard let messageID = pendingMediaMessageID else { return }
+        pendingMediaMessageID = nil
+        Task { @MainActor in
+            await Task.yield()
+            requestedScroll = TimelineScrollRequest(
+                messageID: messageID,
+                highlightsTarget: false
+            )
+        }
+    }
+
     private func preparePhotoItems() async {
         let items = selectedPhotoItems
         guard !items.isEmpty else { return }
@@ -1217,12 +1240,18 @@ struct ConversationView: View {
                         url: prepared.url,
                         thumbnail: prepared.thumbnailData.map(PrototypeImageSource.data)
                             ?? .asset("FiatjafMediaBadger"),
-                        duration: prepared.duration
+                        duration: prepared.duration,
+                        dimensions: prepared.dimensions
                     )
                 )
             } else if let prepared = await ConversationImageProcessor.preparedDataAsync(from: data) {
                 queuedAttachments.append(
-                    .photo(id: UUID().uuidString, source: .data(prepared), label: "Selected photo")
+                    .photo(
+                        id: UUID().uuidString,
+                        source: .data(prepared),
+                        label: "Selected photo",
+                        dimensions: PrototypeImageSource.data(prepared).prototypeDimensions
+                    )
                 )
             }
         }
@@ -1243,7 +1272,8 @@ struct ConversationView: View {
                     .photo(
                         id: UUID().uuidString,
                         source: .data(prepared),
-                        label: "Camera photo"
+                        label: "Camera photo",
+                        dimensions: PrototypeImageSource.data(prepared).prototypeDimensions
                     )
                 )
             }
@@ -1260,7 +1290,8 @@ struct ConversationView: View {
                         url: prepared.url,
                         thumbnail: prepared.thumbnailData.map(PrototypeImageSource.data)
                             ?? .asset("FiatjafMediaBadger"),
-                        duration: prepared.duration
+                        duration: prepared.duration,
+                        dimensions: prepared.dimensions
                     )
                 )
             }

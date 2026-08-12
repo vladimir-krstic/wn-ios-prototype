@@ -6,6 +6,7 @@ struct ConversationPreparedVideo {
     let url: URL
     let thumbnailData: Data?
     let duration: TimeInterval
+    let dimensions: PrototypeMediaDimensions?
 }
 
 enum ConversationVideoProcessor {
@@ -50,6 +51,7 @@ enum ConversationVideoProcessor {
             let duration = loadedDuration.seconds.isFinite
                 ? max(0, loadedDuration.seconds)
                 : 0
+            let dimensions = try await normalizedDimensions(for: asset)
 
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
@@ -69,11 +71,27 @@ enum ConversationVideoProcessor {
             return ConversationPreparedVideo(
                 url: url,
                 thumbnailData: thumbnail,
-                duration: duration
+                duration: duration,
+                dimensions: dimensions
             )
         } catch {
             try? FileManager.default.removeItem(at: url)
             return nil
         }
+    }
+
+    private static func normalizedDimensions(
+        for asset: AVURLAsset
+    ) async throws -> PrototypeMediaDimensions? {
+        guard let track = try await asset.loadTracks(withMediaType: .video).first else {
+            return nil
+        }
+        let naturalSize = try await track.load(.naturalSize)
+        let preferredTransform = try await track.load(.preferredTransform)
+        let transformed = naturalSize.applying(preferredTransform)
+        return PrototypeMediaDimensions(
+            pixelWidth: Double(abs(transformed.width)),
+            pixelHeight: Double(abs(transformed.height))
+        )
     }
 }

@@ -9,7 +9,7 @@ enum PrototypeMessageBubbleMetrics {
     static let richComponentInset: CGFloat = 6
     static let richComponentCornerRadius = cornerRadius - outerContentInset
     static let contentSpacing: CGFloat = 6
-    static let gallerySpacing: CGFloat = 3
+    static let gallerySpacing: CGFloat = 2
 }
 
 struct PrototypeMessageBubbleShape: Shape {
