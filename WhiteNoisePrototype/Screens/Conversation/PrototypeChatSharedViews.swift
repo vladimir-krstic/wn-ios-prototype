@@ -118,7 +118,7 @@ enum PrototypeAuthorNameColor {
 }
 
 @MainActor
-private enum PrototypePreparedImageCache {
+enum PrototypePreparedImageCache {
     static let cache = NSCache<NSData, UIImage>()
 
     static func image(from data: Data) -> UIImage? {
@@ -346,17 +346,32 @@ struct PrototypeSingleMediaView: View {
     var body: some View {
         switch attachment {
         case let .photo(_, source, label):
-            ZoomablePrototypeImage(source: source)
-                .accessibilityLabel(label)
+            if prototypeImage(source) != nil {
+                ZoomablePrototypeImage(source: source)
+                    .accessibilityLabel(label)
+            } else {
+                ContentUnavailableView(
+                    "Photo Unavailable",
+                    systemImage: "photo.badge.exclamationmark",
+                    description: Text("This photo is no longer available.")
+                )
+                .foregroundStyle(.white)
+                .accessibilityLabel("Photo unavailable, \(label)")
+            }
         case let .video(_, url, thumbnail, duration):
             if let url {
                 PrototypeVideoPage(url: url, duration: duration)
             } else {
-                ZStack {
-                    PrototypeImageSourceView(source: thumbnail).scaledToFit()
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(.white)
+                ZStack(alignment: .bottom) {
+                    PrototypeImageSourceView(source: thumbnail)
+                        .scaledToFit()
+                    ContentUnavailableView(
+                        "Video Unavailable",
+                        systemImage: "video.slash",
+                        description: Text("This video is no longer available.")
+                    )
+                    .foregroundStyle(.white)
+                    .padding(.bottom, 24)
                 }
                 .accessibilityLabel("Video unavailable")
             }
@@ -367,6 +382,15 @@ struct PrototypeSingleMediaView: View {
                 .accessibilityLabel("GIF, \(label)")
         default:
             ContentUnavailableView("Preview Unavailable", systemImage: "doc")
+        }
+    }
+
+    private func prototypeImage(_ source: PrototypeImageSource) -> UIImage? {
+        switch source {
+        case let .asset(name):
+            UIImage(named: name)
+        case let .data(data):
+            PrototypePreparedImageCache.image(from: data)
         }
     }
 }

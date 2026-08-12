@@ -1,11 +1,25 @@
 import SwiftUI
 
+enum PrototypeMessageBubbleMetrics {
+    static let cornerRadius: CGFloat = 18
+    static let outerContentInset: CGFloat = 6
+    static let textHorizontalInset: CGFloat = 12
+    static let textVerticalInset: CGFloat = 8
+    static let richContentWidth: CGFloat = 256
+    static let richComponentInset: CGFloat = 6
+    static let richComponentCornerRadius = cornerRadius - outerContentInset
+    static let contentSpacing: CGFloat = 6
+    static let gallerySpacing: CGFloat = 3
+}
+
 struct PrototypeMessageBubbleShape: Shape {
-    static let cornerRadius: CGFloat = 20
+    static let cornerRadius = PrototypeMessageBubbleMetrics.cornerRadius
 
     func path(in rect: CGRect) -> Path {
-        RoundedRectangle(
-            cornerRadius: Self.cornerRadius,
+        let resolvedCornerRadius = min(rect.height / 2, Self.cornerRadius)
+
+        return RoundedRectangle(
+            cornerRadius: resolvedCornerRadius,
             style: .continuous
         ).path(in: rect)
     }
@@ -101,8 +115,8 @@ private struct MessageBubble<Content: View>: View {
 
     var body: some View {
         content
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
+            .padding(.horizontal, PrototypeMessageBubbleMetrics.textHorizontalInset)
+            .padding(.vertical, PrototypeMessageBubbleMetrics.textVerticalInset)
             .foregroundStyle(foregroundStyle)
             .background(
                 fill,

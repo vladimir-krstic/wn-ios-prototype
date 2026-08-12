@@ -69,8 +69,10 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Native context menus own Reply, Copy, Share, Delete, and the supported
   reactions: ❤, 😀, 👍, 👎, 🤣, 🔥, and 🦫.
 - Search matches text, sender names, file names, and attachment labels. Reply
-  quotes scroll to the original or show a stable unavailable state. Search
-  results visibly emphasize every matching term without relying on color.
+  quotes scroll to the original without adding an outline or other temporary
+  target indicator, or show a stable unavailable state. Search results retain
+  their temporary target emphasis and visibly emphasize every matching term
+  without relying on color.
 - Inline emphasis uses native attributed text. Links and mentions retain the
   approved adaptive monochrome bubble palette while adding an underline;
   mentions also use semibold type. VoiceOver reads the rendered words rather
@@ -108,7 +110,10 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   inset.
 - Every bubble keeps the same fully rounded continuous silhouette, including
   messages in a same-author cluster. Grouping is communicated by compact
-  vertical spacing rather than flattened or joined corners.
+  vertical spacing rather than flattened or joined corners. A bubble up to the
+  one-line height is a true capsule whose radius is half its rendered height;
+  once content grows beyond one line, the silhouette uses the fixed 18-point
+  radius instead of continuing toward a circular side.
 - Time remains visible below the terminal bubble rather than being hidden until
   a gesture. It sits beneath the bubble on its conversation-center side and is
   inset from that inner edge by the shared bubble corner radius. This is an
@@ -123,6 +128,35 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   contacts, and voice messages all use the same shared bubble shell, cluster
   spacing, timestamp placement, and group-identity rules in catalog and legacy
   chats.
+- Unavailable photo data and video attachments without a playable destination
+  retain their visible fallback tile but are static, noninteractive content.
+  They expose no preview hint or button trait, do nothing when tapped, and are
+  excluded from the page set when another available item in the same gallery
+  opens the media viewer. The viewer's unavailable state remains only as a
+  defensive fallback for stale data that becomes unavailable after opening.
+- File rows use a bare semantic file glyph rather than nesting the glyph in a
+  second rounded container. File and contact accessories share one compact
+  caption-sized symbol and a trailing slot with four points of breathing room.
+  Reply bars begin at the rich card's 12-point inner corner stop rather than
+  touching its shell inset. An incoming quote bar uses a lighter secondary
+  gray than its outgoing equivalent. A quote preview takes its natural
+  one-line height, grows to at most two lines, and then truncates without
+  reserving an empty second line. On outgoing black bubbles, textual rich-card
+  surfaces use a slightly stronger adaptive white overlay so their hierarchy
+  remains legible without changing the bubble color.
+- The shared bubble shell owns the content-to-silhouette spacing. Naturally
+  sized text-only and deleted messages use a 12-point horizontal inset and an
+  8-point vertical inset. Any message containing a reply quote or attachment
+  uses a 6-point shell inset and one 256-point inner canvas so its quote, media,
+  and stacked cards share exact leading and trailing edges. Captions and mixed message text
+  add six horizontal points and two bottom points inside that canvas,
+  preserving the same 12-by-8-point visual text inset without moving the rich
+  components from their 6-point shell inset. Textual rich cards use a 6-point
+  internal inset and a concentric 12-point corner radius; photo/video galleries
+  and GIFs fill the canvas edge to edge.
+  Rich components and mixed-content sections use 6 points of vertical spacing,
+  while gallery tiles retain their tighter 3-point gap. These fixed values are
+  an approved custom composition metric, not an inferred system-control size.
 - Sticker and shared-location messages are not supported. They are absent from
   deterministic fixtures, catalog coverage, and the shared renderer.
 
@@ -173,11 +207,13 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   conversation intact and provides system Settings recovery.
 - The attachment button uses a native `UIButton` control menu with a compact
   `UIMenu`; UIKit owns its rows, spacing, shape, material, ordering, and
-  dismissal. Camera is the first item. The button's native
-  `UIContextMenuInteraction` lifecycle disables the composer field as soon as
-  menu presentation begins and restores it only after the menu ends or the
-  selected Camera, Photos and Videos, or Files destination is dismissed. A menu
-  row can therefore never focus or blink the field beneath it.
+  dismissal. Camera is the first item. Opening the menu while the keyboard is
+  visible preserves composer focus and keeps the keyboard in place. The
+  button and the presented menu are excluded from the conversation's global
+  outside-tap keyboard dismissal, while composer mutations remain blocked
+  beneath the menu. Choosing Camera, Photos and Videos, or Files then dismisses
+  the keyboard before presenting that system-owned destination. A menu row can
+  therefore never focus or blink the field beneath it.
 - The attachment strip supports removal before sending. Messages may combine
   text, images, videos, and files. Media opens a paged viewer; videos use
   `VideoPlayer`, images use native `UIScrollView` pinch, pan, and double-tap
@@ -198,16 +234,27 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Voice-message bubbles show a playable waveform, elapsed progress, and
   duration. The waveform is generated deterministically for bundled fixtures
   and for the in-memory recording state. Recording and bubble waveforms use
-  two-point capsule bars.
+  two-point capsule bars. Playback updates are isolated to the voice control;
+  pressing Play never changes the timeline's scroll position, and the rest of
+  the message bubble is not a competing playback tap target.
 - Only one audio or video item plays at once and playback stops on navigation.
-- A voice bubble does not impose a fixed outer width. Its progress and duration
-  reflow as one adaptive unit so longer localized or accessibility-sized time
-  labels never collapse into a one-character column.
+- A voice bubble fills the shared 256-point rich-content canvas. Its fixed play
+  target and duration flank a waveform that flexes through the remaining width.
+  The centered play glyph's trailing visual space is balanced against the
+  waveform-to-duration spacing while its control retains the full 44-point hit
+  target, so the controls keep their intended geometry without introducing a
+  narrower one-off attachment width.
 - Contact, GIF, and deterministic link preview are polished showcase renderers,
   not composer options. Sticker and shared-location messages are intentionally
   unsupported.
-- In groups, typing `@` offers matching members; inserted mentions are styled
-  and open Group Member.
+- In groups, typing `@` offers matching members. A resolved mention has no
+  underline; the entire `@Name` run uses semibold type on a subtle rounded
+  four-point-radius surface and opens Group Member. The surface follows the
+  run's exact typographic height and extends two points horizontally, keeping
+  wrapped mentions visually separate without clipping their text. Unmatched
+  `@` text remains ordinary message text. This adopts the compact highlighted-run behavior from
+  the user-supplied Signal reference while using SwiftUI's native attributed
+  links and `TextRenderer` rather than a separate overlay control.
 
 ## Availability
 
@@ -242,12 +289,17 @@ colors/type, 44-point
 interaction targets, interruptible state-driven motion, Reduce Motion, and
 complete VoiceOver actions. Standard navigation, text entry, capture sessions,
 pickers, menus, sharing, playback, permissions, alerts, and keyboard layout stay
-system-owned. The 32-point Send and voice-review Play circles inside 44-point
-hit targets and the two-point waveform bars are explicit user-approved visual
-metrics for this custom composer. Presenting the camera in a native large sheet
-instead of Apple's default full-screen camera treatment is an explicit
-user-approved presentation choice; the standard sheet still owns all geometry
-and dismissal behavior.
+system-owned. The capsule one-line treatment, 18-point expanded bubble radius,
+12-point horizontal and 8-point vertical text insets, 6-point rich shell and
+card insets, 256-point rich-content canvas, 12-point rich-component
+radius, and 3-point gallery gap are explicit user-approved visual metrics for
+message composition.
+The 32-point Send and voice-review Play circles inside 44-point hit targets and
+the two-point waveform bars are explicit user-approved visual metrics for this
+custom composer. Presenting the camera in a native large sheet instead of
+Apple's default full-screen camera treatment is an explicit user-approved
+presentation choice; the standard sheet still owns all geometry and dismissal
+behavior.
 
 ## Voice asset provenance
 
@@ -315,6 +367,8 @@ download, remote lookup, or attribution request.
 - [ScrollEdgeEffectStyle](https://developer.apple.com/documentation/swiftui/scrolledgeffectstyle)
 - [Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
 - [Color](https://developer.apple.com/design/human-interface-guidelines/color)
+- [TextRenderer](https://developer.apple.com/documentation/swiftui/textrenderer)
+- [Text.Layout.Run](https://developer.apple.com/documentation/swiftui/text/layout/run)
 - [Standard colors](https://developer.apple.com/documentation/uikit/standard-colors)
 - [systemGray5](https://developer.apple.com/documentation/uikit/uicolor/systemgray5)
 - [Group conversations in Messages](https://support.apple.com/guide/iphone/group-conversations-iphb10c80fc5/ios)

@@ -1,10 +1,9 @@
 import SwiftUI
+import UIKit
 
 struct PrototypeMessageBubble: View {
     @Environment(\.incomingPrototypeMessageColor) private var incomingColor
     @Environment(\.outgoingPrototypeMessageColor) private var outgoingColor
-    @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
-
     let message: PrototypeMessage
     let outgoing: Bool
     let isGroup: Bool
@@ -31,16 +30,8 @@ struct PrototypeMessageBubble: View {
     var body: some View {
         if let voiceAttachment {
             messageRow
-                .contentShape(.rect)
-                .onTapGesture {
-                    playback.toggleVoice(
-                        id: voiceAttachment.id,
-                        duration: voiceAttachment.duration
-                    )
-                }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction {
-                    playback.toggleVoice(
+                .accessibilityAction(named: "Play or Pause") {
+                    PrototypePlaybackCoordinator.shared.toggleVoice(
                         id: voiceAttachment.id,
                         duration: voiceAttachment.duration
                     )
@@ -161,14 +152,33 @@ struct PrototypeMessageBubble: View {
     @ViewBuilder
     private var bubbleContent: some View {
         bubbleBody
-            .padding(.horizontal, hasVisualMedia ? 3 : 13)
-            .padding(.vertical, hasVisualMedia ? 3 : 9)
+            .frame(
+                width: hasRichContent
+                    ? PrototypeMessageBubbleMetrics.richContentWidth
+                    : nil,
+                alignment: .leading
+            )
+            .padding(
+                .horizontal,
+                hasRichContent
+                    ? PrototypeMessageBubbleMetrics.outerContentInset
+                    : PrototypeMessageBubbleMetrics.textHorizontalInset
+            )
+            .padding(
+                .vertical,
+                hasRichContent
+                    ? PrototypeMessageBubbleMetrics.outerContentInset
+                    : PrototypeMessageBubbleMetrics.textVerticalInset
+            )
             .foregroundStyle(messageColor.foregroundColor)
             .background(messageColor.color, in: shape)
     }
 
     private var bubbleBody: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(
+            alignment: .leading,
+            spacing: PrototypeMessageBubbleMetrics.contentSpacing
+        ) {
             if message.isDeleted {
                 Label(deletedText, systemImage: "trash")
                     .font(.subheadline)
@@ -182,6 +192,7 @@ struct PrototypeMessageBubble: View {
                         attachments: message.attachments,
                         people: people,
                         tint: messageColor.foregroundColor,
+                        surfaceOpacity: richSurfaceOpacity,
                         onOpenMedia: onOpenMedia,
                         onOpenFile: onOpenFile,
                         onOpenPerson: onOpenPerson
@@ -195,14 +206,52 @@ struct PrototypeMessageBubble: View {
     }
 
     private var messageText: some View {
-        Text(attributedMessageText)
+        styledMessageText
             .textSelection(.enabled)
-            .padding(.horizontal, hasVisualMedia ? 10 : 0)
-            .padding(.bottom, hasVisualMedia ? 7 : 0)
+            .textRenderer(
+                PrototypeMentionTextRenderer(
+                    backgroundColor: mentionSurfaceColor
+                )
+            )
+            .padding(
+                .horizontal,
+                hasRichContent ? richTextHorizontalInsetAdjustment : 0
+            )
+            .padding(
+                .bottom,
+                hasRichContent ? richTextVerticalInsetAdjustment : 0
+            )
+            .frame(maxWidth: hasRichContent ? .infinity : nil, alignment: .leading)
+    }
+
+    private var richTextHorizontalInsetAdjustment: CGFloat {
+        PrototypeMessageBubbleMetrics.textHorizontalInset
+            - PrototypeMessageBubbleMetrics.outerContentInset
+    }
+
+    private var richTextVerticalInsetAdjustment: CGFloat {
+        PrototypeMessageBubbleMetrics.textVerticalInset
+            - PrototypeMessageBubbleMetrics.outerContentInset
     }
 
     private var attributedMessageText: AttributedString {
         attributedText(message.text)
+    }
+
+    private var styledMessageText: Text {
+        var result = Text("")
+        let attributed = attributedMessageText
+
+        for run in attributed.runs {
+            let segment = Text(AttributedString(attributed[run.range]))
+            if run.link?.scheme == "whitenoise-person" {
+                result = result + segment.customAttribute(PrototypeMentionAttribute())
+            } else {
+                result = result + segment
+            }
+        }
+
+        return result
     }
 
     private func attributedText(_ text: String) -> AttributedString {
@@ -223,9 +272,11 @@ struct PrototypeMessageBubble: View {
         }
         for (range, link) in links {
             attributed[range].foregroundColor = messageColor.foregroundColor
-            attributed[range].underlineStyle = Text.LineStyle(pattern: .solid)
             if link.scheme == "whitenoise-person" {
                 attributed[range].font = .body.weight(.semibold)
+                attributed[range].underlineStyle = nil
+            } else {
+                attributed[range].underlineStyle = Text.LineStyle(pattern: .solid)
             }
         }
         return attributed
@@ -238,26 +289,43 @@ struct PrototypeMessageBubble: View {
     private var replyQuote: some View {
         Button(action: onOpenReply) {
             HStack(alignment: .top, spacing: 7) {
-                Capsule()
-                    .fill(messageColor.foregroundColor.opacity(0.65))
-                    .frame(width: 3)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(replyAuthorName)
                         .font(.caption.weight(.semibold))
                     Text(replyPreview)
                         .font(.caption)
-                        .lineLimit(2)
+                        .lineLimit(2, reservesSpace: false)
+                        .fixedSize(horizontal: false, vertical: true)
                         .opacity(0.75)
                 }
                 Spacer(minLength: 4)
                 replyThumbnail
             }
-            .frame(maxWidth: 236, alignment: .leading)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
-            .background(messageColor.foregroundColor.opacity(0.1), in: .rect(cornerRadius: 12))
-            .padding(.horizontal, hasVisualMedia ? 7 : 0)
-            .padding(.top, hasVisualMedia ? 6 : 0)
+            .padding(.leading, 10)
+            .overlay(alignment: .leading) {
+                Capsule()
+                    .fill(
+                        messageColor.foregroundColor.opacity(
+                            outgoing ? 0.65 : 0.46
+                        )
+                    )
+                    .frame(width: 3)
+                    .frame(maxHeight: .infinity)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.leading, PrototypeMessageBubbleMetrics.richComponentCornerRadius)
+            .padding(.trailing, PrototypeMessageBubbleMetrics.richComponentInset)
+            .padding(.vertical, PrototypeMessageBubbleMetrics.richComponentInset)
+            .frame(
+                width: PrototypeMessageBubbleMetrics.richContentWidth,
+                alignment: .leading
+            )
+            .background(
+                messageColor.foregroundColor.opacity(richSurfaceOpacity),
+                in: .rect(
+                    cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+                )
+            )
         }
         .buttonStyle(.plain)
     }
@@ -384,6 +452,10 @@ struct PrototypeMessageBubble: View {
     }
 
     private var messageColor: PrototypeMessageColor { outgoing ? outgoingColor : incomingColor }
+    private var richSurfaceOpacity: Double { outgoing ? 0.16 : 0.09 }
+    private var mentionSurfaceColor: Color {
+        messageColor.foregroundColor.opacity(outgoing ? 0.2 : 0.1)
+    }
     private var showsVisibleTimestamp: Bool {
         showsTimestamp && message.deliveryState != .failed
     }
@@ -399,17 +471,9 @@ struct PrototypeMessageBubble: View {
     private var timestampAlignment: Alignment {
         outgoing ? .bottomLeading : .bottomTrailing
     }
-    private var hasVisualMedia: Bool {
-        message.attachments.contains { attachment in
-            switch attachment {
-            case .photo, .video, .gif:
-                true
-            case let .link(_, _, _, _, image):
-                image != nil
-            default:
-                false
-            }
-        }
+    private var hasRichContent: Bool {
+        !message.isDeleted
+            && (message.replyToMessageID != nil || !message.attachments.isEmpty)
     }
     private var deletedText: String {
         outgoing ? "You deleted this message." : "This message was deleted."
@@ -435,11 +499,7 @@ struct PrototypeMessageBubble: View {
             ? ""
             : ", reply to \(replyAuthorName): \(replyPreview)"
         let failed = message.deliveryState == .failed ? ", not sent" : ""
-        let playbackAction = voiceAttachment.map { attachment in
-            let isPlaying = playback.activeVoiceID == attachment.id && !playback.isPaused
-            return isPlaying ? ", Pause" : ", Play"
-        } ?? ""
-        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)\(playbackAction)"
+        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)"
     }
     private var voiceAttachment: (id: String, duration: TimeInterval)? {
         for attachment in message.attachments {
@@ -451,10 +511,40 @@ struct PrototypeMessageBubble: View {
     }
 }
 
+private struct PrototypeMentionAttribute: TextAttribute {}
+
+private struct PrototypeMentionTextRenderer: TextRenderer {
+    let backgroundColor: Color
+
+    var displayPadding: EdgeInsets {
+        EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
+    }
+
+    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        for line in layout {
+            for run in line {
+                if run[PrototypeMentionAttribute.self] != nil {
+                    let bounds = run.typographicBounds.rect.insetBy(dx: -2, dy: 0)
+                    context.fill(
+                        Path(
+                            roundedRect: bounds,
+                            cornerRadius: 4,
+                            style: .continuous
+                        ),
+                        with: .color(backgroundColor)
+                    )
+                }
+                context.draw(run)
+            }
+        }
+    }
+}
+
 private struct PrototypeAttachmentCollectionView: View {
     let attachments: [PrototypeAttachment]
     let people: [PrototypePerson]
     let tint: Color
+    let surfaceOpacity: Double
     let onOpenMedia: ([PrototypeAttachment], Int) -> Void
     let onOpenFile: (URL) -> Void
     let onOpenPerson: (String) -> Void
@@ -467,13 +557,34 @@ private struct PrototypeAttachmentCollectionView: View {
         }
     }
 
+    private var twoColumnWidth: CGFloat {
+        (
+            PrototypeMessageBubbleMetrics.richContentWidth
+                - PrototypeMessageBubbleMetrics.gallerySpacing
+        ) / 2
+    }
+
+    private var threeColumnWidth: CGFloat {
+        (
+            PrototypeMessageBubbleMetrics.richContentWidth
+                - (2 * PrototypeMessageBubbleMetrics.gallerySpacing)
+        ) / 3
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(
+            alignment: .leading,
+            spacing: PrototypeMessageBubbleMetrics.contentSpacing
+        ) {
             if !media.isEmpty { mediaGrid }
             ForEach(attachments.filter { !media.contains($0) }) { attachment in
                 nonMediaView(attachment)
             }
         }
+        .frame(
+            width: PrototypeMessageBubbleMetrics.richContentWidth,
+            alignment: .leading
+        )
     }
 
     @ViewBuilder
@@ -481,60 +592,104 @@ private struct PrototypeAttachmentCollectionView: View {
         Group {
             switch PrototypeGalleryLayout(count: media.count) {
             case .one:
-                mediaButton(at: 0, width: 256, height: 246)
+                mediaButton(
+                    at: 0,
+                    width: PrototypeMessageBubbleMetrics.richContentWidth,
+                    height: 246
+                )
             case .two:
-                HStack(spacing: 3) {
-                    mediaButton(at: 0, width: 126.5, height: 184)
-                    mediaButton(at: 1, width: 126.5, height: 184)
+                HStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
+                    mediaButton(at: 0, width: twoColumnWidth, height: 184)
+                    mediaButton(at: 1, width: twoColumnWidth, height: 184)
                 }
             case .three:
-                HStack(spacing: 3) {
-                    mediaButton(at: 0, width: 126.5, height: 224)
-                    VStack(spacing: 3) {
-                        mediaButton(at: 1, width: 126.5, height: 110.5)
-                        mediaButton(at: 2, width: 126.5, height: 110.5)
+                HStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
+                    mediaButton(at: 0, width: twoColumnWidth, height: 224)
+                    VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
+                        mediaButton(at: 1, width: twoColumnWidth, height: 110.5)
+                        mediaButton(at: 2, width: twoColumnWidth, height: 110.5)
                     }
                 }
             case .four:
-                VStack(spacing: 3) {
-                    mediaRow(indices: [0, 1], width: 126.5, height: 126.5)
-                    mediaRow(indices: [2, 3], width: 126.5, height: 126.5)
+                VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
+                    mediaRow(indices: [0, 1], width: twoColumnWidth, height: twoColumnWidth)
+                    mediaRow(indices: [2, 3], width: twoColumnWidth, height: twoColumnWidth)
                 }
             case .five:
-                VStack(spacing: 3) {
-                    mediaRow(indices: [0, 1], width: 126.5, height: 126.5)
-                    mediaRow(indices: [2, 3, 4], width: 83.3, height: 94)
+                VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
+                    mediaRow(indices: [0, 1], width: twoColumnWidth, height: twoColumnWidth)
+                    mediaRow(indices: [2, 3, 4], width: threeColumnWidth, height: 94)
                 }
             case .overflow:
-                VStack(spacing: 3) {
-                    mediaRow(indices: [0, 1], width: 126.5, height: 102)
-                    mediaRow(indices: [2, 3], width: 126.5, height: 102)
-                    mediaRow(indices: [4, 5], width: 126.5, height: 102)
+                VStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
+                    mediaRow(indices: [0, 1], width: twoColumnWidth, height: 102)
+                    mediaRow(indices: [2, 3], width: twoColumnWidth, height: 102)
+                    mediaRow(indices: [4, 5], width: twoColumnWidth, height: 102)
                 }
             }
         }
-        .frame(width: 256)
-        .clipShape(.rect(cornerRadius: 17))
+        .frame(width: PrototypeMessageBubbleMetrics.richContentWidth)
+        .clipShape(
+            .rect(
+                cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+            )
+        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(media.count) media items")
     }
 
     private func mediaRow(indices: [Int], width: CGFloat, height: CGFloat) -> some View {
-        HStack(spacing: 3) {
+        HStack(spacing: PrototypeMessageBubbleMetrics.gallerySpacing) {
             ForEach(indices, id: \.self) { index in
                 mediaButton(at: index, width: width, height: height)
             }
         }
     }
 
+    @ViewBuilder
     private func mediaButton(at index: Int, width: CGFloat, height: CGFloat) -> some View {
         let attachment = media[index]
-        return Button { onOpenMedia(media, index) } label: {
+
+        if isMediaAvailable(attachment) {
+            Button {
+                let availableMedia = media.filter(isMediaAvailable)
+                let availableIndex = availableMedia.firstIndex {
+                    $0.id == attachment.id
+                } ?? 0
+                onOpenMedia(availableMedia, availableIndex)
+            } label: {
+                mediaTile(attachment, index: index)
+                    .frame(width: width, height: height)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .contentShape(.rect)
+            .accessibilityLabel(
+                "\(attachment.accessibilityLabel), \(index + 1) of \(media.count)"
+            )
+            .accessibilityHint("Opens a preview.")
+        } else {
             mediaTile(attachment, index: index)
                 .frame(width: width, height: height)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(attachment.accessibilityLabel), unavailable")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(attachment.accessibilityLabel), \(index + 1) of \(media.count)")
+    }
+
+    private func isMediaAvailable(_ attachment: PrototypeAttachment) -> Bool {
+        switch attachment {
+        case let .photo(_, source, _):
+            switch source {
+            case let .asset(name):
+                UIImage(named: name) != nil
+            case let .data(data):
+                PrototypePreparedImageCache.image(from: data) != nil
+            }
+        case let .video(_, url, _, _):
+            url != nil
+        default:
+            false
+        }
     }
 
     @ViewBuilder
@@ -600,12 +755,23 @@ private struct PrototypeAttachmentCollectionView: View {
             }
         case let .gif(_, assetName, label):
             ZStack(alignment: .bottomLeading) {
-                Image(assetName).resizable().scaledToFill().frame(width: 256, height: 188).clipped()
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(
+                        width: PrototypeMessageBubbleMetrics.richContentWidth,
+                        height: 188
+                    )
+                    .clipped()
                 Label("GIF", systemImage: "play.fill")
                     .font(.caption.bold()).padding(6).background(.black.opacity(0.6), in: .capsule)
                     .foregroundStyle(.white).padding(7)
             }
-            .clipShape(.rect(cornerRadius: 17))
+            .clipShape(
+                .rect(
+                    cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+                )
+            )
             .accessibilityLabel("GIF, \(label)")
         case let .contact(_, personID):
             if let person = people.first(where: { $0.id == personID }) {
@@ -624,10 +790,17 @@ private struct PrototypeAttachmentCollectionView: View {
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(tint.opacity(0.72))
+                            .frame(width: 20, height: 24)
+                            .padding(.trailing, 4)
                     }
-                    .padding(8)
-                    .frame(width: 236)
-                    .background(tint.opacity(0.09), in: .rect(cornerRadius: 13))
+                    .padding(PrototypeMessageBubbleMetrics.richComponentInset)
+                    .frame(width: PrototypeMessageBubbleMetrics.richContentWidth)
+                    .background(
+                        tint.opacity(surfaceOpacity),
+                        in: .rect(
+                            cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+                        )
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -637,23 +810,30 @@ private struct PrototypeAttachmentCollectionView: View {
     }
 
     private func fileRow(name: String, size: Int, isAvailable: Bool) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: fileSymbol(for: name))
                 .font(.title3.weight(.medium))
-                .frame(width: 34, height: 34)
-                .background(tint.opacity(0.1), in: .rect(cornerRadius: 9))
+                .frame(width: 24, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Text(fileMetadata(name: name, size: size))
                     .font(.caption).foregroundStyle(tint.opacity(0.72))
             }
-            Spacer()
+            Spacer(minLength: 8)
             Image(systemName: isAvailable ? "chevron.right" : "exclamationmark.triangle")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(tint.opacity(0.72))
+                .frame(width: 20, height: 24)
+                .padding(.trailing, 4)
         }
-        .padding(8)
-        .frame(width: 236)
-        .background(tint.opacity(0.09), in: .rect(cornerRadius: 13))
+        .padding(PrototypeMessageBubbleMetrics.richComponentInset)
+        .frame(width: PrototypeMessageBubbleMetrics.richContentWidth)
+        .background(
+            tint.opacity(surfaceOpacity),
+            in: .rect(
+                cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+            )
+        )
     }
 
     private func linkPreview(
@@ -665,7 +845,12 @@ private struct PrototypeAttachmentCollectionView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let image {
                 PrototypeImageSourceView(source: image)
-                    .scaledToFill().frame(width: 256, height: 124).clipped()
+                    .scaledToFill()
+                    .frame(
+                        width: PrototypeMessageBubbleMetrics.richContentWidth,
+                        height: 124
+                    )
+                    .clipped()
             }
             VStack(alignment: .leading, spacing: 4) {
                 Label(domain, systemImage: "link")
@@ -675,11 +860,23 @@ private struct PrototypeAttachmentCollectionView: View {
                 Text(title).font(.headline).lineLimit(2)
                 Text(summary).font(.subheadline).lineLimit(3).opacity(0.78)
             }
-            .padding(10)
+            .padding(PrototypeMessageBubbleMetrics.richComponentInset)
         }
-        .frame(width: image == nil ? 236 : 256, alignment: .leading)
-        .background(tint.opacity(0.09), in: .rect(cornerRadius: 14))
-        .clipShape(.rect(cornerRadius: 14))
+        .frame(
+            width: PrototypeMessageBubbleMetrics.richContentWidth,
+            alignment: .leading
+        )
+        .background(
+            tint.opacity(surfaceOpacity),
+            in: .rect(
+                cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+            )
+        )
+        .clipShape(
+            .rect(
+                cornerRadius: PrototypeMessageBubbleMetrics.richComponentCornerRadius
+            )
+        )
     }
 
     private func safeLinkDestination(domain: String) -> URL? {
@@ -721,23 +918,26 @@ private struct PrototypeVoiceBubble: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Button {
-                playback.toggleVoice(id: id, duration: duration)
-            } label: {
-                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isPlaying ? "Pause" : "Play")
-            .accessibilityIdentifier("voice.\(id).toggle")
+        HStack(spacing: 12) {
+            HStack(spacing: 0) {
+                Button {
+                    playback.toggleVoice(id: id, duration: duration)
+                } label: {
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isPlaying ? "Pause" : "Play")
+                .accessibilityIdentifier("voice.\(id).toggle")
 
-            PrototypeAudioWaveform(
-                samples: playback.waveform(for: id),
-                progress: progress
-            )
-            .frame(minWidth: 120, idealWidth: 170, maxWidth: 210)
-            .frame(height: 32)
+                PrototypeAudioWaveform(
+                    samples: playback.waveform(for: id),
+                    progress: progress
+                )
+                .frame(minWidth: 120, maxWidth: .infinity)
+                .frame(height: 32)
+            }
+            .frame(maxWidth: .infinity)
 
             Text(
                 prototypeDurationString(
@@ -748,6 +948,7 @@ private struct PrototypeVoiceBubble: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
         }
+        .frame(width: PrototypeMessageBubbleMetrics.richContentWidth)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Voice message, \(prototypeDurationString(elapsed)) of \(prototypeDurationString(duration))"

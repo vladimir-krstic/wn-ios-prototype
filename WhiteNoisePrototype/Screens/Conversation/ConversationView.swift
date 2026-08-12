@@ -70,12 +70,17 @@ private struct ConversationPinnedDateHeader: View {
 struct ConversationView: View {
     private let bottomID = "conversation-bottom"
 
+    private struct TimelineScrollRequest: Equatable {
+        let messageID: String
+        let highlightsTarget: Bool
+    }
+
     private enum TimelineSpacing {
         static let compactCluster: CGFloat = 3
         static let separateCluster: CGFloat = 16
     }
 
-    @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
+    private let playback = PrototypePlaybackCoordinator.shared
     @Environment(\.colorScheme) private var colorScheme
 
     @Binding var profile: PrototypeProfile
@@ -92,7 +97,7 @@ struct ConversationView: View {
     @State private var quickLookURL: URL?
     @State private var messagePendingDeletion: String?
     @State private var highlightedMessageID: String?
-    @State private var requestedScrollID: String?
+    @State private var requestedScroll: TimelineScrollRequest?
     @State private var selectedPersonID: String?
     @State private var isShowingChatInfo = false
     @State private var isShowingSearch = false
@@ -202,14 +207,19 @@ struct ConversationView: View {
                 guard composerIsFocused, newHeight > oldHeight else { return }
                 proxy.scrollTo(bottomID, anchor: .bottom)
             }
-            .onChange(of: requestedScrollID) { _, id in
-                guard let id else { return }
-                withAnimation { proxy.scrollTo(id, anchor: .center) }
-                highlightedMessageID = id
-                requestedScrollID = nil
-                Task {
-                    try? await Task.sleep(for: .seconds(1.2))
-                    if highlightedMessageID == id { highlightedMessageID = nil }
+            .onChange(of: requestedScroll) { _, request in
+                guard let request else { return }
+                withAnimation { proxy.scrollTo(request.messageID, anchor: .center) }
+                requestedScroll = nil
+
+                if request.highlightsTarget {
+                    highlightedMessageID = request.messageID
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.2))
+                        if highlightedMessageID == request.messageID {
+                            highlightedMessageID = nil
+                        }
+                    }
                 }
             }
         }
@@ -227,7 +237,7 @@ struct ConversationView: View {
         .toolbar { conversationToolbar }
         .background {
             ConversationKeyboardDismissInstaller {
-                if composerIsFocused {
+                if composerIsFocused, !isAttachmentMenuPresented {
                     composerIsFocused = false
                 }
             }
@@ -292,7 +302,10 @@ struct ConversationView: View {
             composerIsFocused = false
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(350))
-                requestedScrollID = messageID
+                requestedScroll = TimelineScrollRequest(
+                    messageID: messageID,
+                    highlightsTarget: true
+                )
             }
         }
         .navigationDestination(isPresented: $isShowingChatInfo) {
@@ -419,7 +432,10 @@ struct ConversationView: View {
         composerIsFocused = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
-            requestedScrollID = messageID
+            requestedScroll = TimelineScrollRequest(
+                messageID: messageID,
+                highlightsTarget: true
+            )
         }
     }
 
@@ -477,7 +493,12 @@ struct ConversationView: View {
                 },
                 onToggleReaction: { toggleReaction($0, messageID: message.id) },
                 onOpenReply: {
-                    if let target = message.replyToMessageID { requestedScrollID = target }
+                    if let target = message.replyToMessageID {
+                        requestedScroll = TimelineScrollRequest(
+                            messageID: target,
+                            highlightsTarget: false
+                        )
+                    }
                 },
                 onOpenPerson: { selectedPersonID = $0 },
                 onOpenMedia: { attachments, index in
@@ -580,7 +601,6 @@ struct ConversationView: View {
                 .frame(minHeight: 44)
                 .padding(.leading, isReviewingVoice ? 0 : 14)
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
-                .disabled(isComposerInteractionBlocked)
                 .overlay {
                     if isComposerInteractionBlocked {
                         Color.clear
@@ -702,62 +722,9 @@ struct ConversationView: View {
         id: String,
         duration: TimeInterval
     ) -> some View {
-        let isActive = playback.activeVoiceID == id
-        let isPlaying = isActive && !playback.isPaused
-        let progress = isActive && duration > 0
-            ? min(max(playback.elapsed / duration, 0), 1)
-            : 0
-        let displayedDuration = isActive
-            ? max(0, duration - playback.elapsed)
-            : duration
-
-        return HStack(spacing: 4) {
-            Button {
-                playback.toggleVoice(id: id, duration: duration)
-            } label: {
-                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .foregroundStyle(.primary)
-                    .frame(width: 32, height: 32)
-                    .background(.quaternary, in: .circle)
-                    .frame(width: 44, height: 44)
-                    .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isPlaying ? "Pause Voice Message" : "Play Voice Message")
-            .accessibilityIdentifier("conversation.voice.review.toggle")
-
-            PrototypeAudioWaveform(
-                samples: playback.waveform(for: id),
-                progress: progress
-            )
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 28)
-
-            Text(prototypeDurationString(displayedDuration))
-                .font(.body.monospacedDigit())
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-
-            Button {
-                confirmVoiceMessage(id: id, duration: duration)
-            } label: {
-                ZStack {
-                    Circle().fill(Color.accentColor)
-                    Image(systemName: "arrow.up")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white)
-                }
-                .frame(width: 32, height: 32)
-                .frame(width: 44, height: 44)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Send Voice Message")
-            .accessibilityIdentifier("conversation.voice.review.send")
+        PrototypeVoiceReviewStatus(id: id, duration: duration) {
+            confirmVoiceMessage(id: id, duration: duration)
         }
-        .frame(minHeight: 44)
-        .accessibilityElement(children: .contain)
     }
 
     private var queuedAttachmentStrip: some View {
@@ -908,7 +875,9 @@ struct ConversationView: View {
 
     private var composerTextBinding: Binding<String> {
         Binding { composerText } set: { value in
-            composerText = value
+            if !isComposerInteractionBlocked {
+                composerText = value
+            }
         }
     }
 
@@ -952,7 +921,6 @@ struct ConversationView: View {
         attachmentMenuDismissalTask = nil
         if shown {
             isComposerInteractionBlocked = true
-            composerIsFocused = false
         } else {
             // Keep the composer inert through the menu row's touch-up and the
             // selection callback. This prevents the lowest row from briefly
@@ -1412,13 +1380,81 @@ private struct ConversationKeyboardDismissInstaller: UIViewRepresentable {
         ) -> Bool {
             var touchedView = touch.view
             while let view = touchedView {
-                if view is UITextField || view is UITextView {
+                if view is UITextField
+                    || view is UITextView
+                    || view is AttachmentMenuButton {
                     return false
                 }
                 touchedView = view.superview
             }
             return true
         }
+    }
+}
+
+private struct PrototypeVoiceReviewStatus: View {
+    let id: String
+    let duration: TimeInterval
+    let onSend: () -> Void
+
+    @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
+
+    private var isActive: Bool { playback.activeVoiceID == id }
+    private var isPlaying: Bool { isActive && !playback.isPaused }
+    private var progress: Double {
+        guard isActive, duration > 0 else { return 0 }
+        return min(max(playback.elapsed / duration, 0), 1)
+    }
+    private var displayedDuration: TimeInterval {
+        isActive ? max(0, duration - playback.elapsed) : duration
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button {
+                playback.toggleVoice(id: id, duration: duration)
+            } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .foregroundStyle(.primary)
+                    .frame(width: 32, height: 32)
+                    .background(.quaternary, in: .circle)
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPlaying ? "Pause Voice Message" : "Play Voice Message")
+            .accessibilityIdentifier("conversation.voice.review.toggle")
+
+            PrototypeAudioWaveform(
+                samples: playback.waveform(for: id),
+                progress: progress
+            )
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 28)
+
+            Text(prototypeDurationString(displayedDuration))
+                .font(.body.monospacedDigit())
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+
+            Button(action: onSend) {
+                ZStack {
+                    Circle().fill(Color.accentColor)
+                    Image(systemName: "arrow.up")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.white)
+                }
+                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Send Voice Message")
+            .accessibilityIdentifier("conversation.voice.review.send")
+        }
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .contain)
     }
 }
 
