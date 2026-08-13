@@ -15,12 +15,18 @@ the common relationship and conversation actions clear.
   person's name beneath it, and a compact copyable `npub` capsule.
 - Copying the public key replaces the copy symbol with a checkmark briefly,
   produces native success feedback, and announces the result to VoiceOver.
-- The person's bio follows their name and precedes the public-key capsule
-  inside the identity header, using secondary text. A small approved optical
-  correction below the bio balances its font metrics against the capsule so
-  the two visible gaps read evenly.
-  It has no heading or grouped container. Address rows are omitted because the
-  public profile's primary identifier is already available in the header.
+- The person's compact secondary Verified Nostr Address sits directly beneath
+  the name and shows `checkmark.seal.fill` only when verified. The npub capsule
+  follows as the final compact identity value.
+- When present, the bio moves below the npub into a full-width **About** card.
+  **About** is the native section header above the container, matching the
+  established **Shared in Chat** hierarchy. A native one-row `Section` owns the
+  same rounded container geometry and margins as the existing action section;
+  the container holds only the bio in primary body text. Its row uses semantic
+  `secondarySystemFill` instead of white and adds one system vertical-padding
+  step for breathing room, with no border, glass, icon, or action. This
+  separates freeform profile prose from identity metadata while retaining an
+  adaptive Light/Dark appearance. A person without a bio has no About section.
 - When at least one shared group exists, a compact **Groups in Common**
   navigation row appears beneath the identity header. It uses the approved
   overlapping-avatar stack: up to three 32-point group avatars and a `+N`
@@ -82,6 +88,10 @@ similar duplicate implementations.
   adaptive foreground/background colors in light and dark appearances.
 - Avatar, name, public-key copy action, bio, and actions remain separate,
   understandable VoiceOver elements.
+- The About section reads its header followed by the complete bio and grows
+  with Dynamic Type without truncating the text.
+- Verified Nostr Address announces the address and either Verified or Not
+  verified; the visual seal is never the only accessible state.
 - Blocking never removes history. Relay recovery remains available when a new
   direct chat cannot yet be created.
 
@@ -89,6 +99,7 @@ similar duplicate implementations.
 
 - [Form](https://developer.apple.com/documentation/swiftui/form)
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
+- [secondarySystemFill](https://developer.apple.com/documentation/uikit/uicolor/secondarysystemfill)
 - [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
 - [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)
 - [GlassProminentButtonStyle](https://developer.apple.com/documentation/swiftui/glassprominentbuttonstyle)
@@ -99,8 +110,11 @@ similar duplicate implementations.
 
 - The active profile and person profile use identical avatar sizing, name
   typography, npub capsule, truncation, copy transition, feedback, and spacing.
-- A person's bio appears between their name and npub without a heading or
-  grouped background.
+- A person's bio appears below the npub in a light-gray full-width row beneath
+  the native About section header; the complete section is absent when no bio
+  exists.
+- Verified Nostr Address appears inside the identity header below the name and
+  above the bio, with the trailing seal only for verified values.
 - The profile represents one or more shared groups with one compact
   avatar-stack row; the row is absent when there are no shared groups. The
   complete list and secondary Add to Another Group action live on its

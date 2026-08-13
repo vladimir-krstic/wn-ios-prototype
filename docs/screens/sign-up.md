@@ -64,6 +64,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
   the same sheet.
 - Native grouped `Form` with its scroll background hidden so the canvas matches Welcome.
 - Plain native `TextField` controls inside separate grouped Name and About cards.
+- Sign Up contains no Verified Nostr Address field. The profile address is
+  assigned only after the profile and public key are created.
 - Semantic system fill distinguishes the grouped cards from the white canvas while native Form geometry owns their shape and insets.
 - Native `glass` avatar action and `glassProminent` primary action.
 - Native small `ProgressView` centered inside the primary action while signing up.
@@ -149,7 +151,10 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
   dismissal.
 - Sign Up preserves its normal dimensions, replaces its visible title with a centered spinner, prevents repeat activation, and exposes **Signing Up** and **In progress** to assistive technologies before invoking its callback.
 - The deterministic prototype processing state lasts two seconds so the stable loading treatment remains inspectable without slowing the flow.
-- Name, About, and the complete avatar choice are committed together. Leaving the Sign Up or Sign In presentation before processing completes cancels that pending completion and never changes the root destination afterward.
+- Name, About, and the complete avatar choice are committed together. Leaving
+  the Sign Up or Sign In
+  presentation before processing completes cancels that pending completion and
+  never changes the root destination afterward.
 - Photo preparation is cancelable. Sign Up remains unavailable while a chosen photo is being prepared, and a failed replacement keeps the last valid draft image while presenting the approved error.
 - Initial Sign Up and Add Profile both finish on Chats. Add Profile removes the
   underlying Settings destination without animation while its onboarding sheet
@@ -206,7 +211,8 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
 - The avatar action is visually compact and clearly separated from the avatar.
 - The avatar-to-action spacing remains unchanged before and after selecting a photo.
 - Sign Up uses the same white system canvas as Welcome.
-- Name and About use separate native grouped Form cards with a subtle semantic system fill.
+- Name and About use separate native grouped Form cards with a subtle semantic
+  system fill.
 - Form owns field-card corner geometry, insets, and spacing; the app does not supply numeric border or corner-radius recipes.
 - **Add Photo** opens a menu with working Photos, Files, and one **Find Image on
   Web** choice.
@@ -251,7 +257,11 @@ Create a new White Noise profile. **Sign Up** on first-launch Welcome presents a
   `example.com` image URL and the same image preview. URL does not return to an
   empty field while a current web image exists.
 - Choosing a supported image previews it; removing it restores the current name initial.
-- Name, About, and the selected avatar all appear on the resulting profile after Sign Up. Re-entering Sign Up for a locally stored signed-out profile updates those three editable profile values together without removing its retained chats or profile-owned settings.
+- Name, About, and the selected avatar all appear on the resulting profile after
+  Sign Up. Its deterministic Verified Nostr Address is assigned only after the
+  profile and public key exist. Re-entering Sign Up for a locally stored
+  signed-out profile updates the Sign Up values without changing its stored
+  Verified Nostr Address, retained chats, or profile-owned settings.
 - Photos and Files selections are prepared to a maximum 512-pixel dimension before being retained. A failed replacement preserves the previous valid draft image.
 - The destructive Remove Photo menu item displays both its title and trash symbol with the system destructive treatment.
 - The bottom **Sign Up** action remains visible above the safe area and keyboard.

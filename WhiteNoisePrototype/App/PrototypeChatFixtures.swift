@@ -17,6 +17,7 @@ enum PrototypeChatFixtures {
     static let groupIDs: Set<String> = [
         "catalog-group-messages", "catalog-group-colors", "catalog-group-events",
         "catalog-group-member", "catalog-group-sole-admin",
+        "catalog-group-invitation",
         "catalog-group-left", "catalog-group-removed",
         "nostr-devs", "marmots", "weekend-walks", "product-circle",
         "book-club", "quiet-studio", "project-files", "neighborhood",
@@ -39,13 +40,15 @@ enum PrototypeChatFixtures {
     static func people() -> [PrototypePerson] {
         var result: [PrototypePerson] = []
 
-        for row in ChatListFixtures.populated where !groupIDs.contains(row.id) {
+        for row in ChatListFixtures.populated
+        where !groupIDs.contains(row.id) && row.id != "catalog-direct-invitation" {
             result.append(
                 PrototypePerson(
                     id: row.id,
                     name: row.title,
                     about: about(for: row.id),
                     nostrAddress: "\(row.id)@whitenoise.example",
+                    isNostrAddressVerified: row.id != "satoshi-nakamoto",
                     avatar: unsplashAvatar(for: row.id, preferred: row.avatar),
                     isFollowing: row.id != "satoshi-nakamoto",
                     isBlocked: row.id == "catalog-direct-blocked"
@@ -137,6 +140,14 @@ enum PrototypeChatFixtures {
             case "catalog-group-sole-admin":
                 chat.members = soleAdminMembers(profileID: profileID)
                 chat.timeline = soleAdminTimeline(profileID: profileID, now: now)
+            case "catalog-direct-invitation":
+                chat.kind = .direct(personID: "avery-stone")
+                chat.invitedByPersonID = "avery-stone"
+                chat.timeline = directInvitationTimeline(now: now)
+            case "catalog-group-invitation":
+                chat.invitedByPersonID = "maya-chen"
+                chat.members = groupInvitationMembers()
+                chat.timeline = groupInvitationTimeline(now: now)
             case "catalog-direct-left":
                 chat.timeline = directLeftTimeline(profileID: profileID, now: now)
             case "catalog-group-left":
@@ -255,6 +266,8 @@ enum PrototypeChatFixtures {
         } else if isGroup {
             let membershipEventDate = message.sentAt.addingTimeInterval(60)
             switch row.membershipState {
+            case .invited:
+                timeline = [.message(message)]
             case .active:
                 timeline = [.message(message)]
             case .left:
@@ -834,6 +847,54 @@ enum PrototypeChatFixtures {
             catalogEvent("STATE-02-started", date: start, kind: .directChatStarted(actorID: profileID)),
             .message(PrototypeMessage(id: "STATE-02-message", authorID: "catalog-direct-left", sentAt: start.addingTimeInterval(120), text: "STATE-02: Direct history remains readable after leaving.")),
             catalogEvent("STATE-02", date: start.addingTimeInterval(240), kind: .directChatLeft),
+        ]
+    }
+
+    private static func directInvitationTimeline(now: Date) -> [PrototypeTimelineEntry] {
+        [
+            .message(
+                PrototypeMessage(
+                    id: "STATE-09",
+                    authorID: "avery-stone",
+                    sentAt: now.addingTimeInterval(-900),
+                    text: "STATE-09: Are you free for a quick call tomorrow?"
+                )
+            ),
+        ]
+    }
+
+    private static func groupInvitationMembers() -> [PrototypeGroupMember] {
+        [
+            PrototypeGroupMember(personID: "maya-chen", role: .admin),
+            PrototypeGroupMember(personID: "elias-moreno", role: .member),
+            PrototypeGroupMember(personID: "nora-bennett", role: .member),
+        ]
+    }
+
+    private static func groupInvitationTimeline(now: Date) -> [PrototypeTimelineEntry] {
+        let start = now.addingTimeInterval(-1_800)
+        return [
+            catalogEvent(
+                "STATE-10-created",
+                date: start,
+                kind: .groupCreated(actorID: "maya-chen")
+            ),
+            .message(
+                PrototypeMessage(
+                    id: "STATE-10A",
+                    authorID: "maya-chen",
+                    sentAt: start.addingTimeInterval(120),
+                    text: "STATE-10A: We’re meeting at the west trailhead at 9."
+                )
+            ),
+            .message(
+                PrototypeMessage(
+                    id: "STATE-10B",
+                    authorID: "elias-moreno",
+                    sentAt: start.addingTimeInterval(240),
+                    text: "STATE-10B: Bring water and a light jacket."
+                )
+            ),
         ]
     }
 

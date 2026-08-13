@@ -85,7 +85,8 @@ struct PersonProfileView: View {
                 ProfileIdentityHeader(
                     name: person.name,
                     publicKey: person.publicKey,
-                    about: person.about.isEmpty ? nil : person.about
+                    nostrAddress: person.nostrAddress,
+                    isNostrAddressVerified: person.isNostrAddressVerified
                 ) { size in
                     PrototypeChatAvatarView(
                         avatar: person.avatar,
@@ -96,6 +97,18 @@ struct PersonProfileView: View {
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
+
+            if !person.about.isEmpty {
+                Section("About") {
+                    Text(person.about)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical)
+                }
+                .listRowBackground(
+                    Color(uiColor: .secondarySystemFill)
+                )
+            }
 
             Section {
                 if !sharedGroups.isEmpty {

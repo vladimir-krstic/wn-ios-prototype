@@ -95,7 +95,9 @@ struct ShareAndConnectView: View {
     private var profileHeader: some View {
         ProfileIdentityHeader(
             name: profile.name,
-            publicKey: profile.publicKey
+            publicKey: profile.publicKey,
+            nostrAddress: profile.nostrAddress,
+            isNostrAddressVerified: profile.isNostrAddressVerified
         ) { size in
             ProfileAvatarView(
                 profile: profile,

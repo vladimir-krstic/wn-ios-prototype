@@ -76,6 +76,9 @@ not require the source pages during normal work.
   `ShareLink` to share the profile name and full fictional public key.
 - Share uses the same one-third-of-available-width avatar sizing rule as Sign
   Up, followed by the profile name and locally generated fictional QR code.
+- The active profile's Verified Nostr Address sits directly beneath its name in
+  compact secondary text, before the npub capsule. It has no section, card, or
+  visible label and shows `checkmark.seal.fill` only when verified.
 - A quiet semantic-gray npub button appears directly beneath the profile name.
   Its adaptive `secondarySystemFill` capsule uses secondary-colored monospaced
   subheadline text, a compact visual height, and a shorter middle-truncated key
@@ -142,13 +145,18 @@ not require the source pages during normal work.
   accounts open with an empty URL. Choosing Photos or Files, removing the
   photo, or cancelling Profile editing clears or restores that draft source
   consistently with the stored avatar.
-- Name and About are read-only until Edit is chosen. While editing, they use
-  separate native grouped Form cards with the same prompts, semantic fill,
-  focus order, multiline behavior, and Dynamic Type behavior as Sign Up.
-- Profile contains no generated-name action, dice symbol, Nostr Address field,
-  Lightning Address field, or email-shaped placeholder.
+- Name, Verified Nostr Address, and About are read-only until Edit is chosen.
+  While editing, they use separate native grouped Form cards. Name and About
+  retain the same prompts, semantic fill, focus order, multiline behavior, and
+  Dynamic Type behavior as Sign Up; the address field sits between them.
+- Verified Nostr Address uses an email-shaped keyboard and the shared trailing
+  `checkmark.seal.fill` only while its value is verified. Editing to a different
+  address removes the seal; re-entering the stored verified address during the
+  same edit restores it. Profile still contains no generated-name action, dice
+  symbol, or Lightning Address field.
 - Done remains available when the unchanged draft is valid so it can exit edit
-  mode. It is disabled only when the required Name is empty.
+  mode. It is disabled when the required Name is empty or the address format is
+  invalid.
 
 ### Profile Keys
 
@@ -676,13 +684,16 @@ need to open them to implement or evaluate Settings.
 ## Acceptance
 
 - Every hub row opens its working destination; no development placeholder remains.
-- Profile initially presents its existing avatar, Name, and About as read-only
-  content. Its avatar and field cards match Sign Up in size, geometry, semantic
-  fill, typography, and spacing.
+- Profile initially presents its existing avatar, Name, Verified Nostr Address,
+  and About as read-only content. Its avatar, Name, and About match Sign Up in
+  size, geometry, semantic fill, typography, and spacing; the address uses the
+  same native Form-card treatment between Name and About.
 - Profile shows **Edit** in the trailing toolbar. Edit reveals the matching
-  photo action and editable Name/About fields, replaces Edit with a prominent
-  trailing **Done**, and replaces Back with the leading **Cancel** action.
-- Cancel restores the stored avatar, Name, and About even when the draft has
+  photo action and editable Name, Verified Nostr Address, and About fields,
+  replaces Edit with a prominent trailing **Done**, and replaces Back with the
+  leading **Cancel** action.
+- Cancel restores the stored avatar, Name, Verified Nostr Address, its
+  verification state, and About even when the draft has
   changes, and exits editing without navigating away.
 - Profile's photo menu includes **Find Image on Web** and presents the same
   Search/URL flow as Sign Up. A chosen web image immediately updates the draft,
@@ -690,9 +701,9 @@ need to open them to implement or evaluate Settings.
   by Done. A bundled or device-selected avatar never produces a URL merely
   because the same image also exists in the web catalog.
 - Done exits edit mode even when nothing changed. For a changed valid draft it
-  commits the avatar, Name, and About without dismissing Profile. It remains
-  disabled only while Name is empty and never exposes a dice action or
-  address/email fields.
+  commits the avatar, Name, Verified Nostr Address, verification state, and
+  About without dismissing Profile. It remains disabled while Name is empty or
+  the address format is invalid and never exposes a dice action.
 - Profile Keys shows one public-key field and one private-key field. Public copy
   is available inline; the private key starts hidden with the maximum complete
   bullets that fit before the always-visible eye action and no ellipsis,
@@ -704,6 +715,9 @@ need to open them to implement or evaluate Settings.
   destination picker and never use a custom save surface.
 - Share & Connect pushes from Settings with the native side transition, Back
   chevron, interactive swipe-back gesture, and adaptive grouped background.
+- Share & Connect shows the active profile's compact secondary Verified Nostr
+  Address directly below the name and above the npub capsule, including the
+  trailing seal when verified. It has no separate section or container.
 - Its npub button shows a checkmark for two seconds, resets without a second
   success haptic, and remains usable when tapped repeatedly. Its semantic-gray
   capsule stays visually subordinate to the QR in Light and Dark appearances.

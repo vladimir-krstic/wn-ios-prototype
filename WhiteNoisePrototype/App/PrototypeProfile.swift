@@ -13,10 +13,12 @@ struct PrototypeProfile: Identifiable, Equatable {
     let publicKey: String
     var about: String
     var nostrAddress: String
+    var isNostrAddressVerified: Bool
     var lightningAddress: String
     var avatar: PrototypeAvatar
     var people: [PrototypePerson]
     var chats: [PrototypeChat]
+    var quickReactionEmoji: [String]
     var relayConfiguration: PrototypeRelayConfiguration
     var developerTools: PrototypeDeveloperToolsState
 
@@ -26,10 +28,12 @@ struct PrototypeProfile: Identifiable, Equatable {
         publicKey: String,
         about: String = "",
         nostrAddress: String = "",
+        isNostrAddressVerified: Bool = false,
         lightningAddress: String = "",
         avatar: PrototypeAvatar = .monogram,
         people: [PrototypePerson] = PrototypeChatFixtures.people(),
         chats: [PrototypeChat],
+        quickReactionEmoji: [String] = PrototypeReaction.defaultQuickEmoji,
         relayConfiguration: PrototypeRelayConfiguration = .fixtures,
         developerTools: PrototypeDeveloperToolsState? = nil
     ) {
@@ -37,11 +41,16 @@ struct PrototypeProfile: Identifiable, Equatable {
         self.name = name
         self.publicKey = publicKey
         self.about = about
-        self.nostrAddress = nostrAddress
+        self.nostrAddress = nostrAddress.isEmpty
+            ? PrototypeNostrAddress.defaultValue(for: name)
+            : PrototypeNostrAddress.normalized(nostrAddress)
+        self.isNostrAddressVerified = isNostrAddressVerified
+            && PrototypeNostrAddress.isValid(self.nostrAddress)
         self.lightningAddress = lightningAddress
         self.avatar = avatar
         self.people = people
         self.chats = chats
+        self.quickReactionEmoji = quickReactionEmoji
         self.relayConfiguration = relayConfiguration
         self.developerTools = developerTools ?? .fixtures(
             profileID: id,
@@ -94,6 +103,7 @@ extension PrototypeProfile {
         publicKey: "npub1m8z7q4k6v2c9r5t3y8p4s7h2d6n9w3x5j8f4u7e2a6k9q8x4k",
         about: "Quietly making plans and sending good links.",
         nostrAddress: "marmota@whitenoise.example",
+        isNostrAddressVerified: true,
         lightningAddress: "marmota@pay.example",
         avatar: .asset("ProfileAvatarMarmota"),
         chats: PrototypeChatFixtures.chats(
@@ -155,6 +165,8 @@ extension PrototypeProfile {
         id: "pebble",
         name: "Pebble",
         publicKey: "npub1p8c4y6m2v9r5t7s3h1d8n4x6j2a9e5u7z3q8w4f6k1m9c5n7",
+        nostrAddress: "pebble@whitenoise.example",
+        isNostrAddressVerified: true,
         avatar: .asset("ProfileAvatarPebble"),
         chats: []
     )

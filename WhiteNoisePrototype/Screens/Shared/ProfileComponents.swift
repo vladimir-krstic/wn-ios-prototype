@@ -123,6 +123,7 @@ struct ProfileEditorAvatarView: View {
 struct ProfileSummary: View {
     let profile: PrototypeProfile
     let avatarSize: CGFloat
+    var showsNostrAddress = false
 
     var body: some View {
         HStack {
@@ -136,11 +137,76 @@ struct ProfileSummary: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
 
+                if showsNostrAddress {
+                    InlineVerifiedNostrAddressValue(
+                        address: profile.nostrAddress,
+                        isVerified: profile.isNostrAddressVerified
+                    )
+                }
+
                 Text(profile.shortPublicKey)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct VerifiedNostrAddressSeal: View {
+    let isVerified: Bool
+
+    var body: some View {
+        if isVerified {
+            Image(systemName: "checkmark.seal.fill")
+                .accessibilityLabel("Verified")
+        }
+    }
+}
+
+struct VerifiedNostrAddressValue: View {
+    let address: String
+    let isVerified: Bool
+
+    var body: some View {
+        HStack {
+            Text(address)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Spacer(minLength: 8)
+
+            VerifiedNostrAddressSeal(isVerified: isVerified)
+                .foregroundStyle(.primary)
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Verified Nostr Address")
+        .accessibilityValue(
+            "\(address), \(isVerified ? "Verified" : "Not verified")"
+        )
+    }
+}
+
+struct InlineVerifiedNostrAddressValue: View {
+    let address: String
+    let isVerified: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(address)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            VerifiedNostrAddressSeal(isVerified: isVerified)
+                .font(.caption.weight(.medium))
+        }
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Verified Nostr Address")
+        .accessibilityValue(
+            "\(address), \(isVerified ? "Verified" : "Not verified")"
+        )
     }
 }

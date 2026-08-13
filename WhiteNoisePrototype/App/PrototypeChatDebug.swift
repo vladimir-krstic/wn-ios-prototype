@@ -142,6 +142,7 @@ struct PrototypeConversationDebugInfo: Equatable {
         _ state: ChatListItem.MembershipState
     ) -> String {
         switch state {
+        case .invited: "Invitation Pending"
         case .active: "Active"
         case .left: "Left"
         case .removed: "Removed"
@@ -152,6 +153,9 @@ struct PrototypeConversationDebugInfo: Equatable {
         chat: PrototypeChat,
         profileID: String
     ) -> String {
+        if chat.listState.membershipState == .invited {
+            return "Invited"
+        }
         guard chat.listState.membershipState == .active else {
             return "Former Member"
         }

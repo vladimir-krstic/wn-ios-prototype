@@ -10,6 +10,8 @@ struct ProfileLifecycleTests {
         #expect(profile.id == PrototypeProfile.marmota.id)
         #expect(profile.name == "Marmota")
         #expect(profile.avatar == .asset("ProfileAvatarMarmota"))
+        #expect(profile.nostrAddress == "marmota@whitenoise.example")
+        #expect(profile.isNostrAddressVerified)
     }
 
     @Test("Add Profile Sign Up uses a distinct Pebble identity")
@@ -21,6 +23,19 @@ struct ProfileLifecycleTests {
         #expect(addedProfile.id != initialProfile.id)
         #expect(addedProfile.name == "Pebble")
         #expect(addedProfile.avatar == .asset("ProfileAvatarPebble"))
+        #expect(addedProfile.nostrAddress == "pebble@whitenoise.example")
+        #expect(addedProfile.isNostrAddressVerified)
+    }
+
+    @Test("Quick reactions are independent between profiles")
+    func quickReactionsAreProfileScoped() {
+        var marmota = PrototypeProfile.marmota
+        let pebble = PrototypeProfile.pebble
+
+        marmota.quickReactionEmoji[0] = "🥳"
+
+        #expect(marmota.quickReactionEmoji[0] == "🥳")
+        #expect(pebble.quickReactionEmoji == PrototypeReaction.defaultQuickEmoji)
     }
 
     @Test("Sign Up carries About and an explicit avatar into the profile")
@@ -37,7 +52,44 @@ struct ProfileLifecycleTests {
 
         #expect(profile.name == "River")
         #expect(profile.about == "Available for quiet conversations.")
+        #expect(profile.nostrAddress == "marmota@whitenoise.example")
+        #expect(profile.isNostrAddressVerified)
         #expect(profile.avatar == avatar)
+    }
+
+    @Test("Verified Nostr Address accepts an email-shaped value")
+    func nostrAddressValidation() {
+        #expect(PrototypeNostrAddress.isValid("marmota@whitenoise.example"))
+        #expect(!PrototypeNostrAddress.isValid("marmota"))
+        #expect(!PrototypeNostrAddress.isValid("marmota@localhost"))
+        #expect(!PrototypeNostrAddress.isValid("@whitenoise.example"))
+    }
+
+    @Test("Restoring the stored verified address restores verification")
+    func restoringVerifiedNostrAddress() {
+        let storedAddress = "marmota@whitenoise.example"
+
+        #expect(
+            PrototypeNostrAddress.isVerifiedDraft(
+                "  marmota@whitenoise.example  ",
+                matching: storedAddress,
+                storedIsVerified: true
+            )
+        )
+        #expect(
+            !PrototypeNostrAddress.isVerifiedDraft(
+                "river@example.com",
+                matching: storedAddress,
+                storedIsVerified: true
+            )
+        )
+        #expect(
+            !PrototypeNostrAddress.isVerifiedDraft(
+                storedAddress,
+                matching: storedAddress,
+                storedIsVerified: false
+            )
+        )
     }
 
     @Test("Re-onboarding updates editable values without replacing local data")
@@ -52,7 +104,11 @@ struct ProfileLifecycleTests {
         )
         stored.developerTools.setEnabled(true)
         stored.developerTools.debugMode = true
+        stored.quickReactionEmoji[0] = "🥳"
+        stored.nostrAddress = "kept@example.com"
+        stored.isNostrAddressVerified = false
         let relayConfiguration = stored.relayConfiguration
+        let quickReactionEmoji = stored.quickReactionEmoji
         let avatar = PrototypeAvatar.webImage(
             assetName: "AvatarWebAionyHaust",
             choiceID: "3TLl_97HNJo"
@@ -67,9 +123,12 @@ struct ProfileLifecycleTests {
 
         #expect(stored.name == "River")
         #expect(stored.about == "A refreshed profile.")
+        #expect(stored.nostrAddress == "kept@example.com")
+        #expect(!stored.isNostrAddressVerified)
         #expect(stored.avatar == avatar)
         #expect(stored.chats[supportIndex].messages.count == 1)
         #expect(stored.relayConfiguration == relayConfiguration)
+        #expect(stored.quickReactionEmoji == quickReactionEmoji)
         #expect(stored.developerTools.isConversationDebugEnabled)
     }
 

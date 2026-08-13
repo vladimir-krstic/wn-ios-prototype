@@ -104,7 +104,9 @@ struct ChatListRow: View {
     }
 
     private var previewContent: Text {
-        if let attachmentPreview = chat.attachmentPreview {
+        if chat.isInvitationPending {
+            Text(chat.visiblePreview)
+        } else if let attachmentPreview = chat.attachmentPreview {
             Text(
                 "\(Image(systemName: attachmentPreview.symbol)) \(chat.visiblePreview)"
             )
@@ -116,25 +118,40 @@ struct ChatListRow: View {
     @ViewBuilder
     private var status: some View {
         HStack(spacing: 5) {
-            switch chat.deliveryState {
-            case .none:
-                EmptyView()
-
-            case .failed:
-                Image(systemName: "exclamationmark.circle")
-                    .font(.system(size: Self.failureSymbolSize))
-                    .foregroundStyle(.red)
+            if chat.isInvitationPending {
+                Circle()
+                    .fill(Color("AccentColor"))
                     .frame(
-                        width: Self.failureSymbolSize,
-                        height: Self.failureSymbolSize
+                        width: Self.unreadBadgeHeight,
+                        height: Self.unreadBadgeHeight
                     )
-                    .accessibilityLabel("Not delivered")
-            }
+                    .overlay {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color(uiColor: .systemBackground))
+                    }
+                    .accessibilityLabel("Chat invitation")
+            } else {
+                switch chat.deliveryState {
+                case .none:
+                    EmptyView()
 
-            if chat.unreadCount > 0 {
-                unreadBadge
-            } else if chat.isMarkedUnread {
-                unreadDot
+                case .failed:
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: Self.failureSymbolSize))
+                        .foregroundStyle(.red)
+                        .frame(
+                            width: Self.failureSymbolSize,
+                            height: Self.failureSymbolSize
+                        )
+                        .accessibilityLabel("Not delivered")
+                }
+
+                if chat.unreadCount > 0 {
+                    unreadBadge
+                } else if chat.isMarkedUnread {
+                    unreadDot
+                }
             }
         }
         .frame(minHeight: Self.unreadBadgeHeight)

@@ -62,7 +62,8 @@ struct CompactCopyValueLabel: View {
 struct ProfileIdentityHeader<Avatar: View>: View {
     let name: String
     let publicKey: String
-    let about: String?
+    let nostrAddress: String?
+    let isNostrAddressVerified: Bool
 
     private let avatar: (CGFloat) -> Avatar
 
@@ -73,12 +74,14 @@ struct ProfileIdentityHeader<Avatar: View>: View {
     init(
         name: String,
         publicKey: String,
-        about: String? = nil,
+        nostrAddress: String? = nil,
+        isNostrAddressVerified: Bool = false,
         @ViewBuilder avatar: @escaping (CGFloat) -> Avatar
     ) {
         self.name = name
         self.publicKey = publicKey
-        self.about = about
+        self.nostrAddress = nostrAddress
+        self.isNostrAddressVerified = isNostrAddressVerified
         self.avatar = avatar
     }
 
@@ -95,16 +98,16 @@ struct ProfileIdentityHeader<Avatar: View>: View {
                 spacing: 0
             )
 
-            Text(name)
-                .font(.title2.weight(.semibold))
+            VStack(spacing: 3) {
+                Text(name)
+                    .font(.title2.weight(.semibold))
 
-            if let about {
-                Text(about)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal)
-                    .padding(.bottom, 4)
+                if let nostrAddress, !nostrAddress.isEmpty {
+                    InlineVerifiedNostrAddressValue(
+                        address: nostrAddress,
+                        isVerified: isNostrAddressVerified
+                    )
+                }
             }
 
             Button(action: copyPublicKey) {

@@ -6,6 +6,11 @@
 notification and Search actions, shared-content categories, group management,
 and Leave Group. Member rows push **Group Member**.
 
+- Group Member shows the member's compact secondary Verified Nostr Address
+  directly beneath the name, without a separate section or container. The
+  inline value has `checkmark.seal.fill` only for a verified address and
+  announces the state without relying on the symbol.
+
 - **Mute** or **Unmute**, **Disappearing Messages**, and **Search** appear as
   one centered quick-action group directly below the group identity. They use
   compact non-glass circular secondary controls on an adaptive white
@@ -92,3 +97,5 @@ and last-admin protection. This brief is the durable local authority.
 - Every mutation updates members, permissions, metadata, list projection, and
   the timeline atomically.
 - Chat routing remains independent from profile routing after creation.
+- Group Member presents Verified Nostr Address for the active profile and other
+  members, with verified and unverified fixture states distinguishable.

@@ -160,6 +160,8 @@ struct PrototypeChatModelTests {
             "Group - Events & Roles",
             "Group - Member Permissions",
             "Group - Sole Admin",
+            "Direct - Invitation",
+            "Group - Invitation",
             "Direct - Left",
             "Group - Left",
             "Group - Removed",
@@ -184,6 +186,7 @@ struct PrototypeChatModelTests {
         #expect(rows.contains { $0.isArchived })
         #expect(rows.contains { $0.membershipState == .left })
         #expect(rows.contains { $0.membershipState == .removed })
+        #expect(rows.filter { $0.membershipState == .invited }.count == 2)
 
         let firstLegacyRow = try #require(ChatListFixtures.populated.dropFirst(rows.count).first)
         #expect(!ChatListFixtures.catalogChatIDs.contains(firstLegacyRow.id))
@@ -337,6 +340,12 @@ struct PrototypeChatModelTests {
         let directLeft = try #require(profile.chats.first { $0.id == "catalog-direct-left" })
         let groupLeft = try #require(profile.chats.first { $0.id == "catalog-group-left" })
         let groupRemoved = try #require(profile.chats.first { $0.id == "catalog-group-removed" })
+        let directInvitation = try #require(
+            profile.chats.first { $0.id == "catalog-direct-invitation" }
+        )
+        let groupInvitation = try #require(
+            profile.chats.first { $0.id == "catalog-group-invitation" }
+        )
         let blocked = try #require(profile.chats.first { $0.id == "catalog-direct-blocked" })
         var missingRelays = try #require(profile.chats.first { $0.id == "catalog-direct-missing-relays" })
         let archived = try #require(profile.chats.first { $0.id == "catalog-direct-archived" })
@@ -356,6 +365,21 @@ struct PrototypeChatModelTests {
         #expect(directLeft.listState.membershipState == .left)
         #expect(groupLeft.listState.membershipState == .left)
         #expect(groupRemoved.listState.membershipState == .removed)
+        #expect(directInvitation.listState.membershipState == .invited)
+        #expect(groupInvitation.listState.membershipState == .invited)
+        #expect(!groupInvitation.members.contains { $0.personID == profile.id })
+        #expect(
+            directInvitation.composerAvailability(
+                currentProfileID: profile.id,
+                people: profile.people
+            ) == .pendingInvitation
+        )
+        #expect(
+            groupInvitation.composerAvailability(
+                currentProfileID: profile.id,
+                people: profile.people
+            ) == .pendingInvitation
+        )
         #expect(
             directLeft.row(people: profile.people, currentProfileID: profile.id).visiblePreview
                 == "You left this chat."
@@ -457,6 +481,159 @@ struct PrototypeChatModelTests {
         chat.mutateMessage("m") { $0.deletionState = .deletedByOther }
         chat.toggleReaction(emoji: "❤", messageID: "m", currentProfileID: "marmota")
         #expect(chat.messages[0].reactions.isEmpty)
+    }
+
+    @Test("A full-picker reaction replaces the current profile's prior reaction")
+    func reactionReplacement() {
+        var chat = emptyDirectChat()
+        chat.timeline = [
+            .message(
+                PrototypeMessage(
+                    id: "m",
+                    authorID: "maya-chen",
+                    sentAt: .now,
+                    text: "Hi",
+                    reactions: [
+                        PrototypeReaction(
+                            emoji: "😂",
+                            personIDs: ["marmota", "maya-chen"]
+                        ),
+                        PrototypeReaction(emoji: "🔥", personIDs: ["another-person"]),
+                    ]
+                )
+            )
+        ]
+
+        chat.toggleReaction(
+            emoji: "🙂‍↕️",
+            messageID: "m",
+            currentProfileID: "marmota"
+        )
+
+        #expect(
+            chat.messages[0].reactions == [
+                PrototypeReaction(emoji: "😂", personIDs: ["maya-chen"]),
+                PrototypeReaction(emoji: "🔥", personIDs: ["another-person"]),
+                PrototypeReaction(emoji: "🙂‍↕️", personIDs: ["marmota"]),
+            ]
+        )
+    }
+
+    @Test("Delete for me removes messages but preserves chat events")
+    func deleteForCurrentProfile() {
+        var chat = emptyDirectChat()
+        chat.timeline = [
+            .event(
+                PrototypeTimelineEvent(
+                    id: "started",
+                    date: Date(timeIntervalSince1970: 1),
+                    kind: .directChatStarted(actorID: "marmota")
+                )
+            ),
+            .message(
+                PrototypeMessage(
+                    id: "incoming",
+                    authorID: "maya-chen",
+                    sentAt: Date(timeIntervalSince1970: 2),
+                    text: "Hello"
+                )
+            ),
+            .message(
+                PrototypeMessage(
+                    id: "outgoing",
+                    authorID: "marmota",
+                    sentAt: Date(timeIntervalSince1970: 3),
+                    text: "Hi"
+                )
+            ),
+        ]
+        chat.replyToMessageID = "incoming"
+
+        chat.removeMessagesForCurrentProfile(["incoming"])
+
+        #expect(chat.timeline.map(\.id) == ["started", "outgoing"])
+        #expect(chat.replyToMessageID == nil)
+    }
+
+    @Test("Delete for everyone tombstones only current-profile messages")
+    func deleteForEveryone() {
+        var chat = emptyDirectChat()
+        chat.timeline = [
+            .message(
+                PrototypeMessage(
+                    id: "incoming",
+                    authorID: "maya-chen",
+                    sentAt: .now,
+                    text: "Keep me"
+                )
+            ),
+            .message(
+                PrototypeMessage(
+                    id: "outgoing",
+                    authorID: "marmota",
+                    sentAt: .now,
+                    text: "Remove me",
+                    replyToMessageID: "incoming",
+                    reactions: [PrototypeReaction(emoji: "❤", personIDs: ["maya-chen"])]
+                )
+            ),
+        ]
+
+        chat.deleteMessagesForEveryone(
+            ["incoming", "outgoing"],
+            currentProfileID: "marmota"
+        )
+
+        #expect(chat.messages[0].text == "Keep me")
+        #expect(!chat.messages[0].isDeleted)
+        #expect(chat.messages[1].isDeleted)
+        #expect(chat.messages[1].text.isEmpty)
+        #expect(chat.messages[1].attachments.isEmpty)
+        #expect(chat.messages[1].reactions.isEmpty)
+        #expect(chat.messages[1].replyToMessageID == nil)
+    }
+
+    @Test("Forwarding copies visible messages in order without conversation metadata")
+    func forwardMessages() {
+        var destination = emptyDirectChat()
+        destination.draft = "Unsent"
+        destination.replyToMessageID = "old"
+        let messages = [
+            PrototypeMessage(
+                id: "first",
+                authorID: "maya-chen",
+                sentAt: .now,
+                text: "First",
+                reactions: [PrototypeReaction(emoji: "❤", personIDs: ["marmota"])]
+            ),
+            PrototypeMessage(
+                id: "deleted",
+                authorID: "maya-chen",
+                sentAt: .now,
+                text: "Deleted",
+                deletionState: .deletedByOther
+            ),
+            PrototypeMessage(
+                id: "second",
+                authorID: "marmota",
+                sentAt: .now,
+                text: "Second",
+                replyToMessageID: "first"
+            ),
+        ]
+
+        destination.appendForwardedMessages(
+            messages,
+            authorID: "marmota",
+            now: Date(timeIntervalSince1970: 1_000)
+        )
+
+        #expect(destination.messages.map(\.text) == ["First", "Second"])
+        #expect(destination.messages.allSatisfy { $0.authorID == "marmota" })
+        #expect(destination.messages.allSatisfy { $0.replyToMessageID == nil })
+        #expect(destination.messages.allSatisfy { $0.reactions.isEmpty })
+        #expect(destination.draft.isEmpty)
+        #expect(destination.replyToMessageID == nil)
     }
 
     @Test("Failed outgoing delivery retries to sent")
@@ -578,8 +755,84 @@ struct PrototypeChatModelTests {
         chat.routing = PrototypeChatRouting()
         people[people.firstIndex { $0.id == "maya-chen" }!].isBlocked = true
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .blocked)
+        chat.listState.membershipState = .invited
+        #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .pendingInvitation)
         chat.listState.membershipState = .removed
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .removed)
+    }
+
+    @Test("Accepting chat invitations preserves history and activates participation")
+    func acceptingInvitations() throws {
+        var profile = PrototypeProfile.marmota
+        let directIndex = try #require(
+            profile.chats.firstIndex { $0.id == "catalog-direct-invitation" }
+        )
+        let groupIndex = try #require(
+            profile.chats.firstIndex { $0.id == "catalog-group-invitation" }
+        )
+        let directTimeline = profile.chats[directIndex].timeline
+        let groupTimelineCount = profile.chats[groupIndex].timeline.count
+        let acceptedAt = Date(timeIntervalSince1970: 2_000)
+
+        #expect(profile.chats[directIndex].invitedByPersonID == "avery-stone")
+        #expect(profile.chats[groupIndex].invitedByPersonID == "maya-chen")
+        #expect(profile.people.first { $0.id == "avery-stone" }?.name == "Avery Stone")
+        let directInvitationRow = profile.chats[directIndex].row(
+            people: profile.people,
+            currentProfileID: profile.id
+        )
+        let groupInvitationRow = profile.chats[groupIndex].row(
+            people: profile.people,
+            currentProfileID: profile.id
+        )
+        #expect(directInvitationRow.visiblePreview == "Invited to chat by Avery Stone")
+        #expect(groupInvitationRow.visiblePreview == "Invited to chat by Maya Chen")
+        #expect(directInvitationRow.visiblePreviewAuthor == nil)
+        #expect(groupInvitationRow.visiblePreviewAuthor == nil)
+        #expect(directInvitationRow.isInvitationPending)
+        #expect(groupInvitationRow.isInvitationPending)
+
+        #expect(
+            profile.chats[directIndex].acceptInvitation(
+                currentProfileID: profile.id,
+                now: acceptedAt
+            )
+        )
+        #expect(profile.chats[directIndex].listState.membershipState == .active)
+        #expect(profile.chats[directIndex].timeline == directTimeline)
+        #expect(profile.chats[directIndex].invitedByPersonID == nil)
+
+        #expect(
+            profile.chats[groupIndex].acceptInvitation(
+                currentProfileID: profile.id,
+                now: acceptedAt
+            )
+        )
+        #expect(profile.chats[groupIndex].listState.membershipState == .active)
+        #expect(profile.chats[groupIndex].invitedByPersonID == nil)
+        #expect(
+            profile.chats[groupIndex].members.contains {
+                $0.personID == profile.id && $0.role == .member
+            }
+        )
+        #expect(profile.chats[groupIndex].timeline.count == groupTimelineCount + 1)
+        guard case let .event(event)? = profile.chats[groupIndex].timeline.last else {
+            Issue.record("Group acceptance must append a membership event.")
+            return
+        }
+        #expect(event.kind == .memberJoined(personID: profile.id))
+    }
+
+    @Test("Declining a chat invitation removes only that pending chat")
+    func decliningInvitation() {
+        var profile = PrototypeProfile.marmota
+        let initialCount = profile.chats.count
+
+        #expect(profile.declineChatInvitation("catalog-direct-invitation"))
+        #expect(profile.chats.count == initialCount - 1)
+        #expect(!profile.chats.contains { $0.id == "catalog-direct-invitation" })
+        #expect(!profile.declineChatInvitation("catalog-direct-text"))
+        #expect(profile.chats.count == initialCount - 1)
     }
 
     @Test("Voice recording moves to review before explicit completion")

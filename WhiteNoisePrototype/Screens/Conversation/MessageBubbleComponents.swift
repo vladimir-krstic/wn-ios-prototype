@@ -12,11 +12,12 @@ enum PrototypeMessageBubbleMetrics {
     static let gallerySpacing: CGFloat = 2
 
     // Reaction chips follow Signal's compact content metrics, with the
-    // user-approved 22-point visible pill and borderless surface. The larger
-    // interaction frame remains available around that visible pill.
+    // user-approved 22-point visible pill and one-point separator border. The
+    // larger interaction frame remains available around that visible pill.
     static let reactionSpacing: CGFloat = 3
     static let reactionHitTarget: CGFloat = 40
     static let reactionPillHeight: CGFloat = 22
+    static let reactionPillVerticalInset = (reactionHitTarget - reactionPillHeight) / 2
     static let reactionEmojiSize: CGFloat = 14
     static let reactionCountSize: CGFloat = 12
     static let reactionHorizontalInset: CGFloat = 7
@@ -24,7 +25,7 @@ enum PrototypeMessageBubbleMetrics {
     static let reactionTextGap: CGFloat = 1
     static let timestampVerticalOffset: CGFloat = 15
     static let reactionVerticalOffset = reactionHitTarget
-        - ((reactionHitTarget - reactionPillHeight) / 2)
+        - reactionPillVerticalInset
         - textVerticalInset
         + reactionTextGap
     static let reactionReservedSpace = reactionVerticalOffset
@@ -78,12 +79,10 @@ struct PrototypeReactionChip: View {
         .background {
             Capsule()
                 .fill(surface)
-                .shadow(
-                    color: .black.opacity(0.16),
-                    radius: 2,
-                    x: 0,
-                    y: 1
-                )
+                .overlay {
+                    Capsule()
+                        .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
+                }
         }
         .fixedSize()
         .transaction { transaction in

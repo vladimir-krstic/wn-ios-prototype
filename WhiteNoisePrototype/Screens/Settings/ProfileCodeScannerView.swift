@@ -19,7 +19,8 @@ struct ProfileCodeScannerView: View {
                 } description: {
                     ProfileSummary(
                         profile: foundProfile,
-                        avatarSize: 64
+                        avatarSize: 64,
+                        showsNostrAddress: true
                     )
                 } actions: {
                     Button("Done", action: onDone)

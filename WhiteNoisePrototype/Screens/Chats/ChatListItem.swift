@@ -9,6 +9,7 @@ struct ChatListItem: Identifiable, Equatable {
     }
 
     enum MembershipState: Equatable {
+        case invited
         case active
         case left
         case removed
@@ -109,6 +110,7 @@ struct ChatListItem: Identifiable, Equatable {
     var attachmentPreview: AttachmentPreview?
     var timestamp: String
     var membershipState: MembershipState
+    var invitationInviterName: String?
     var isArchived: Bool
     var isPinned: Bool
     var unreadCount: Int
@@ -128,6 +130,7 @@ struct ChatListItem: Identifiable, Equatable {
         attachmentPreview: AttachmentPreview? = nil,
         timestamp: String,
         membershipState: MembershipState = .active,
+        invitationInviterName: String? = nil,
         isArchived: Bool,
         isPinned: Bool = false,
         unreadCount: Int,
@@ -146,6 +149,7 @@ struct ChatListItem: Identifiable, Equatable {
         self.attachmentPreview = attachmentPreview
         self.timestamp = timestamp
         self.membershipState = membershipState
+        self.invitationInviterName = invitationInviterName
         self.isArchived = isArchived
         self.isPinned = isPinned
         self.unreadCount = unreadCount
@@ -164,11 +168,18 @@ struct ChatListItem: Identifiable, Equatable {
     }
 
     var hasEndedMembership: Bool {
-        membershipState != .active
+        switch membershipState {
+        case .left, .removed: true
+        case .invited, .active: false
+        }
+    }
+
+    var isInvitationPending: Bool {
+        membershipState == .invited
     }
 
     var visiblePreviewAuthor: String? {
-        hasEndedMembership ? nil : previewAuthor
+        membershipState == .active ? previewAuthor : nil
     }
 
     var searchablePreview: String {
@@ -183,6 +194,8 @@ struct ChatListItem: Identifiable, Equatable {
 
     var visiblePreview: String {
         switch membershipState {
+        case .invited:
+            return "Invited to chat by \(invitationInviterName ?? "Someone")"
         case .left:
             return isGroup ? "You left this group." : "You left this chat."
         case .removed:

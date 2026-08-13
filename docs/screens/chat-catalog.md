@@ -66,8 +66,8 @@ coverage, but have not yet been accepted in a simulator pass.
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `TXT-01` | Direct - Text & Delivery | `TXT-01` | Incoming short text | React, Reply, Copy, Share | Implemented; review pending |
-| [ ] | `TXT-02` | Direct - Text & Delivery | `TXT-02` | Outgoing short text | React, Reply, Copy, Share, Delete | Implemented; review pending |
+| [ ] | `TXT-01` | Direct - Text & Delivery | `TXT-01` | Incoming short text | React, Reply, Forward, Copy, Select, Info, Delete | Implemented; review pending |
+| [ ] | `TXT-02` | Direct - Text & Delivery | `TXT-02` | Outgoing short text | React, Reply, Forward, Copy, Select, Info, Delete | Implemented; review pending |
 | [ ] | `TXT-03`–`TXT-05` | Direct - Text & Delivery | same IDs | Same-author cluster start, middle, end | Standard message actions | Implemented; review pending |
 | [ ] | `TXT-06` | Direct - Text & Delivery | `TXT-06` | Multiline text | Standard message actions | Implemented; review pending |
 | [ ] | `TXT-07` | Direct - Text & Delivery | `TXT-07` | Long wrapping text | Standard message actions | Implemented; review pending |
@@ -100,20 +100,20 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `RPL-02` | Direct - Replies & Deletion | `RPL-02` → `RPL-02-source` | Incoming reply to outgoing attachment | Tap quote to highlight source | Implemented; review pending |
 | [ ] | `RPL-03` | Direct - Replies & Deletion | `RPL-03` → `DEL-02` | Deleted target says **Message deleted** | Tap quote to highlight deleted source | Implemented; review pending |
 | [ ] | `RPL-04` | Direct - Replies & Deletion | `RPL-04` → `RPL-missing` | Missing target says **Message unavailable** | No target navigation | Implemented; review pending |
-| [ ] | `DEL-01` | Direct - Replies & Deletion | `DEL-01-caption`, `DEL-01` | **You deleted this message.** | No context menu | Implemented; review pending |
-| [ ] | `DEL-02` | Direct - Replies & Deletion | `DEL-02-caption`, `DEL-02` | **This message was deleted.** | No context menu | Implemented; review pending |
+| [ ] | `DEL-01` | Direct - Replies & Deletion | `DEL-01-caption`, `DEL-01` | **You deleted this message.** | No action presentation | Implemented; review pending |
+| [ ] | `DEL-02` | Direct - Replies & Deletion | `DEL-02-caption`, `DEL-02` | **This message was deleted.** | No action presentation | Implemented; review pending |
 | [ ] | `RCT-01` | Direct - Reactions & Actions | `RCT-01` | One reaction from another person; no count | Toggle chip | Implemented; review pending |
 | [ ] | `RCT-02` | Direct - Reactions & Actions | `RCT-02` | One current-profile reaction with the opaque selected treatment | Toggle chip | Implemented; review pending |
 | [ ] | `RCT-03` | Direct - Reactions & Actions | `RCT-03` | Three people use the same reaction without current-profile participation | Toggle chip | Implemented; review pending |
 | [ ] | `RCT-04` | Direct - Reactions & Actions | `RCT-04` | Three people use the same reaction including current-profile participation | Toggle chip | Implemented; review pending |
 | [ ] | `RCT-05` | Direct - Reactions & Actions | `RCT-05` | Multiple reaction types mix single/count and current/other participation | Toggle each chip | Implemented; review pending |
-| [ ] | `RCT-06`–`RCT-12` | Direct - Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented | React submenu | Implemented; review pending |
+| [ ] | `RCT-06`–`RCT-12` | Direct - Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented as renderer coverage beyond quick defaults | Display and toggle chip | Implemented; review pending |
 | [ ] | `RCT-13` | Direct - Reactions & Actions | `RCT-13` | A narrow outgoing bubble proves three-point reaction gaps, opposite-edge timestamp placement, and adaptive `+N` overflow | Toggle visible chips | Implemented; review pending |
-| [ ] | `ACT-01` | Direct - Reactions & Actions | `ACT-01` | Incoming text excludes Delete | Long press | Implemented; review pending |
-| [ ] | `ACT-02` | Direct - Reactions & Actions | `ACT-02` | Outgoing text includes Delete | Long press; confirm Delete | Implemented; review pending |
-| [ ] | `ACT-03` | Direct - Reactions & Actions | `ACT-03-caption`, `ACT-03` | Incoming attachment-only excludes Copy/Delete | Long press | Implemented; review pending |
+| [ ] | `ACT-01` | Direct - Reactions & Actions | `ACT-01` | Incoming text includes Delete for Me | Long press | Implemented; review pending |
+| [ ] | `ACT-02` | Direct - Reactions & Actions | `ACT-02` | Outgoing text includes both deletion scopes | Long press; confirm Delete | Implemented; review pending |
+| [ ] | `ACT-03` | Direct - Reactions & Actions | `ACT-03-caption`, `ACT-03` | Incoming attachment-only includes Delete, not Copy | Long press | Implemented; review pending |
 | [ ] | `ACT-04` | Direct - Reactions & Actions | `ACT-04-caption`, `ACT-04` | Outgoing attachment-only includes Delete, not Copy | Long press | Implemented; review pending |
-| [ ] | `ACT-05` | Direct - Reactions & Actions | `ACT-05-caption`, `ACT-05` | Available file shares its file URL | Long press; Share | Implemented; review pending |
+| [ ] | `ACT-05` | Direct - Reactions & Actions | `ACT-05-caption`, `ACT-05` | Available file can be forwarded with its attachment | Long press; Forward | Implemented; review pending |
 
 ### Media, files, rich content, and voice
 
@@ -175,7 +175,7 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `ROLE-02` | Group - Member Permissions | `ROLE-02` + member roster state | Admin controls hidden; member controls remain | Native group-info actions | Implemented; review pending |
 | [ ] | `ROLE-03` | Group - Sole Admin | `ROLE-03` + sole-admin roster state | Leave blocked until promotion | Alert, Promote, Leave | Implemented; review pending |
 
-### Ended, recovery, and list states
+### Invitations, ended, recovery, and list states
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -187,6 +187,8 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `STATE-06` | Direct - Missing Relays | `STATE-06` | Empty chat relays; history retained | Check Chat Relays; restore/add relay | Implemented; review pending |
 | [ ] | `STATE-07` | Direct - Archived | `STATE-07` | Active chat in Archived scope | Unarchive | Implemented; review pending |
 | [ ] | `STATE-08` | Support - Timeline Notice | `STATE-08` notice | Guidance notice renders distinctly and is excluded from row activity | Standard support composer | Implemented; review pending |
+| [ ] | `STATE-09` | Direct - Invitation | `STATE-09` | Received direct message is readable before acceptance; Liquid Glass invitation actions replace the composer | Decline or Accept | Implemented; review pending |
+| [ ] | `STATE-10` | Group - Invitation | `STATE-10A`, `STATE-10B` | Received group messages and participant identity are readable before membership; Liquid Glass invitation actions replace the composer | Decline or Accept | Implemented; review pending |
 | [ ] | `LIST-01` | Direct - Text & Delivery | row `catalog-direct-text` | Pinned | Unpin | Implemented; review pending |
 | [ ] | `LIST-02` | Direct - Replies & Deletion | row `catalog-direct-replies` | Unread count | Read | Implemented; review pending |
 | [ ] | `LIST-03` | Direct - Reactions & Actions | row `catalog-direct-reactions` | Marked unread | Read | Implemented; review pending |
@@ -202,11 +204,12 @@ intentional product fallback are outside catalog scope.
 
 ## Native behavior
 
-- Message actions remain the native SwiftUI context menu: React, Reply, Copy
-  when text exists, Share, and Delete only for outgoing messages.
-- Deleted messages have no context menu. Failed outgoing messages replace the
+- Message actions follow [Message actions](message-actions.md): a bounded
+  Signal-informed focused presentation contains native buttons for reactions,
+  Reply, Forward, Copy when text exists, Select, Info, and Delete.
+- Deleted messages have no action presentation. Failed outgoing messages replace the
   timestamp with **Not delivered, hold for options** and expose **Retry Send**
-  through the native context menu.
+  first in the focused presentation.
 - Chat list actions remain the native UIKit swipe actions: Read/Unread,
   Pin/Unpin, Archive/Unarchive, Mute/Unmute, Leave, and Delete where permitted.
 - Mute values remain **1 Hour**, **8 Hours**, **1 Day**, **1 Week**, and
@@ -220,11 +223,11 @@ intentional product fallback are outside catalog scope.
 
 | Done | Action ID | Catalog prerequisite | Expected native behavior | Implementation status |
 | --- | --- | --- | --- | --- |
-| [ ] | `MSG-ACT-01` | `RCT-06`–`RCT-12` | React submenu offers exactly ❤ 😀 👍 👎 🤣 🔥 🦫; selecting or tapping a chip toggles current-profile participation | Implemented; review pending |
+| [ ] | `MSG-ACT-01` | `RCT-06`–`RCT-12` | Quick reactions offer ❤ 🤘 🔥 😂 🦫 🚀 plus More Reactions; choosing another emoji replaces current-profile participation | Implemented; review pending |
 | [ ] | `MSG-ACT-02` | Any nondeleted message | Reply opens the composer quote; sending preserves the target ID | Implemented; review pending |
 | [ ] | `MSG-ACT-03` | `ACT-01`, `ACT-02` | Copy appears only when text exists | Implemented; review pending |
-| [ ] | `MSG-ACT-04` | `ACT-01`–`ACT-05` | Share uses text/attachment labels, except a single available file shares its URL | Implemented; review pending |
-| [ ] | `MSG-ACT-05` | `ACT-02`, `ACT-04` | Delete appears only for outgoing nondeleted messages and requires confirmation | Implemented; review pending |
+| [ ] | `MSG-ACT-04` | `ACT-01`–`ACT-05` | Forward opens eligible chat selection and preserves source order and attachments | Implemented; review pending |
+| [ ] | `MSG-ACT-05` | `ACT-01`–`ACT-04` | Delete for Me handles any nondeleted message; Delete for Everyone is limited to eligible outgoing selection | Implemented; review pending |
 | [ ] | `MSG-ACT-06` | `DLV-03` | Touch and hold exposes Retry Send; retry changes failed delivery to sent | Implemented; review pending |
 | [ ] | `MSG-ACT-07` | `RPL-01`–`RPL-03` | Quote tap scrolls to the target without adding a temporary highlight | Implemented; review pending |
 | [ ] | `MSG-ACT-08` | `MENTION-01`–`MENTION-03` | Mention tap opens the matching profile | Implemented; review pending |
@@ -233,6 +236,8 @@ intentional product fallback are outside catalog scope.
 | [ ] | `MSG-ACT-11` | `FILE-01`–`FILE-06` | Available file opens native preview; unavailable file does not | Implemented; review pending |
 | [ ] | `MSG-ACT-12` | `LINK-01`–`LINK-03` | Valid destination opens; invalid destination exposes no open action | Implemented; review pending |
 | [ ] | `MSG-ACT-13` | `RICH-05` | Contact opens the referenced profile | Implemented; review pending |
+| [ ] | `MSG-ACT-14` | Any nondeleted message | Select enters multi-message selection with Delete All, count, Delete, Forward, and Close controls | Implemented; review pending |
+| [ ] | `MSG-ACT-15` | Any nondeleted message | Info pushes Message Details with direction, time, sender, delivery state, and recipients | Implemented; review pending |
 | [ ] | `MSG-ACT-14` | `VOICE-01`–`VOICE-03` | Play/pause, progress, waveform, and elapsed/remaining time stay synchronized | Implemented; review pending |
 | [ ] | `CHAT-ACT-01` | `LIST-02`, `LIST-03` | Read/Unread updates count and marked-unread state | Implemented; review pending |
 | [ ] | `CHAT-ACT-02` | `LIST-01` | Pin/Unpin updates ordering; legacy fixtures remain below catalog | Implemented; review pending |
@@ -244,6 +249,8 @@ intentional product fallback are outside catalog scope.
 | [ ] | `DIRECT-ACT-01` | Any active direct catalog chat | Chat Info exposes contact, disappearing messages, chat relays, archive, and block controls | Implemented; review pending |
 | [ ] | `DIRECT-ACT-02` | `STATE-05` | Unblock restores the composer without losing timeline history | Implemented; review pending |
 | [ ] | `DIRECT-ACT-03` | `STATE-06` | Add or Restore Defaults re-enables the composer | Implemented; review pending |
+| [ ] | `INVITE-ACT-01` | `STATE-09`, `STATE-10` | Accept preserves history, activates the chat, and restores the composer; group acceptance also appends **You joined the group.** | Implemented; review pending |
+| [ ] | `INVITE-ACT-02` | `STATE-09`, `STATE-10` | Decline confirms removal, Cancel preserves the invitation, and confirmation removes the chat and returns to Chats | Implemented; review pending |
 | [ ] | `GROUP-ACT-01` | `ROLE-01` | Admin can edit name, photo, and description; removal events are distinct | Implemented; review pending |
 | [ ] | `GROUP-ACT-02` | `ROLE-01` | Admin can add people, grant/revoke admin, and remove members | Implemented; review pending |
 | [ ] | `GROUP-ACT-03` | `ROLE-02` | Member keeps messages/search/shared content/mute/archive/leave; admin-only controls are absent | Implemented; review pending |

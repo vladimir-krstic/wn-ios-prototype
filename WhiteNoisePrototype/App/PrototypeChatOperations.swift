@@ -141,10 +141,20 @@ extension PrototypeProfile {
         chats.insert(group, at: insertion)
         return id
     }
+
+    @discardableResult
+    mutating func declineChatInvitation(_ chatID: String) -> Bool {
+        guard let index = chats.firstIndex(where: {
+            $0.id == chatID && $0.listState.membershipState == .invited
+        }) else { return false }
+        chats.remove(at: index)
+        return true
+    }
 }
 
 extension PrototypeChat {
     enum ComposerAvailability: Equatable {
+        case pendingInvitation
         case available
         case left
         case removed
@@ -157,6 +167,7 @@ extension PrototypeChat {
         people: [PrototypePerson]
     ) -> ComposerAvailability {
         switch listState.membershipState {
+        case .invited: return .pendingInvitation
         case .left: return .left
         case .removed: return .removed
         case .active: break
@@ -166,6 +177,26 @@ extension PrototypeChat {
             return .blocked
         }
         return routing.relayURLs.isEmpty ? .missingRelays : .available
+    }
+
+    @discardableResult
+    mutating func acceptInvitation(
+        currentProfileID: String,
+        now: Date = .now
+    ) -> Bool {
+        guard listState.membershipState == .invited else { return false }
+        listState.membershipState = .active
+        listState.unreadCount = 0
+        listState.isMarkedUnread = false
+
+        if isGroup, !members.contains(where: { $0.personID == currentProfileID }) {
+            members.append(
+                PrototypeGroupMember(personID: currentProfileID, role: .member)
+            )
+            appendEvent(.memberJoined(personID: currentProfileID), now: now)
+        }
+        invitedByPersonID = nil
+        return true
     }
 
     func canManageGroup(currentProfileID: String) -> Bool {
@@ -294,18 +325,22 @@ extension PrototypeChat {
         messageID: String,
         currentProfileID: String
     ) {
-        guard PrototypeReaction.supportedEmoji.contains(emoji) else { return }
+        guard emoji.count == 1,
+              emoji.unicodeScalars.contains(where: { $0.properties.isEmoji })
+        else { return }
         mutateMessage(messageID) { message in
             guard !message.isDeleted else { return }
+            let isRemoving = message.reactions.contains {
+                $0.emoji == emoji && $0.personIDs.contains(currentProfileID)
+            }
+            for index in message.reactions.indices {
+                message.reactions[index].personIDs.removeAll { $0 == currentProfileID }
+            }
+            message.reactions.removeAll(where: { $0.personIDs.isEmpty })
+
+            guard !isRemoving else { return }
             if let index = message.reactions.firstIndex(where: { $0.emoji == emoji }) {
-                if message.reactions[index].personIDs.contains(currentProfileID) {
-                    message.reactions[index].personIDs.removeAll { $0 == currentProfileID }
-                    if message.reactions[index].personIDs.isEmpty {
-                        message.reactions.remove(at: index)
-                    }
-                } else {
-                    message.reactions[index].personIDs.append(currentProfileID)
-                }
+                message.reactions[index].personIDs.append(currentProfileID)
             } else {
                 message.reactions.append(
                     PrototypeReaction(emoji: emoji, personIDs: [currentProfileID])
@@ -315,14 +350,44 @@ extension PrototypeChat {
     }
 
     mutating func deleteMessage(_ messageID: String, currentProfileID: String) {
-        mutateMessage(messageID) { message in
-            guard message.authorID == currentProfileID, !message.isDeleted else { return }
-            message.deletionState = .deletedByCurrentProfile
-            message.text = ""
-            message.attachments = []
-            message.reactions = []
-            message.replyToMessageID = nil
+        deleteMessagesForEveryone([messageID], currentProfileID: currentProfileID)
+    }
+
+    mutating func deleteMessagesForEveryone(
+        _ messageIDs: Set<String>,
+        currentProfileID: String
+    ) {
+        guard !messageIDs.isEmpty else { return }
+        for messageID in messageIDs {
+            mutateMessage(messageID) { message in
+                guard message.authorID == currentProfileID, !message.isDeleted else { return }
+                message.deletionState = .deletedByCurrentProfile
+                message.text = ""
+                message.attachments = []
+                message.reactions = []
+                message.replyToMessageID = nil
+            }
         }
+        if let replyToMessageID, messageIDs.contains(replyToMessageID) {
+            self.replyToMessageID = nil
+        }
+    }
+
+    mutating func removeMessagesForCurrentProfile(_ messageIDs: Set<String>) {
+        guard !messageIDs.isEmpty else { return }
+        timeline.removeAll { entry in
+            guard case let .message(message) = entry else { return false }
+            return messageIDs.contains(message.id)
+        }
+        if let replyToMessageID, messageIDs.contains(replyToMessageID) {
+            self.replyToMessageID = nil
+        }
+        listState.activityDate = timeline.last?.date ?? .now
+    }
+
+    mutating func removeAllMessagesForCurrentProfile() {
+        let messageIDs = Set(messages.map(\.id))
+        removeMessagesForCurrentProfile(messageIDs)
     }
 
     mutating func retryMessage(_ messageID: String, currentProfileID: String) {

@@ -1,11 +1,61 @@
 import Foundation
 
+enum PrototypeNostrAddress {
+    static func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func defaultValue(for name: String) -> String {
+        let localPart = name
+            .lowercased()
+            .split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+            .joined(separator: ".")
+
+        return "\(localPart.isEmpty ? "profile" : localPart)@whitenoise.example"
+    }
+
+    static func isValid(_ value: String) -> Bool {
+        let normalizedValue = normalized(value)
+        let parts = normalizedValue.split(
+            separator: "@",
+            omittingEmptySubsequences: false
+        )
+
+        guard parts.count == 2,
+              !parts[0].isEmpty,
+              !parts[1].isEmpty
+        else {
+            return false
+        }
+
+        let localPart = String(parts[0])
+        let domain = String(parts[1])
+        return !localPart.contains { $0.isWhitespace }
+            && !domain.contains { $0.isWhitespace }
+            && domain.contains(".")
+            && !domain.hasPrefix(".")
+            && !domain.hasSuffix(".")
+            && !domain.contains("..")
+    }
+
+    static func isVerifiedDraft(
+        _ draft: String,
+        matching storedAddress: String,
+        storedIsVerified: Bool
+    ) -> Bool {
+        storedIsVerified
+            && normalized(draft) == normalized(storedAddress)
+    }
+}
+
 struct PrototypePerson: Identifiable, Equatable {
     let id: String
     var name: String
     let publicKey: String
     var about: String
     var nostrAddress: String
+    var isNostrAddressVerified: Bool
     var lightningAddress: String
     var avatar: ChatListItem.Avatar
     var isFollowing: Bool
@@ -17,6 +67,7 @@ struct PrototypePerson: Identifiable, Equatable {
         publicKey: String? = nil,
         about: String = "",
         nostrAddress: String = "",
+        isNostrAddressVerified: Bool = false,
         lightningAddress: String = "",
         avatar: ChatListItem.Avatar = .monogram("?"),
         isFollowing: Bool = true,
@@ -26,7 +77,11 @@ struct PrototypePerson: Identifiable, Equatable {
         self.name = name
         self.publicKey = publicKey ?? Self.publicKey(for: id)
         self.about = about
-        self.nostrAddress = nostrAddress
+        self.nostrAddress = nostrAddress.isEmpty
+            ? PrototypeNostrAddress.defaultValue(for: name)
+            : PrototypeNostrAddress.normalized(nostrAddress)
+        self.isNostrAddressVerified = isNostrAddressVerified
+            && PrototypeNostrAddress.isValid(self.nostrAddress)
         self.lightningAddress = lightningAddress
         self.avatar = avatar
         self.isFollowing = isFollowing
@@ -203,6 +258,7 @@ enum PrototypeAttachment: Equatable, Identifiable {
 }
 
 struct PrototypeReaction: Identifiable, Equatable {
+    static let defaultQuickEmoji = ["❤", "🤘", "🔥", "😂", "🦫", "🚀"]
     static let supportedEmoji = ["❤", "😀", "👍", "👎", "🤣", "🔥", "🦫"]
 
     let emoji: String
@@ -354,6 +410,7 @@ struct PrototypeChat: Identifiable, Equatable {
     var draft: String
     var replyToMessageID: String?
     var listState: PrototypeChatListState
+    var invitedByPersonID: String? = nil
     var disappearingMessageDuration = PrototypeDisappearingMessageDuration.off
 
     var isGroup: Bool {
@@ -466,6 +523,9 @@ struct PrototypeChat: Identifiable, Equatable {
             attachmentPreview: attachmentPreview,
             timestamp: PrototypeChatListDateFormatter.label(for: previewDate, now: now),
             membershipState: listState.membershipState,
+            invitationInviterName: invitedByPersonID.flatMap { inviterID in
+                people.first { $0.id == inviterID }?.name
+            },
             isArchived: listState.isArchived,
             isPinned: listState.isPinned,
             unreadCount: listState.unreadCount,
@@ -500,6 +560,32 @@ struct PrototypeChat: Identifiable, Equatable {
         draft = ""
         replyToMessageID = nil
         listState.activityDate = now
+        listState.unreadCount = 0
+        listState.isMarkedUnread = false
+    }
+
+    mutating func appendForwardedMessages(
+        _ messages: [PrototypeMessage],
+        authorID: String,
+        now: Date = .now
+    ) {
+        for (index, message) in messages.enumerated() where !message.isDeleted {
+            let sentAt = now.addingTimeInterval(TimeInterval(index) * 0.001)
+            timeline.append(
+                .message(
+                    PrototypeMessage(
+                        id: "\(id)-forwarded-\(UUID().uuidString)",
+                        authorID: authorID,
+                        sentAt: sentAt,
+                        text: message.text,
+                        attachments: message.attachments
+                    )
+                )
+            )
+            listState.activityDate = sentAt
+        }
+        draft = ""
+        replyToMessageID = nil
         listState.unreadCount = 0
         listState.isMarkedUnread = false
     }

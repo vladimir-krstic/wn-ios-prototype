@@ -8,6 +8,8 @@ struct ProfileSettingsView: View {
 
     @State private var name: String
     @State private var about: String
+    @State private var nostrAddress: String
+    @State private var isNostrAddressVerified: Bool
     @State private var avatar: PrototypeAvatar
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var importedPhotoURL: URL?
@@ -25,6 +27,12 @@ struct ProfileSettingsView: View {
         _profile = profile
         _name = State(initialValue: profile.wrappedValue.name)
         _about = State(initialValue: profile.wrappedValue.about)
+        _nostrAddress = State(
+            initialValue: profile.wrappedValue.nostrAddress
+        )
+        _isNostrAddressVerified = State(
+            initialValue: profile.wrappedValue.isNostrAddressVerified
+        )
         _avatar = State(initialValue: profile.wrappedValue.avatar)
         _selectedWebChoice = State(
             initialValue: Self.webChoice(for: profile.wrappedValue.avatar)
@@ -33,6 +41,7 @@ struct ProfileSettingsView: View {
 
     private enum Field {
         case name
+        case nostrAddress
         case about
     }
 
@@ -48,6 +57,19 @@ struct ProfileSettingsView: View {
                     .listRowBackground(
                         Color(uiColor: .secondarySystemFill)
                     )
+            }
+
+            Section {
+                nostrAddressContent
+                    .listRowBackground(
+                        Color(uiColor: .secondarySystemFill)
+                    )
+            } header: {
+                Text("Verified Nostr Address")
+            } footer: {
+                if !PrototypeNostrAddress.isValid(nostrAddress) {
+                    Text("Enter an address like name@example.com.")
+                }
             }
 
             Section("About") {
@@ -160,10 +182,48 @@ struct ProfileSettingsView: View {
                 .submitLabel(.next)
                 .focused($focusedField, equals: .name)
                 .onSubmit {
-                    focusedField = .about
+                    focusedField = .nostrAddress
                 }
         } else {
             Text(name)
+        }
+    }
+
+    @ViewBuilder
+    private var nostrAddressContent: some View {
+        if isEditing {
+            HStack {
+                TextField(
+                    "Verified Nostr Address",
+                    text: nostrAddressBinding
+                )
+                .textContentType(.emailAddress)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .accessibilityValue(
+                    "\(nostrAddress), "
+                        + (isNostrAddressVerified
+                            ? "Verified"
+                            : "Not verified")
+                )
+                .submitLabel(.next)
+                .focused($focusedField, equals: .nostrAddress)
+                .onSubmit {
+                    focusedField = .about
+                }
+
+                VerifiedNostrAddressSeal(
+                    isVerified: isNostrAddressVerified
+                )
+                .foregroundStyle(.primary)
+                .accessibilityHidden(true)
+            }
+        } else {
+            VerifiedNostrAddressValue(
+                address: nostrAddress,
+                isVerified: isNostrAddressVerified
+            )
         }
     }
 
@@ -266,6 +326,7 @@ struct ProfileSettingsView: View {
 
     private var canFinishEditing: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && PrototypeNostrAddress.isValid(nostrAddress)
             && !isPreparingPhoto
     }
 
@@ -284,6 +345,8 @@ struct ProfileSettingsView: View {
     private func beginEditing() {
         name = profile.name
         about = profile.about
+        nostrAddress = profile.nostrAddress
+        isNostrAddressVerified = profile.isNostrAddressVerified
         avatar = profile.avatar
         selectedWebChoice = Self.webChoice(for: profile.avatar)
         photoError = nil
@@ -295,6 +358,8 @@ struct ProfileSettingsView: View {
         focusedField = nil
         name = profile.name
         about = profile.about
+        nostrAddress = profile.nostrAddress
+        isNostrAddressVerified = profile.isNostrAddressVerified
         avatar = profile.avatar
         selectedPhotoItem = nil
         importedPhotoURL = nil
@@ -311,12 +376,31 @@ struct ProfileSettingsView: View {
         let normalizedName = name.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
+        let normalizedNostrAddress = PrototypeNostrAddress.normalized(
+            nostrAddress
+        )
         focusedField = nil
         name = normalizedName
+        nostrAddress = normalizedNostrAddress
         profile.name = normalizedName
         profile.about = about
+        profile.nostrAddress = normalizedNostrAddress
+        profile.isNostrAddressVerified = isNostrAddressVerified
         profile.avatar = avatar
         isEditing = false
+    }
+
+    private var nostrAddressBinding: Binding<String> {
+        Binding {
+            nostrAddress
+        } set: { newValue in
+            nostrAddress = newValue
+            isNostrAddressVerified = PrototypeNostrAddress.isVerifiedDraft(
+                newValue,
+                matching: profile.nostrAddress,
+                storedIsVerified: profile.isNostrAddressVerified
+            )
+        }
     }
 
     private func prepareSelectedPhoto(

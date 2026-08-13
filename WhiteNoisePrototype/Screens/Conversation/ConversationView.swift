@@ -1,6 +1,7 @@
 import PhotosUI
 import QuickLook
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 private struct ConversationIndexedTimelineEntry: Identifiable {
@@ -15,6 +16,12 @@ private struct ConversationTimelineDay: Identifiable {
     var entries: [ConversationIndexedTimelineEntry]
 
     var id: Date { date }
+}
+
+private struct ConversationDeletionRequest: Identifiable {
+    let messageIDs: Set<String>
+
+    var id: String { messageIDs.sorted().joined(separator: ",") }
 }
 
 private struct ConversationDateHeader: View {
@@ -82,6 +89,7 @@ struct ConversationView: View {
 
     private let playback = PrototypePlaybackCoordinator.shared
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
 
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
@@ -97,7 +105,20 @@ struct ConversationView: View {
     @State private var mediaSelection: PrototypeMediaSelection?
     @State private var pendingMediaMessageID: String?
     @State private var quickLookURL: URL?
-    @State private var messagePendingDeletion: String?
+    @State private var deletionRequest: ConversationDeletionRequest?
+    @State private var isDeleteAllConfirmationPresented = false
+    @State private var isDeclineInvitationConfirmationPresented = false
+    @State private var messageFrames: [String: CGRect] = [:]
+    @State private var messageContextContentFrames: [String: CGRect] = [:]
+    @State private var contextMessageID: String?
+    @State private var emojiPickerMessageID: String?
+    @State private var selectedMessageIDs: Set<String> = []
+    @State private var isSelectingMessages = false
+    @State private var forwardingMessageIDs: [String] = []
+    @State private var isForwardingMessages = false
+    @State private var messageDetailsID: String?
+    @State private var copyFeedbackTrigger = 0
+    @State private var reactionFeedbackTrigger = 0
     @State private var highlightedMessageID: String?
     @State private var requestedScroll: TimelineScrollRequest?
     @State private var selectedPersonID: String?
@@ -179,7 +200,8 @@ struct ConversationView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 10)
                 }
-                .defaultScrollAnchor(.bottom)
+                .defaultScrollAnchor(.bottom, for: .initialOffset)
+                .defaultScrollAnchor(.bottom, for: .alignment)
                 .scrollDismissesKeyboard(.interactively)
                 .scrollIndicators(.hidden)
                 .scrollEdgeEffectStyle(.soft, for: .bottom)
@@ -192,10 +214,6 @@ struct ConversationView: View {
                         ConversationPinnedDateHeader(date: activeTimelineDate)
                     }
                 }
-            }
-            .task {
-                await Task.yield()
-                proxy.scrollTo(bottomID, anchor: .bottom)
             }
             .onChange(of: chat.timeline.count) {
                 activeTimelineDate = timelineDays.last?.date
@@ -225,6 +243,11 @@ struct ConversationView: View {
                 }
             }
         }
+        .coordinateSpace(name: "conversationSurface")
+        .accessibilityHidden(contextMessageID != nil)
+        .overlay {
+            messageContextOverlay
+        }
         .environment(\.incomingPrototypeMessageColor, settings.incomingMessageColor)
         .environment(\.outgoingPrototypeMessageColor, settings.outgoingMessageColor)
         .environment(\.openURL, OpenURLAction { url in
@@ -236,6 +259,7 @@ struct ConversationView: View {
         })
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(isSelectingMessages)
         .toolbar { conversationToolbar }
         .background {
             ConversationKeyboardDismissInstaller {
@@ -295,18 +319,71 @@ struct ConversationView: View {
             restoreComposerInteractionIfPossible()
         }
         .task(id: selectedPhotoItems) { await preparePhotoItems() }
+        .alert(
+            "Decline Invitation?",
+            isPresented: $isDeclineInvitationConfirmationPresented
+        ) {
+            Button("Cancel", role: .cancel) { }
+            Button("Decline", role: .destructive, action: declineInvitation)
+        } message: {
+            Text(
+                chat.isGroup
+                    ? "This group invitation and its messages will be removed from Chats."
+                    : "This invitation and its messages will be removed from Chats."
+            )
+        }
         .confirmationDialog(
-            "Delete Message?",
+            deletionDialogTitle,
             isPresented: Binding(
-                get: { messagePendingDeletion != nil },
-                set: { if !$0 { messagePendingDeletion = nil } }
+                get: { deletionRequest != nil },
+                set: { if !$0 { deletionRequest = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete Message", role: .destructive) { deletePendingMessage() }
-            Button("Cancel", role: .cancel) { messagePendingDeletion = nil }
+            Button("Delete for Me", role: .destructive) {
+                deleteRequestedMessagesForCurrentProfile()
+            }
+            if canDeleteRequestedMessagesForEveryone {
+                Button("Delete for Everyone", role: .destructive) {
+                    deleteRequestedMessagesForEveryone()
+                }
+            }
+            Button("Cancel", role: .cancel) { deletionRequest = nil }
         } message: {
-            Text("This message will remain in the chat as deleted.")
+            Text(deletionDialogMessage)
+        }
+        .confirmationDialog(
+            "Delete all messages in the chat?",
+            isPresented: $isDeleteAllConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete All Messages", role: .destructive) { deleteAllMessagesForMe() }
+            Button("Cancel", role: .cancel) { }
+        }
+        .sheet(isPresented: $isForwardingMessages, onDismiss: {
+            forwardingMessageIDs = []
+        }) {
+            PrototypeForwardMessagesView(
+                chats: profile.chats,
+                people: profile.people,
+                currentProfileID: profile.id,
+                onForward: completeForward
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { emojiPickerMessageID != nil },
+                set: { if !$0 { emojiPickerMessageID = nil } }
+            )
+        ) {
+            PrototypeEmojiPickerView(
+                quickReactionEmoji: $profile.quickReactionEmoji,
+                onSelect: selectFullReaction
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $isShowingSearch) {
             NavigationStack {
@@ -340,6 +417,15 @@ struct ConversationView: View {
                 onSearch: openSearchFromChatInfo,
                 onOpenMessage: openMessageFromChatInfo
             )
+        }
+        .navigationDestination(isPresented: messageDetailsIsPresented) {
+            if let messageDetailsMessage {
+                PrototypeMessageDetailsView(
+                    message: messageDetailsMessage,
+                    chat: chat,
+                    profile: profile
+                )
+            }
         }
         .navigationDestination(isPresented: personIsPresented) {
             if let selectedPersonID {
@@ -389,57 +475,102 @@ struct ConversationView: View {
             recordingWaveformSamples = []
             isComposerInteractionBlocked = false
             isAttachmentMenuPresented = false
+            contextMessageID = nil
+            emojiPickerMessageID = nil
+            dismissSelection()
         }
+        .sensoryFeedback(.impact, trigger: contextMessageID) { oldValue, newValue in
+            oldValue == nil && newValue != nil
+        }
+        .sensoryFeedback(.selection, trigger: selectedMessageIDs)
+        .sensoryFeedback(.selection, trigger: reactionFeedbackTrigger)
+        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
     }
 
     @ViewBuilder
     private func conversationBottomSurface<Content: View>(
         @ViewBuilder content: () -> Content
     ) -> some View {
-        switch chat.listState.membershipState {
-        case .left:
+        if chat.listState.membershipState == .invited {
             content()
                 .safeAreaBar(edge: .bottom, spacing: 0) {
-                    recoveryView(.left)
+                    invitationActionBar
                 }
-        case .removed:
+        } else if isSelectingMessages {
             content()
                 .safeAreaBar(edge: .bottom, spacing: 0) {
-                    recoveryView(.removed)
+                    selectionToolbar
                 }
-        case .active:
-            content()
-                .safeAreaBar(edge: .bottom, spacing: 0) {
-                    composerArea
-                }
+        } else {
+            switch chat.listState.membershipState {
+            case .invited:
+                content()
+            case .left:
+                content()
+                    .safeAreaBar(edge: .bottom, spacing: 0) {
+                        recoveryView(.left)
+                    }
+            case .removed:
+                content()
+                    .safeAreaBar(edge: .bottom, spacing: 0) {
+                        recoveryView(.removed)
+                    }
+            case .active:
+                content()
+                    .safeAreaBar(edge: .bottom, spacing: 0) {
+                        composerArea
+                    }
+            }
         }
     }
 
     @ToolbarContentBuilder
     private var conversationToolbar: some ToolbarContent {
+        if isSelectingMessages {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Delete All") {
+                    isDeleteAllConfirmationPresented = true
+                }
+            }
+        }
+
         ToolbarItem(placement: .principal) {
-            Button {
-                isShowingChatInfo = true
-            } label: {
-                HStack(spacing: 8) {
-                    PrototypeChatAvatarView(
-                        avatar: chat.resolvedAvatar(people: profile.people),
-                        size: 44,
-                        publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
-                    )
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(chat.title(people: profile.people))
-                            .font(.headline).lineLimit(1)
-                        if chat.isGroup {
-                            Text("\(chat.members.count) members")
-                                .font(.caption2).foregroundStyle(.secondary)
+            if isSelectingMessages {
+                Text(chat.title(people: profile.people))
+                    .font(.headline)
+                    .lineLimit(1)
+            } else {
+                Button {
+                    isShowingChatInfo = true
+                } label: {
+                    HStack(spacing: 8) {
+                        PrototypeChatAvatarView(
+                            avatar: chat.resolvedAvatar(people: profile.people),
+                            size: 44,
+                            publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
+                        )
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(chat.title(people: profile.people))
+                                .font(.headline).lineLimit(1)
+                            if chat.isGroup {
+                                Text("\(chat.members.count) members")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens chat information.")
+                .accessibilityIdentifier("conversation.info")
             }
-            .buttonStyle(.plain)
-            .accessibilityHint("Opens chat information.")
-            .accessibilityIdentifier("conversation.info")
+        }
+
+        if isSelectingMessages {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Close", systemImage: "xmark", role: .close) {
+                    dismissSelection()
+                }
+            }
         }
     }
 
@@ -494,48 +625,235 @@ struct ConversationView: View {
 
         case let .message(message):
             let author = profile.people.first { $0.id == message.authorID }
-            PrototypeMessageBubble(
+            HStack(alignment: .bottom, spacing: 0) {
+                if isSelectingMessages {
+                    selectionIndicator(for: message)
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                }
+
+                messageBubble(message, at: index, author: author)
+                    .opacity(contextMessageID == message.id ? 0 : 1)
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .named("conversationSurface"))
+                    } action: { frame in
+                        messageFrames[message.id] = frame
+                    }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard isSelectingMessages else { return }
+                toggleSelection(message.id)
+            }
+            .accessibilityActions {
+                if isSelectingMessages {
+                    Button(
+                        selectedMessageIDs.contains(message.id)
+                            ? "Deselect Message"
+                            : "Select Message"
+                    ) {
+                        toggleSelection(message.id)
+                    }
+                } else if !message.isDeleted,
+                          chat.listState.membershipState != .invited {
+                    if message.authorID == profile.id, message.deliveryState == .failed {
+                        Button("Retry Send") { retryMessage(message.id) }
+                    }
+                    Button("Show Actions") { showMessageActions(message.id) }
+                    Button("Reply") { beginReply(to: message.id) }
+                    Button("Forward") { beginForward(messageIDs: [message.id]) }
+                    if !message.text.isEmpty {
+                        Button("Copy") {
+                            UIPasteboard.general.string = message.text
+                            copyFeedbackTrigger += 1
+                        }
+                    }
+                    Button("Select") { beginSelection(at: message.id) }
+                    Button("Info") { messageDetailsID = message.id }
+                    Button("Delete", role: .destructive) {
+                        requestDeletion(of: [message.id])
+                    }
+                }
+            }
+            .accessibilityValue(
+                isSelectingMessages
+                    ? (selectedMessageIDs.contains(message.id) ? "Selected" : "Not selected")
+                    : ""
+            )
+            .animation(.easeInOut(duration: 0.2), value: isSelectingMessages)
+        }
+    }
+
+    private func messageBubble(
+        _ message: PrototypeMessage,
+        at index: Int,
+        author: PrototypePerson?,
+        reportsContextContentFrame: Bool = true
+    ) -> some View {
+        PrototypeMessageBubble(
+            message: message,
+            outgoing: message.authorID == profile.id,
+            isGroup: chat.isGroup,
+            author: author,
+            profileName: profile.name,
+            resolvedReply: resolvedReply(for: message),
+            replyAuthorName: replyAuthorName(for: message),
+            showsAuthor: startsCluster(at: index),
+            showsAvatar: endsCluster(at: index),
+            showsTimestamp: endsCluster(at: index),
+            isHighlighted: highlightedMessageID == message.id,
+            people: profile.people,
+            currentProfileID: profile.id,
+            onToggleReaction: { toggleReaction($0, messageID: message.id) },
+            onOpenReply: {
+                if let target = message.replyToMessageID {
+                    requestedScroll = TimelineScrollRequest(
+                        messageID: target,
+                        highlightsTarget: false
+                    )
+                }
+            },
+            onOpenPerson: { selectedPersonID = $0 },
+            onOpenMedia: { attachment in
+                PrototypePlaybackCoordinator.shared.stopAll()
+                mediaSelection = PrototypeMediaSelection(
+                    chat: chat,
+                    messageID: message.id,
+                    attachmentID: attachment.id
+                )
+            },
+            onOpenFile: { quickLookURL = $0 },
+            isContextInteractionEnabled: !isSelectingMessages
+                && contextMessageID == nil
+                && chat.listState.membershipState != .invited,
+            onShowActions: { showMessageActions(message.id) },
+            onContextContentFrameChange: { frame in
+                guard reportsContextContentFrame else { return }
+                messageContextContentFrames[message.id] = frame
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var messageContextOverlay: some View {
+        if let message = contextMessage,
+           let sourceFrame = messageFrames[message.id],
+           let contentFrame = messageContextContentFrames[message.id],
+           let index = chat.timeline.firstIndex(where: { $0.id == message.id }) {
+            PrototypeMessageContextPresentation(
                 message: message,
                 outgoing: message.authorID == profile.id,
-                isGroup: chat.isGroup,
-                author: author,
-                profileName: profile.name,
-                resolvedReply: resolvedReply(for: message),
-                replyAuthorName: replyAuthorName(for: message),
-                showsAuthor: startsCluster(at: index),
-                showsAvatar: endsCluster(at: index),
-                showsTimestamp: endsCluster(at: index),
-                isHighlighted: highlightedMessageID == message.id,
-                people: profile.people,
+                sourceFrame: sourceFrame,
+                contentFrame: contentFrame,
                 currentProfileID: profile.id,
-                onReply: { updateChat { $0.replyToMessageID = message.id }; composerIsFocused = true },
-                onDelete: { messagePendingDeletion = message.id },
-                onRetry: {
-                    updateChat {
-                        $0.retryMessage(message.id, currentProfileID: profile.id)
-                    }
-                },
-                onToggleReaction: { toggleReaction($0, messageID: message.id) },
-                onOpenReply: {
-                    if let target = message.replyToMessageID {
-                        requestedScroll = TimelineScrollRequest(
-                            messageID: target,
-                            highlightsTarget: false
-                        )
-                    }
-                },
-                onOpenPerson: { selectedPersonID = $0 },
-                onOpenMedia: { attachment in
-                    PrototypePlaybackCoordinator.shared.stopAll()
-                    mediaSelection = PrototypeMediaSelection(
-                        chat: chat,
-                        messageID: message.id,
-                        attachmentID: attachment.id
+                quickReactionEmoji: profile.quickReactionEmoji,
+                preview: {
+                    messageBubble(
+                        message,
+                        at: index,
+                        author: profile.people.first { $0.id == message.authorID },
+                        reportsContextContentFrame: false
                     )
                 },
-                onOpenFile: { quickLookURL = $0 }
+                onDismiss: { contextMessageID = nil },
+                onAction: { performContextAction($0, for: message) },
+                onReaction: { emoji in
+                    toggleReaction(emoji, messageID: message.id)
+                },
+                onMoreReactions: {
+                    emojiPickerMessageID = message.id
+                }
             )
+            .zIndex(100)
         }
+    }
+
+    private func selectionIndicator(for message: PrototypeMessage) -> some View {
+        Image(
+            systemName: selectedMessageIDs.contains(message.id)
+                ? "checkmark.circle.fill"
+                : "circle"
+        )
+        .font(.title3)
+        .foregroundStyle(
+            selectedMessageIDs.contains(message.id) ? Color.accentColor : .secondary
+        )
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
+        .accessibilityHidden(true)
+    }
+
+    private var selectionToolbar: some View {
+        GlassEffectContainer {
+            HStack {
+                Button(role: .destructive) {
+                    requestDeletion(of: selectedMessageIDs)
+                } label: {
+                    Image(systemName: "trash")
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .disabled(selectedMessageIDs.isEmpty)
+                .accessibilityLabel("Delete Selected Messages")
+
+                Spacer()
+
+                Text("\(selectedMessageIDs.count) Selected")
+                    .font(.body.weight(.medium))
+                    .contentTransition(.numericText())
+                    .padding(.horizontal, 20)
+                    .frame(minHeight: 44)
+                    .glassEffect(.regular, in: .capsule)
+                    .accessibilityIdentifier("conversation.selection.count")
+
+                Spacer()
+
+                Button {
+                    beginForward(messageIDs: selectedMessageIDs)
+                } label: {
+                    Image(systemName: "arrowshape.turn.up.right")
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .disabled(!canForwardSelection)
+                .accessibilityLabel("Forward Selected Messages")
+                .accessibilityHint(selectionForwardHint)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+    }
+
+    private var invitationActionBar: some View {
+        VStack {
+            membershipStatusLabel(
+                "Invited to chat by \(invitationInviterName)",
+                systemImage: "envelope.badge"
+            )
+            .accessibilityIdentifier("conversation.invitation.status")
+
+            HStack {
+                Button("Decline", role: .destructive) {
+                    isDeclineInvitationConfirmationPresented = true
+                }
+                .buttonStyle(.glass)
+                .accessibilityIdentifier("conversation.invitation.decline")
+
+                Button("Accept", action: acceptInvitation)
+                    .buttonStyle(.glassProminent)
+                    .accessibilityIdentifier("conversation.invitation.accept")
+            }
+            .controlSize(.large)
+            .buttonSizing(.flexible)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
+    private var invitationInviterName: String {
+        guard let inviterID = chat.invitedByPersonID else { return "Someone" }
+        return profile.people.first { $0.id == inviterID }?.name ?? "Someone"
     }
 
     @ViewBuilder
@@ -904,6 +1222,7 @@ struct ConversationView: View {
 
     private var composerRecovery: ComposerRecovery? {
         switch chat.listState.membershipState {
+        case .invited: return nil
         case .left: return .left
         case .removed: return .removed
         case .active: break
@@ -1042,6 +1361,71 @@ struct ConversationView: View {
         return profile.chats[chatIndex!]
     }
 
+    private var contextMessage: PrototypeMessage? {
+        guard let contextMessageID else { return nil }
+        return chat.messages.first { $0.id == contextMessageID }
+    }
+
+    private var messageDetailsMessage: PrototypeMessage? {
+        guard let messageDetailsID else { return nil }
+        return chat.messages.first { $0.id == messageDetailsID }
+    }
+
+    private var messageDetailsIsPresented: Binding<Bool> {
+        Binding {
+            messageDetailsID != nil
+        } set: { isPresented in
+            if !isPresented { messageDetailsID = nil }
+        }
+    }
+
+    private var requestedDeletionMessages: [PrototypeMessage] {
+        guard let deletionRequest else { return [] }
+        return messages(for: deletionRequest.messageIDs)
+    }
+
+    private var deletionDialogTitle: String {
+        requestedDeletionMessages.count == 1
+            ? "Delete Message?"
+            : "Delete \(requestedDeletionMessages.count) Messages?"
+    }
+
+    private var deletionDialogMessage: String {
+        if canDeleteRequestedMessagesForEveryone {
+            return "Choose whether to remove the selected message"
+                + (requestedDeletionMessages.count == 1 ? "" : "s")
+                + " only for you or for everyone."
+        }
+        return "The selected message"
+            + (requestedDeletionMessages.count == 1 ? "" : "s")
+            + " will be removed only for you."
+    }
+
+    private var canDeleteRequestedMessagesForEveryone: Bool {
+        !requestedDeletionMessages.isEmpty
+            && requestedDeletionMessages.allSatisfy {
+                $0.authorID == profile.id && !$0.isDeleted
+            }
+    }
+
+    private var canForwardSelection: Bool {
+        let selectedMessages = messages(for: selectedMessageIDs)
+        return !selectedMessages.isEmpty
+            && selectedMessages.count == selectedMessageIDs.count
+            && selectedMessages.count <= 32
+            && selectedMessages.allSatisfy { !$0.isDeleted }
+    }
+
+    private var selectionForwardHint: String {
+        if selectedMessageIDs.count > 32 {
+            return "Select no more than 32 messages."
+        }
+        if messages(for: selectedMessageIDs).contains(where: \.isDeleted) {
+            return "Deleted messages cannot be forwarded."
+        }
+        return "Choose up to five destination chats."
+    }
+
     private var personIsPresented: Binding<Bool> {
         Binding { selectedPersonID != nil } set: { if !$0 { selectedPersonID = nil } }
     }
@@ -1052,6 +1436,19 @@ struct ConversationView: View {
         renderedChat = updatedChat
 
         persistAuthoritativeChat(updatedChat)
+    }
+
+    private func acceptInvitation() {
+        updateChat {
+            $0.acceptInvitation(currentProfileID: profile.id)
+        }
+    }
+
+    private func declineInvitation() {
+        var updatedProfile = profile
+        guard updatedProfile.declineChatInvitation(chatID) else { return }
+        profile = updatedProfile
+        dismiss()
     }
 
     private func persistAuthoritativeChat(_ updatedChat: PrototypeChat) {
@@ -1141,12 +1538,167 @@ struct ConversationView: View {
         }
     }
 
-    private func deletePendingMessage() {
-        guard let id = messagePendingDeletion else { return }
-        updateChat {
-            $0.deleteMessage(id, currentProfileID: profile.id)
+    private func showMessageActions(_ messageID: String) {
+        guard !isSelectingMessages,
+              contextMessageID == nil,
+              messageFrames[messageID] != nil,
+              messageContextContentFrames[messageID] != nil,
+              let message = chat.messages.first(where: { $0.id == messageID }),
+              !message.isDeleted
+        else { return }
+        playback.stopAll()
+        composerIsFocused = false
+        contextMessageID = messageID
+    }
+
+    private func performContextAction(
+        _ action: PrototypeMessageContextAction,
+        for message: PrototypeMessage
+    ) {
+        switch action {
+        case .retry:
+            retryMessage(message.id)
+        case .reply:
+            beginReply(to: message.id)
+        case .forward:
+            beginForward(messageIDs: [message.id])
+        case .copy:
+            UIPasteboard.general.string = message.text
+            copyFeedbackTrigger += 1
+        case .select:
+            beginSelection(at: message.id)
+        case .info:
+            messageDetailsID = message.id
+        case .delete:
+            requestDeletion(of: [message.id])
         }
-        messagePendingDeletion = nil
+    }
+
+    private func beginReply(to messageID: String) {
+        updateChat { $0.replyToMessageID = messageID }
+        composerIsFocused = true
+    }
+
+    private func retryMessage(_ messageID: String) {
+        updateChat {
+            $0.retryMessage(messageID, currentProfileID: profile.id)
+        }
+    }
+
+    private func beginSelection(at messageID: String) {
+        guard chat.messages.contains(where: { $0.id == messageID }) else { return }
+        selectedMessageIDs = [messageID]
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isSelectingMessages = true
+        }
+    }
+
+    private func toggleSelection(_ messageID: String) {
+        if selectedMessageIDs.contains(messageID) {
+            selectedMessageIDs.remove(messageID)
+        } else {
+            selectedMessageIDs.insert(messageID)
+        }
+    }
+
+    private func dismissSelection() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isSelectingMessages = false
+            selectedMessageIDs.removeAll()
+        }
+    }
+
+    private func beginForward(messageIDs: Set<String>) {
+        let selectedMessages = messages(for: messageIDs)
+        guard selectedMessages.count == messageIDs.count,
+              selectedMessages.count <= 32,
+              selectedMessages.allSatisfy({ !$0.isDeleted })
+        else { return }
+        let orderedIDs = chat.timeline.compactMap { entry -> String? in
+            guard case let .message(message) = entry,
+                  messageIDs.contains(message.id),
+                  !message.isDeleted
+            else { return nil }
+            return message.id
+        }
+        .prefix(32)
+        guard !orderedIDs.isEmpty else { return }
+        forwardingMessageIDs = Array(orderedIDs)
+        isForwardingMessages = true
+    }
+
+    private func completeForward(to destinationChatIDs: [String]) {
+        let forwardedMessages = forwardingMessageIDs.compactMap { messageID in
+            chat.messages.first { $0.id == messageID }
+        }
+        guard !forwardedMessages.isEmpty, !destinationChatIDs.isEmpty else { return }
+
+        var updatedProfile = profile
+        let timestamp = Date.now
+        for destinationChatID in destinationChatIDs.prefix(5) {
+            guard let index = updatedProfile.chats.firstIndex(where: {
+                $0.id == destinationChatID
+            }) else { continue }
+            updatedProfile.chats[index].appendForwardedMessages(
+                forwardedMessages,
+                authorID: profile.id,
+                now: timestamp
+            )
+        }
+        profile = updatedProfile
+        if let current = updatedProfile.chats.first(where: { $0.id == chatID }) {
+            renderedChat = current
+        }
+        isForwardingMessages = false
+        forwardingMessageIDs = []
+        dismissSelection()
+    }
+
+    private func requestDeletion(of messageIDs: Set<String>) {
+        guard !messageIDs.isEmpty else { return }
+        deletionRequest = ConversationDeletionRequest(messageIDs: messageIDs)
+    }
+
+    private func deleteRequestedMessagesForCurrentProfile() {
+        guard let deletionRequest else { return }
+        updateChat {
+            $0.removeMessagesForCurrentProfile(deletionRequest.messageIDs)
+        }
+        self.deletionRequest = nil
+        dismissSelection()
+    }
+
+    private func deleteRequestedMessagesForEveryone() {
+        guard let deletionRequest else { return }
+        updateChat {
+            $0.deleteMessagesForEveryone(
+                deletionRequest.messageIDs,
+                currentProfileID: profile.id
+            )
+        }
+        self.deletionRequest = nil
+        dismissSelection()
+    }
+
+    private func deleteAllMessagesForMe() {
+        updateChat { $0.removeAllMessagesForCurrentProfile() }
+        dismissSelection()
+    }
+
+    private func messages(for messageIDs: Set<String>) -> [PrototypeMessage] {
+        chat.timeline.compactMap { entry in
+            guard case let .message(message) = entry,
+                  messageIDs.contains(message.id)
+            else { return nil }
+            return message
+        }
+    }
+
+    private func selectFullReaction(_ emoji: String) {
+        guard let messageID = emojiPickerMessageID else { return }
+        toggleReaction(emoji, messageID: messageID)
+        emojiPickerMessageID = nil
+        contextMessageID = nil
     }
 
     private func toggleReaction(_ emoji: String, messageID: String) {
@@ -1162,6 +1714,7 @@ struct ConversationView: View {
                 )
             }
         }
+        reactionFeedbackTrigger += 1
     }
 
     private func resolvedReply(for message: PrototypeMessage) -> PrototypeMessage? {

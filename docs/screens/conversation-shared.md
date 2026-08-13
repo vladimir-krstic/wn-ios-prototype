@@ -64,21 +64,22 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   status **Not delivered, hold for options**. Its outlined warning icon and
   copy form a compact three-point-spaced
   unit whose leading edge matches the outgoing message text inset. Touching and
-  holding either the bubble or that status opens the
-  native context menu, whose first recovery action is **Retry Send**. Sent
-  messages do not show delivery checkmarks.
-- Native context menus own Reply, Copy, Share, Delete, and the supported
-  reactions: ❤, 😀, 👍, 👎, 🤣, 🔥, and 🦫.
+  holding either the bubble or that status opens the focused message-action
+  presentation, whose first recovery action is **Retry Send**. Sent messages do
+  not show delivery checkmarks.
+- The selected message-action flow is defined in `message-actions.md`. A
+  Signal-informed focused presentation owns quick and full-picker reactions,
+  Reply, Forward, Copy, Select, Info, and Delete while standard controls own
+  every command and subsequent screen.
 - Reaction chips use opaque adaptive system surfaces in both appearances;
   current-profile participation uses an opaque `systemGray4` surface rather
-  than a translucent overlay. Each visible pill surface uses a subtle native
-  drop shadow—black at 16-percent opacity, a two-point blur, and a one-point
-  downward offset—to separate it from either bubble color without adding a
-  border. Signal's current iOS reaction metrics are the
+  than a translucent overlay. Each visible pill is shadowless and uses a
+  one-point adaptive `separator` border to stay distinct from either bubble
+  color. Signal's current iOS reaction metrics are the
   comparison basis: a 14-point bold emoji, a 12-point bold monospaced count,
   seven-point horizontal content insets, and two points between emoji and
-  count. The approved White Noise exceptions are a 22-point visible pill with
-  no border. Adjacent pill surfaces use a three-point gap, while each pill
+  count. The approved White Noise exception is a 22-point visible pill.
+  Adjacent pill surfaces use a three-point gap, while each pill
   retains a 40-point interaction height. This 40-point height
   is an explicit user-approved compact exception to the native 44-point target
   default. The reaction row's leading edge for outgoing messages, or trailing
@@ -522,8 +523,8 @@ that interaction split while using the user-approved visible copy above.
   consuming the tapped message, control, menu, media, or navigation action.
 - A failed outgoing message shows no timestamp. It shows **Not delivered, hold
   for options**, left-aligned to the outgoing message text inset, and touching
-  and holding the bubble or status exposes **Retry
-  Send** in the native context menu.
+  and holding the bubble or status exposes **Retry Send** first in the focused
+  message-action presentation.
 - The attachment control matches the resting field height. Send has a
   six-point visual inset at the top, bottom, and trailing edge. Voice-review
   Play mirrors it at the top, leading, and bottom edge.

@@ -324,13 +324,13 @@ struct NativeChatList: UIViewRepresentable {
 
             if chat.hasEndedMembership {
                 contextualActions.append(deleteAction(for: chat))
-            } else if chat.isGroup {
+            } else if chat.membershipState == .active && chat.isGroup {
                 contextualActions.append(leaveAction(for: chat))
             }
 
             contextualActions.append(archiveAction(for: chat))
 
-            if !chat.hasEndedMembership && !chat.isArchived {
+            if chat.membershipState == .active && !chat.isArchived {
                 contextualActions.append(muteAction(for: chat))
             }
 

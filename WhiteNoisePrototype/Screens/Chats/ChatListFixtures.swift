@@ -17,6 +17,8 @@ enum ChatListFixtures {
         "catalog-group-events",
         "catalog-group-member",
         "catalog-group-sole-admin",
+        "catalog-direct-invitation",
+        "catalog-group-invitation",
         "catalog-direct-left",
         "catalog-group-left",
         "catalog-group-removed",
@@ -128,6 +130,23 @@ enum ChatListFixtures {
             title: "Group - Sole Admin",
             preview: "ROLE-03: Promote another admin before leaving",
             isGroup: true
+        ),
+        catalogItem(
+            id: "catalog-direct-invitation",
+            title: "Direct - Invitation",
+            preview: "STATE-09: Are you free for a quick call tomorrow?",
+            membershipState: .invited,
+            invitationInviterName: "Avery Stone",
+            unreadCount: 1
+        ),
+        catalogItem(
+            id: "catalog-group-invitation",
+            title: "Group - Invitation",
+            preview: "STATE-10B: Bring water and a light jacket.",
+            isGroup: true,
+            membershipState: .invited,
+            invitationInviterName: "Maya Chen",
+            unreadCount: 2
         ),
         catalogItem(
             id: "catalog-direct-left",
@@ -671,6 +690,7 @@ enum ChatListFixtures {
         attachmentPreview: ChatListItem.AttachmentPreview? = nil,
         isGroup: Bool = false,
         membershipState: ChatListItem.MembershipState = .active,
+        invitationInviterName: String? = nil,
         archived: Bool = false,
         pinned: Bool = false,
         unreadCount: Int = 0,
@@ -689,6 +709,7 @@ enum ChatListFixtures {
             attachmentPreview: attachmentPreview,
             timestamp: "Now",
             membershipState: membershipState,
+            invitationInviterName: invitationInviterName,
             isArchived: archived,
             isPinned: pinned,
             unreadCount: unreadCount,

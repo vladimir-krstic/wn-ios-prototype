@@ -2140,7 +2140,15 @@ struct GroupMemberView: View {
             Section {
                 VStack(spacing: 10) {
                     memberAvatar
-                    Text(displayName).font(.title2.bold())
+
+                    VStack(spacing: 3) {
+                        Text(displayName).font(.title2.bold())
+                        InlineVerifiedNostrAddressValue(
+                            address: memberNostrAddress,
+                            isVerified: isMemberNostrAddressVerified
+                        )
+                    }
+
                     Text(member.role == .admin ? "Admin" : "Member").foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity).listRowBackground(Color.clear)
@@ -2182,6 +2190,14 @@ struct GroupMemberView: View {
     private var personIndex: Int { profile.people.firstIndex { $0.id == personID }! }
     private var person: PrototypePerson { profile.people[personIndex] }
     private var displayName: String { personID == profile.id ? profile.name : person.name }
+    private var memberNostrAddress: String {
+        personID == profile.id ? profile.nostrAddress : person.nostrAddress
+    }
+    private var isMemberNostrAddressVerified: Bool {
+        personID == profile.id
+            ? profile.isNostrAddressVerified
+            : person.isNostrAddressVerified
+    }
     private var existingDirectChatID: String? {
         profile.chats.first { chat in
             if case let .direct(id) = chat.kind { return id == personID }

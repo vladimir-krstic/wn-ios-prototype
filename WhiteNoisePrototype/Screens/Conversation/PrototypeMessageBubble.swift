@@ -1,7 +1,7 @@
 import SwiftUI
-import UIKit
 
 struct PrototypeMessageBubble: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.incomingPrototypeMessageColor) private var incomingColor
     @Environment(\.outgoingPrototypeMessageColor) private var outgoingColor
     let message: PrototypeMessage
@@ -17,14 +17,16 @@ struct PrototypeMessageBubble: View {
     let isHighlighted: Bool
     let people: [PrototypePerson]
     let currentProfileID: String
-    let onReply: () -> Void
-    let onDelete: () -> Void
-    let onRetry: () -> Void
     let onToggleReaction: (String) -> Void
     let onOpenReply: () -> Void
     let onOpenPerson: (String) -> Void
     let onOpenMedia: (PrototypeAttachment) -> Void
     let onOpenFile: (URL) -> Void
+    let isContextInteractionEnabled: Bool
+    let onShowActions: () -> Void
+    let onContextContentFrameChange: (CGRect) -> Void
+
+    @State private var isContextPressing = false
 
     @ViewBuilder
     var body: some View {
@@ -81,8 +83,7 @@ struct PrototypeMessageBubble: View {
     }
 
     private var decoratedBubble: some View {
-        bubbleContent
-            .contextMenu { contextMenu }
+        contextInteractiveBubbleContent
             .overlay {
                 if isHighlighted {
                     shape.stroke(Color.accentColor, lineWidth: 3)
@@ -120,7 +121,12 @@ struct PrototypeMessageBubble: View {
                         )
                 } else if showsFailedDeliveryStatus {
                     failedDeliveryStatus
-                        .contextMenu { contextMenu }
+                        .onLongPressGesture(
+                            minimumDuration: 0.2,
+                            maximumDistance: 10,
+                            perform: showActionsIfEnabled,
+                            onPressingChanged: updateContextPress
+                        )
                         .offset(y: 18)
                 }
             }
@@ -128,6 +134,53 @@ struct PrototypeMessageBubble: View {
                 .bottom,
                 metadataBottomReserve
             )
+            .onGeometryChange(for: CGRect.self) { proxy in
+                proxy.frame(in: .named("conversationSurface"))
+            } action: { frame in
+                onContextContentFrameChange(frame)
+            }
+    }
+
+    @ViewBuilder
+    private var contextInteractiveBubbleContent: some View {
+        if isContextInteractionEnabled {
+            bubbleContent
+                .scaleEffect(
+                    reduceMotion || !isContextPressing ? 1 : 0.95,
+                    anchor: outgoing ? .trailing : .leading
+                )
+                .animation(
+                    .easeInOut(duration: 0.2),
+                    value: isContextPressing
+                )
+                .onLongPressGesture(
+                    minimumDuration: 0.2,
+                    maximumDistance: 10,
+                    perform: {},
+                    onPressingChanged: updateContextPress
+                )
+                .highPriorityGesture(
+                    LongPressGesture(
+                        minimumDuration: 0.2,
+                        maximumDistance: 10
+                    )
+                    .onEnded { _ in showActionsIfEnabled() },
+                    including: .all
+                )
+        } else {
+            bubbleContent
+        }
+    }
+
+    private func showActionsIfEnabled() {
+        guard isContextInteractionEnabled, !message.isDeleted else { return }
+        onShowActions()
+    }
+
+    private func updateContextPress(_ isPressing: Bool) {
+        isContextPressing = isPressing
+            && isContextInteractionEnabled
+            && !message.isDeleted
     }
 
     private var timestamp: some View {
@@ -390,40 +443,6 @@ struct PrototypeMessageBubble: View {
         }
     }
 
-    @ViewBuilder
-    private var contextMenu: some View {
-        if !message.isDeleted {
-            if outgoing, message.deliveryState == .failed {
-                Button("Retry Send", systemImage: "arrow.clockwise", action: onRetry)
-                Divider()
-            }
-            Menu("React") {
-                ForEach(PrototypeReaction.supportedEmoji, id: \.self) { emoji in
-                    Button(emoji) { onToggleReaction(emoji) }
-                }
-            }
-            Button("Reply", systemImage: "arrowshape.turn.up.left", action: onReply)
-            if !message.text.isEmpty {
-                Button("Copy", systemImage: "doc.on.doc") {
-                    UIPasteboard.general.string = message.text
-                }
-            }
-            if let shareFileURL {
-                ShareLink(item: shareFileURL) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-            } else {
-                ShareLink(item: shareText) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-            }
-            if outgoing {
-                Divider()
-                Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
-            }
-        }
-    }
-
     private var reactionMetadataRow: some View {
         ViewThatFits(in: .horizontal) {
             reactionMetadataCandidate(items: reactionSummaryItems(maximumReactionPills: 7))
@@ -600,16 +619,6 @@ struct PrototypeMessageBubble: View {
     }
     private var deletedText: String {
         outgoing ? "You deleted this message." : "This message was deleted."
-    }
-    private var shareText: String {
-        if !message.text.isEmpty { return message.text }
-        return message.attachments.map(\.accessibilityLabel).joined(separator: ", ")
-    }
-    private var shareFileURL: URL? {
-        guard message.attachments.count == 1,
-              case let .file(_, _, _, url) = message.attachments[0]
-        else { return nil }
-        return url
     }
     private var accessibilitySummary: String {
         let sender = outgoing ? profileName : (author?.name ?? "Unknown")
