@@ -100,6 +100,7 @@ struct ConversationView: View {
     @State private var isPhotoPickerPresented = false
     @State private var isCameraPresented = false
     @State private var queuedAttachments: [PrototypeAttachment] = []
+    @State private var suppressedLinkPreviewURL: String?
     @State private var isFileImporterPresented = false
     @State private var isContactPickerPresented = false
     @State private var mediaSelection: PrototypeMediaSelection?
@@ -139,7 +140,7 @@ struct ConversationView: View {
     @State private var composerTextHeight: CGFloat = 0
     @State private var activeTimelineDate: Date?
     @State private var visibleTimelineDateHeaders: Set<Date> = []
-    @FocusState private var composerIsFocused: Bool
+    @State private var composerIsFocused = false
 
     init(
         profile: Binding<PrototypeProfile>,
@@ -155,6 +156,12 @@ struct ConversationView: View {
         _renderedChat = State(initialValue: initialChat)
         _composerText = State(
             initialValue: initialChat?.draft ?? ""
+        )
+        _queuedAttachments = State(
+            initialValue: initialChat?.draftAttachments ?? []
+        )
+        _suppressedLinkPreviewURL = State(
+            initialValue: initialChat?.suppressedDraftLinkURL
         )
         _activeTimelineDate = State(
             initialValue: initialChat?.timeline.last.map {
@@ -460,6 +467,8 @@ struct ConversationView: View {
             current.listState.isMarkedUnread = false
             renderedChat = current
             composerText = current.draft
+            queuedAttachments = current.draftAttachments
+            suppressedLinkPreviewURL = current.suppressedDraftLinkURL
             if changedReadState {
                 persistAuthoritativeChat(current)
             }
@@ -863,14 +872,6 @@ struct ConversationView: View {
                 mentionSuggestions
             }
 
-            if !queuedAttachments.isEmpty {
-                queuedAttachmentStrip
-            }
-
-            if let replyID = chat.replyToMessageID {
-                replyComposerQuote(replyID)
-            }
-
             if let recovery = composerRecovery {
                 recoveryView(recovery)
             } else {
@@ -916,35 +917,25 @@ struct ConversationView: View {
                     .glassEffect(.regular.interactive(), in: .circle)
                 }
 
-                HStack(alignment: .bottom, spacing: 4) {
-                    if isRecording {
-                        recordingStatus
-                    } else if let voiceReview {
-                        voiceReviewStatus(
-                            id: voiceReview.id,
-                            duration: voiceReview.duration
-                        )
-                    } else {
-                        TextField("Message", text: composerTextBinding, axis: .vertical)
-                            .lineLimit(1...10)
-                            .padding(.vertical, 10)
-                            .onGeometryChange(for: CGFloat.self) { proxy in
-                                proxy.size.height
-                            } action: { height in
-                                composerTextHeight = height
-                            }
-                            .focused($composerIsFocused)
-                            .submitLabel(settings.returnKeyBehavior == .send ? .send : .return)
-                            .onSubmit {
-                                if settings.returnKeyBehavior == .send { send() }
-                            }
-                            .accessibilityIdentifier("conversation.composer")
-
-                        trailingComposerControl
+                VStack(spacing: 0) {
+                    if !queuedAttachments.isEmpty {
+                        queuedAttachmentStrip
                     }
+
+                    if let composerLinkPreview {
+                        PrototypeComposerLinkPreviewView(
+                            preview: composerLinkPreview,
+                            onRemove: dismissComposerLinkPreview
+                        )
+                    }
+
+                    if let replyID = chat.replyToMessageID {
+                        replyComposerQuote(replyID)
+                    }
+
+                    composerInputRow
                 }
-                .frame(minHeight: 44)
-                .padding(.leading, isReviewingVoice ? 0 : 14)
+                .frame(maxWidth: .infinity)
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
                 .overlay {
                     if isComposerInteractionBlocked {
@@ -956,9 +947,50 @@ struct ConversationView: View {
                 }
                 .accessibilityHidden(isComposerInteractionBlocked)
             }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 6)
+    }
+
+    @ViewBuilder
+    private var composerInputRow: some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            if isRecording {
+                recordingStatus
+            } else if let voiceReview {
+                voiceReviewStatus(
+                    id: voiceReview.id,
+                    duration: voiceReview.duration
+                )
+            } else {
+                ZStack(alignment: .leading) {
+                    if composerText.isEmpty {
+                        Text("Message")
+                            .foregroundStyle(.tertiary)
+                            .allowsHitTesting(false)
+                    }
+
+                    PrototypeComposerTextView(
+                        text: composerTextBinding,
+                        mentionNames: composerMentionNames,
+                        isFocused: composerIsFocused,
+                        isEnabled: !isComposerInteractionBlocked,
+                        sendsWithReturn: settings.returnKeyBehavior == .send,
+                        onFocusChange: { composerIsFocused = $0 },
+                        onSubmit: send
+                    )
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.height
+                    } action: { height in
+                        composerTextHeight = height
+                    }
+                }
+
+                trailingComposerControl
+            }
+        }
+        .frame(minHeight: 44)
+        .padding(.leading, isReviewingVoice ? 0 : 14)
     }
 
     @ViewBuilder
@@ -1078,6 +1110,11 @@ struct ConversationView: View {
                 ForEach(queuedAttachments) { attachment in
                     ZStack(alignment: .topTrailing) {
                         queuedPreview(attachment)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(attachment.accessibilityLabel)
+                            .accessibilityIdentifier(
+                                "conversation.attachment.\(attachment.id)"
+                            )
                         Button {
                             queuedAttachments.removeAll { $0.id == attachment.id }
                         } label: {
@@ -1088,14 +1125,21 @@ struct ConversationView: View {
                         }
                         .offset(x: 5, y: -5)
                         .accessibilityLabel("Remove \(attachment.accessibilityLabel)")
+                        .accessibilityIdentifier(
+                            "conversation.attachment.remove.\(attachment.id)"
+                        )
                     }
                 }
             }
-            .padding(.horizontal)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
         }
         .scrollIndicators(.hidden)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            "\(queuedAttachments.count) attachment\(queuedAttachments.count == 1 ? "" : "s") ready to send"
+        )
     }
 
     @ViewBuilder
@@ -1111,8 +1155,65 @@ struct ConversationView: View {
             }
             .frame(width: 72, height: 72).clipShape(.rect(cornerRadius: 10))
         case let .file(_, name, _, _):
-            VStack { Image(systemName: "doc"); Text(name).font(.caption2).lineLimit(2) }
-                .frame(width: 72, height: 72).background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
+            VStack(spacing: 5) {
+                Image(systemName: "doc")
+                    .font(.title3)
+                Text(name)
+                    .font(.caption2)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(width: 72, height: 72)
+            .background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
+        case let .voice(_, _, duration):
+            VStack(spacing: 5) {
+                Image(systemName: "waveform")
+                    .font(.title3)
+                Text(prototypeDurationString(duration))
+                    .font(.caption2.monospacedDigit())
+            }
+            .frame(width: 72, height: 72)
+            .background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
+        case let .link(_, title, domain, _, image):
+            ZStack(alignment: .bottomLeading) {
+                if let image {
+                    PrototypeImageSourceView(source: image)
+                        .scaledToFill()
+                        .frame(width: 116, height: 72)
+                        .clipped()
+                } else {
+                    Color.secondary.opacity(0.12)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    Text(domain)
+                        .font(.caption2)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(.white)
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.black.opacity(0.56))
+            }
+            .frame(width: 116, height: 72)
+            .clipShape(.rect(cornerRadius: 10))
+        case let .gif(_, assetName, _):
+            ZStack(alignment: .bottomLeading) {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+                Text("GIF")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 3)
+                    .background(.black.opacity(0.6), in: .capsule)
+                    .padding(5)
+            }
+            .frame(width: 72, height: 72)
+            .clipShape(.rect(cornerRadius: 10))
         case let .contact(_, personID):
             if let person = profile.people.first(where: { $0.id == personID }) {
                 VStack(spacing: 4) {
@@ -1128,32 +1229,47 @@ struct ConversationView: View {
                 .frame(width: 72, height: 72)
                 .background(.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
             }
-        default:
-            Label(attachment.accessibilityLabel, systemImage: "paperclip")
         }
     }
 
     private func replyComposerQuote(_ replyID: String) -> some View {
         let target = chat.messages.first { $0.id == replyID }
-        return HStack {
+        return HStack(spacing: 10) {
+            Capsule()
+                .fill(.secondary)
+                .frame(width: 3, height: 34)
+
             VStack(alignment: .leading, spacing: 2) {
                 Text("Replying to \(target.map(authorName(for:)) ?? "message")")
                     .font(.caption.weight(.semibold))
+                    .lineLimit(1)
                 Text(target.map(replyPreview) ?? "Message unavailable")
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
+
             Spacer()
+
             Button {
                 updateChat { $0.replyToMessageID = nil }
             } label: {
                 Image(systemName: "xmark.circle.fill")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.circle)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Cancel Reply")
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .padding(.leading, 10)
+        .padding(.trailing, 2)
+        .padding(.vertical, 4)
+        .background(
+            Color(uiColor: .secondarySystemFill),
+            in: .rect(cornerRadius: 12)
+        )
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     private var mentionSuggestions: some View {
@@ -1245,6 +1361,24 @@ struct ConversationView: View {
     private var canSend: Bool {
         !composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !queuedAttachments.isEmpty
+    }
+
+    private var composerLinkPreview: PrototypeComposerLinkPreview? {
+        guard queuedAttachments.isEmpty,
+              !isRecording,
+              !isReviewingVoice,
+              let preview = PrototypeComposerLinkPreview.first(in: composerText),
+              preview.url.absoluteString != suppressedLinkPreviewURL
+        else { return nil }
+        return preview
+    }
+
+    private func dismissComposerLinkPreview() {
+        guard let preview = composerLinkPreview else { return }
+        suppressedLinkPreviewURL = preview.url.absoluteString
+        updateChat { chat in
+            chat.suppressedDraftLinkURL = preview.url.absoluteString
+        }
     }
 
     private func presentAttachmentDestination(
@@ -1353,6 +1487,15 @@ struct ConversationView: View {
             people: profile.people,
             currentProfileID: profile.id
         )
+    }
+
+    private var composerMentionNames: [String] {
+        guard chat.isGroup else { return [] }
+        return chat.mentionCandidates(
+            query: "",
+            people: profile.people,
+            currentProfileID: profile.id
+        ).map(\.name)
     }
 
     private var chatIndex: Int? { profile.chats.firstIndex { $0.id == chatID } }
@@ -1467,10 +1610,18 @@ struct ConversationView: View {
     private func send() {
         let text = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty || !queuedAttachments.isEmpty else { return }
-        let attachments = queuedAttachments
+        var attachments = queuedAttachments
+        if let composerLinkPreview {
+            attachments.append(
+                composerLinkPreview.attachment(
+                    id: "composer-link-\(UUID().uuidString)"
+                )
+            )
+        }
         queuedAttachments.removeAll()
         updateChat { $0.appendMessage(authorID: profile.id, text: text, attachments: attachments) }
         composerText = ""
+        suppressedLinkPreviewURL = nil
     }
 
     private func beginVoiceMessage() {
@@ -1814,9 +1965,14 @@ struct ConversationView: View {
     }
 
     private func persistDraft() {
-        guard chat.draft != composerText else { return }
+        guard chat.draft != composerText
+                || chat.draftAttachments != queuedAttachments
+                || chat.suppressedDraftLinkURL != suppressedLinkPreviewURL
+        else { return }
         updateChat { chat in
             chat.draft = composerText
+            chat.draftAttachments = queuedAttachments
+            chat.suppressedDraftLinkURL = suppressedLinkPreviewURL
             chat.listState.activityDate = .now
         }
     }

@@ -20,9 +20,9 @@ remain deterministic and in memory.
   address-shaped input.
 - Share & Connect, Profile Found, User Profile, and Group Member place the
   address directly below the name as compact secondary text without a section,
-  card, capsule, or visible field label. The public-key capsule follows it; on
-  User Profile, an optional About card follows the public key rather than
-  interrupting the name/address/key identity sequence.
+  card, capsule, or visible field label. The public-key capsule follows it.
+  Freeform About text does not interrupt the name/address/key identity sequence;
+  an existing direct chat exposes it from Chat Info's focused About action.
 - A verified value has the trailing SF Symbol `checkmark.seal.fill`. This is the
   Apple seal-shaped checkmark requested by the user; an unverified value has no
   trailing symbol.

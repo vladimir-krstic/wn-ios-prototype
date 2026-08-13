@@ -76,7 +76,9 @@ struct PersonProfileView: View {
     let personID: String
     var contextGroupID: String?
     let onMessagePerson: (String) -> Void
+    var showsMessageAction = true
 
+    @State private var isShowingAddToGroup = false
     @State private var isShowingBlockConfirmation = false
 
     var body: some View {
@@ -86,7 +88,9 @@ struct PersonProfileView: View {
                     name: person.name,
                     publicKey: person.publicKey,
                     nostrAddress: person.nostrAddress,
-                    isNostrAddressVerified: person.isNostrAddressVerified
+                    isNostrAddressVerified: person.isNostrAddressVerified,
+                    bottomPadding: 0,
+                    showsIdentityValues: person.about.isEmpty
                 ) { size in
                     PrototypeChatAvatarView(
                         avatar: person.avatar,
@@ -99,15 +103,31 @@ struct PersonProfileView: View {
             .listRowInsets(EdgeInsets())
 
             if !person.about.isEmpty {
-                Section("About") {
+                Section {
                     Text(person.about)
+                        .font(.subheadline)
+                        .italic()
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .listRowBackground(
-                    Color(uiColor: .secondarySystemFill)
+                    Color(uiColor: .quaternarySystemFill).opacity(0.5)
                 )
+            }
+
+            if !person.about.isEmpty {
+                Section {
+                    ProfileIdentityValues(
+                        publicKey: person.publicKey,
+                        nostrAddress: person.nostrAddress,
+                        isNostrAddressVerified: person.isNostrAddressVerified
+                    )
+                    .padding(.bottom, 16)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
             }
 
             Section {
@@ -120,6 +140,13 @@ struct PersonProfileView: View {
                         )
                     } label: {
                         GroupsInCommonLabel(groups: sharedGroups)
+                    }
+                } else {
+                    Button(
+                        "Add to Group",
+                        systemImage: "person.2.badge.plus"
+                    ) {
+                        isShowingAddToGroup = true
                     }
                 }
 
@@ -143,29 +170,38 @@ struct PersonProfileView: View {
                 }
             }
 
-            Section {
-                if canOpenDirectChat {
-                    Button {
-                        onMessagePerson(personID)
-                    } label: {
-                        Label("Message", systemImage: "plus.bubble")
-                            .symbolRenderingMode(.monochrome)
-                            .foregroundStyle(Color(uiColor: .systemBackground))
-                            .frame(maxWidth: .infinity)
+            if showsMessageAction {
+                Section {
+                    Group {
+                        if canOpenDirectChat {
+                            Button {
+                                onMessagePerson(personID)
+                            } label: {
+                                Label("Message", systemImage: "plus.bubble")
+                                    .symbolRenderingMode(.monochrome)
+                                    .foregroundStyle(Color(uiColor: .systemBackground))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.glassProminent)
+                            .controlSize(.large)
+                        } else {
+                            NavigationLink {
+                                RelaysPrototypeView(configuration: $profile.relayConfiguration)
+                            } label: {
+                                Label(
+                                    "Check Profile Relays",
+                                    systemImage: "exclamationmark.triangle"
+                                )
+                            }
+                        }
                     }
-                    .buttonStyle(.glassProminent)
-                    .controlSize(.large)
-                } else {
-                    NavigationLink {
-                        RelaysPrototypeView(configuration: $profile.relayConfiguration)
-                    } label: {
-                        Label("Check Profile Relays", systemImage: "exclamationmark.triangle")
-                    }
+                    .padding(.top, person.about.isEmpty ? 0 : 16)
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
             }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets())
         }
+        .listSectionSpacing(person.about.isEmpty ? 24 : 8)
         .navigationTitle("User Profile")
         .navigationBarTitleDisplayMode(.inline)
         .alert(
@@ -176,6 +212,14 @@ struct PersonProfileView: View {
             Button("Block", role: .destructive) { setBlocked(true) }
         } message: {
             Text("You’ll keep the chat history, but you won’t be able to send messages until you unblock them.")
+        }
+        .sheet(isPresented: $isShowingAddToGroup) {
+            NavigationStack {
+                AddPersonToGroupView(
+                    profile: $profile,
+                    personID: personID
+                )
+            }
         }
     }
 
@@ -845,7 +889,7 @@ struct AddPersonToGroupView: View {
     }
 }
 
-private struct GroupsInCommonView: View {
+struct GroupsInCommonView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
     let personID: String
@@ -897,7 +941,7 @@ private struct GroupsInCommonView: View {
     }
 }
 
-private struct GroupsInCommonLabel: View {
+struct GroupsInCommonLabel: View {
     let groups: [PrototypeChat]
 
     var body: some View {

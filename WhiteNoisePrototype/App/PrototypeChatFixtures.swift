@@ -18,6 +18,7 @@ enum PrototypeChatFixtures {
         "catalog-group-messages", "catalog-group-colors", "catalog-group-events",
         "catalog-group-member", "catalog-group-sole-admin",
         "catalog-group-invitation",
+        "catalog-composer-mention",
         "catalog-group-left", "catalog-group-removed",
         "nostr-devs", "marmots", "weekend-walks", "product-circle",
         "book-club", "quiet-studio", "project-files", "neighborhood",
@@ -113,6 +114,13 @@ enum PrototypeChatFixtures {
                 chat.timeline = directReactionsTimeline(profileID: profileID, now: now)
             case "catalog-direct-new-draft":
                 chat.timeline = directNewChatTimeline(profileID: profileID, now: now)
+            case let id where id.hasPrefix("catalog-composer-"):
+                configureComposerFixture(
+                    &chat,
+                    id: id,
+                    profileID: profileID,
+                    now: now
+                )
             case "catalog-media-single":
                 chat.timeline = singleMediaTimeline(profileID: profileID, now: now)
             case "catalog-media-gallery":
@@ -557,6 +565,169 @@ enum PrototypeChatFixtures {
                 kind: .directChatStarted(actorID: profileID)
             ),
         ]
+    }
+
+    private static func configureComposerFixture(
+        _ chat: inout PrototypeChat,
+        id: String,
+        profileID: String,
+        now: Date
+    ) {
+        let scenarioID = composerScenarioID(for: id)
+        let otherID: String
+        if id == "catalog-composer-mention" {
+            otherID = "maya-chen"
+            chat.members = [
+                PrototypeGroupMember(personID: profileID, role: .member),
+                PrototypeGroupMember(personID: "maya-chen", role: .admin),
+                PrototypeGroupMember(personID: "elias-moreno", role: .member),
+            ]
+        } else {
+            otherID = id
+        }
+
+        chat.timeline = [
+            .message(
+                PrototypeMessage(
+                    id: scenarioID,
+                    authorID: otherID,
+                    sentAt: now.addingTimeInterval(-300),
+                    text: id == "catalog-composer-reply"
+                        ? "CMP-REPLY: Would Thursday afternoon work?"
+                        : "\(scenarioID): Composer state is ready below"
+                )
+            ),
+        ]
+        chat.draftAttachments = []
+        chat.suppressedDraftLinkURL = nil
+
+        switch id {
+        case "catalog-composer-text":
+            chat.draft = "Here’s the updated plan."
+        case "catalog-composer-multiline":
+            chat.draft = "I pulled together the notes:\n• Confirm the time\n• Share the route\n• Bring a charger"
+        case "catalog-composer-link":
+            chat.draft = "https://whitenoise.chat"
+            chat.suppressedDraftLinkURL = "https://whitenoise.chat"
+        case "catalog-composer-link-preview":
+            chat.draft = "Worth a look:\nhttps://developer.apple.com/design/human-interface-guidelines"
+        case "catalog-composer-photo":
+            chat.draft = ""
+            chat.draftAttachments = [
+                composerPhoto(
+                    id: "CMP-PHOTO-attachment",
+                    asset: "FiatjafMediaFox",
+                    label: "Fox in grass"
+                ),
+            ]
+        case "catalog-composer-photo-album":
+            chat.draft = "A few from today."
+            chat.draftAttachments = composerAlbum(count: 4)
+        case "catalog-composer-mixed-media":
+            chat.draft = "Photos and a short clip from the walk."
+            chat.draftAttachments = [
+                composerPhoto(
+                    id: "CMP-MIXED-photo-1",
+                    asset: "FiatjafMediaMarmot",
+                    label: "Marmot on a rock"
+                ),
+                .video(
+                    id: "CMP-MIXED-video",
+                    url: showcaseVideoURL,
+                    thumbnail: .asset("AvatarGardenClub"),
+                    duration: 8,
+                    dimensions: PrototypeMediaDimensions(
+                        pixelWidth: 1_920,
+                        pixelHeight: 1_080
+                    )
+                ),
+                composerPhoto(
+                    id: "CMP-MIXED-photo-2",
+                    asset: "FiatjafMediaOstrich",
+                    label: "Ostrich in a field"
+                ),
+            ]
+        case "catalog-composer-file":
+            chat.draft = "Here’s the brief."
+            chat.draftAttachments = [
+                bundledFile(
+                    id: "CMP-FILE-attachment",
+                    name: "Project Brief.pdf",
+                    resourceName: "ProjectBrief"
+                ),
+            ]
+        case "catalog-composer-gif":
+            chat.draft = ""
+            chat.draftAttachments = [
+                .gif(
+                    id: "CMP-GIF-attachment",
+                    assetName: "FiatjafMediaMarmot",
+                    label: "Marmot looking around"
+                ),
+            ]
+        case "catalog-composer-contact":
+            chat.draft = "Maya can help with this."
+            chat.draftAttachments = [
+                .contact(id: "CMP-CONTACT-attachment", personID: "maya-chen"),
+            ]
+        case "catalog-composer-reply":
+            chat.draft = "Yes—Thursday afternoon works for me."
+            chat.replyToMessageID = scenarioID
+        case "catalog-composer-mention":
+            chat.draft = "@Maya Chen can you take a look?"
+        default:
+            break
+        }
+    }
+
+    private static func composerScenarioID(for chatID: String) -> String {
+        switch chatID {
+        case "catalog-composer-text": "CMP-TEXT"
+        case "catalog-composer-multiline": "CMP-MULTILINE"
+        case "catalog-composer-link": "CMP-LINK"
+        case "catalog-composer-link-preview": "CMP-LINK-PREVIEW"
+        case "catalog-composer-photo": "CMP-PHOTO"
+        case "catalog-composer-photo-album": "CMP-PHOTO-ALBUM"
+        case "catalog-composer-mixed-media": "CMP-MIXED"
+        case "catalog-composer-file": "CMP-FILE"
+        case "catalog-composer-gif": "CMP-GIF"
+        case "catalog-composer-contact": "CMP-CONTACT"
+        case "catalog-composer-reply": "CMP-REPLY"
+        case "catalog-composer-mention": "CMP-MENTION"
+        default: "CMP"
+        }
+    }
+
+    private static func composerPhoto(
+        id: String,
+        asset: String,
+        label: String
+    ) -> PrototypeAttachment {
+        .photo(
+            id: id,
+            source: .asset(asset),
+            label: label,
+            dimensions: PrototypeMediaDimensions(
+                pixelWidth: 1_200,
+                pixelHeight: 800
+            )
+        )
+    }
+
+    private static func composerAlbum(count: Int) -> [PrototypeAttachment] {
+        let specs = [
+            ("FiatjafMediaMarmot", "Marmot on a rock"),
+            ("FiatjafMediaBadger", "Badger in grass"),
+            ("FiatjafMediaFox", "Fox in grass"),
+            ("FiatjafMediaSloth", "Sloth in a tree"),
+        ]
+        return specs.prefix(count).enumerated().map { index, spec in
+            composerPhoto(
+                id: "CMP-PHOTO-ALBUM-\(index + 1)",
+                asset: spec.0,
+                label: spec.1
+            )
+        }
     }
 
     private static func singleMediaTimeline(
@@ -1209,6 +1380,14 @@ enum PrototypeChatFixtures {
 
     private static func about(for id: String) -> String {
         switch id {
+        case "catalog-direct-text":
+            "Turning complexity into clarity.\nAlways happy to compare notes."
+        case "catalog-direct-dates":
+            "Planning one good day at a time.\nUsually outside before sunset. 🌤️"
+        case "catalog-direct-replies":
+            "Making space for thoughtful conversations.\nCollecting useful references.\nLearning something new every day."
+        case "catalog-direct-reactions":
+            "Here for good questions and honest answers.\nUsually carrying a camera. 📷\nSend the interesting ideas my way.\nTea and long walks help. 🍵"
         case "maya-chen": "Designer, careful listener, and collector of useful references."
         case "fiatjaf": "Building open tools for portable identity and resilient communication."
         case ChatListFixtures.supportChatID: "Help with White Noise."

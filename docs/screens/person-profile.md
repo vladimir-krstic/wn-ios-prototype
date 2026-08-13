@@ -10,30 +10,36 @@ the common relationship and conversation actions clear.
 - A person profile is pushed from New Chat, member lists, and other chat entry
   points. Its navigation title is **User Profile**, describing the destination
   without repeating the person's name from the identity header.
-- The identity header is the same shared presentation used on **Share &
-  Connect**: a circular avatar occupying one third of the available width, the
-  person's name beneath it, and a compact copyable `npub` capsule.
+- The identity presentation reuses the same components as **Share & Connect**:
+  a circular avatar occupying one third of the available width, the person's
+  name, Verified Nostr Address, and compact copyable `npub` capsule.
 - Copying the public key replaces the copy symbol with a checkmark briefly,
   produces native success feedback, and announces the result to VoiceOver.
-- The person's compact secondary Verified Nostr Address sits directly beneath
-  the name and shows `checkmark.seal.fill` only when verified. The npub capsule
-  follows as the final compact identity value.
-- When present, the bio moves below the npub into a full-width **About** card.
-  **About** is the native section header above the container, matching the
-  established **Shared in Chat** hierarchy. A native one-row `Section` owns the
-  same rounded container geometry and margins as the existing action section;
-  the container holds only the bio in primary body text. Its row uses semantic
-  `secondarySystemFill` instead of white and adds one system vertical-padding
-  step for breathing room, with no border, glass, icon, or action. This
-  separates freeform profile prose from identity metadata while retaining an
-  adaptive Light/Dark appearance. A person without a bio has no About section.
+- When a bio is present, it immediately follows the avatar and name in a native
+  one-row `Section`. It uses the same page width, row sizing, insets, and system
+  corner radius as the grouped action container below, with
+  a user-approved 50% `quaternarySystemFill` background. The complete bio uses
+  centered, italic, secondary gray `subheadline` text, matching the Verified
+  Nostr Address size, with no **About** label, divider, icon, or border and
+  retains the native row's standard internal insets. The identity header omits
+  its usual trailing padding on this screen. The user-approved eight-point
+  list-section spacing keeps it visually attached to the name and the identity
+  values below. A person without a bio has no bio section.
+- The person's compact secondary Verified Nostr Address follows the bio card
+  and shows `checkmark.seal.fill` only when verified. The npub capsule follows
+  eight points below as the final compact identity value. A 16-point trailing
+  inset after the npub combines with section spacing to preserve 24 points
+  before profile actions. When no bio exists, the address and npub remain in
+  the identity header directly beneath the name.
 - When at least one shared group exists, a compact **Groups in Common**
   navigation row appears beneath the identity header. It uses the approved
   overlapping-avatar stack: up to three 32-point group avatars and a `+N`
   circle for overflow. A person with no shared groups has no Groups in Common
-  row. When present, it shares the same grouped action container as the contact
-  and block rows. Monogram and fallback avatars use an opaque adaptive gray
-  surface so overlapping imagery never shows through them.
+  row; the same position instead shows **Add to Group** with the established
+  `person.2.badge.plus` symbol and opens the existing add-to-group sheet. When
+  present, Groups in Common shares the same grouped action container as the
+  contact and block rows. Monogram and fallback avatars use an opaque adaptive
+  gray surface so overlapping imagery never shows through them.
 - The row pushes **Groups in Common**. That page shows every shared group using
   group avatar, headline name, and secondary member count. Group rows contain
   no message preview, timestamp, unread state, mute, delivery, membership, or
@@ -50,6 +56,9 @@ the common relationship and conversation actions clear.
 - Deterministic fixture coverage keeps Radia Perlman in three shared groups,
   David Chaum in one, and Maya Chen in enough groups to exercise the `+N`
   overflow state.
+- The first four direct-chat people provide deterministic two-, two-, three-,
+  and four-line bio examples. Two include emoji and two use text only, allowing
+  quick inspection of multiline alignment and row growth.
 - **Add Contact** and **Remove Contact** toggle immediately in place. This
   reversible relationship action does not present a confirmation dialog.
 - **Add to Another Group** opens the existing grouped-list sheet. Each available group
@@ -67,8 +76,12 @@ the common relationship and conversation actions clear.
   the same row becomes the neutral **Unblock** action and unblocks immediately.
 - **Message** follows the secondary actions as the final full-width prominent
   primary action. It uses the same `plus.bubble` symbol as other chat-starting
-  actions. When required profile Chat Messages relays are unavailable, the
-  existing relay-recovery destination replaces it.
+  actions and has 24 points of separation from the action group. When required
+  profile Chat Messages relays are unavailable, the existing relay-recovery
+  destination replaces it with the same spacing.
+- When Chat Info's About quick action opens User Profile, the same identity,
+  bio, shared-groups, contact, and block content remains, but Message is
+  omitted because that direct chat is already open.
 
 ## Native components
 
@@ -88,7 +101,8 @@ similar duplicate implementations.
   adaptive foreground/background colors in light and dark appearances.
 - Avatar, name, public-key copy action, bio, and actions remain separate,
   understandable VoiceOver elements.
-- The About section reads its header followed by the complete bio and grows
+- The bio reads as its complete italic text without a visible About label,
+  remains centered at the Verified Nostr Address's `subheadline` size, and grows
   with Dynamic Type without truncating the text.
 - Verified Nostr Address announces the address and either Verified or Not
   verified; the visual seal is never the only accessible state.
@@ -98,8 +112,11 @@ similar duplicate implementations.
 ## Governing sources
 
 - [Form](https://developer.apple.com/documentation/swiftui/form)
+- [Layout](https://developer.apple.com/design/human-interface-guidelines/layout)
 - [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables)
-- [secondarySystemFill](https://developer.apple.com/documentation/uikit/uicolor/secondarysystemfill)
+- [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink)
+- [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview)
+- [quaternarySystemFill](https://developer.apple.com/documentation/uikit/uicolor/quaternarysystemfill)
 - [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
 - [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)
 - [GlassProminentButtonStyle](https://developer.apple.com/documentation/swiftui/glassprominentbuttonstyle)
@@ -110,17 +127,24 @@ similar duplicate implementations.
 
 - The active profile and person profile use identical avatar sizing, name
   typography, npub capsule, truncation, copy transition, feedback, and spacing.
-- A person's bio appears below the npub in a light-gray full-width row beneath
-  the native About section header; the complete section is absent when no bio
-  exists.
-- Verified Nostr Address appears inside the identity header below the name and
-  above the bio, with the trailing seal only for verified values.
+- A person's bio appears directly after the avatar and name in a one-row
+  light-gray native section with the same width, row geometry, and corner radius
+  as the white action section below. It uses centered italic secondary text at
+  the Verified Nostr Address's `subheadline` size with no About label, retains
+  standard internal row padding, has eight-point external spacing above and
+  below, and is absent when no bio exists.
+- Verified Nostr Address and the public-key capsule appear beneath the bio, with
+  the trailing seal only for verified values and 24 points before profile
+  actions. Without a bio they remain inside the identity header below the name.
 - The profile represents one or more shared groups with one compact
   avatar-stack row; the row is absent when there are no shared groups. The
   complete list and secondary Add to Another Group action live on its
-  destination page.
+  destination page. With no shared groups, Add to Group appears directly in the
+  profile action container and opens the same scoped selection flow.
 - Message is the final, visually dominant primary action and uses the shared
-  new-chat symbol.
+  new-chat symbol when User Profile is opened before starting a chat. It is
+  separated from profile actions by 24 points and is absent when the screen is
+  reached from an existing chat's About action.
 - Add/Remove Contact changes state without a modal.
 - Contact and Block share one secondary-action container; Block remains visibly
   destructive, confirms in an alert, and changes to Unblock.

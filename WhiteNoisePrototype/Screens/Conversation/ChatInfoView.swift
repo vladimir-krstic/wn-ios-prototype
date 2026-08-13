@@ -59,8 +59,7 @@ private struct DirectChatInfoView: View {
     let onSearch: () -> Void
     let onOpenMessage: (String) -> Void
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var isShowingContact = false
+    @State private var isShowingAbout = false
     @State private var isShowingLeaveConfirmation = false
 
     var body: some View {
@@ -75,13 +74,14 @@ private struct DirectChatInfoView: View {
                 chatID: chatID,
                 onOpenMessage: onOpenMessage
             )
-            ChatInfoTechnicalLinks(
-                profile: $profile,
-                settings: settings,
-                chatID: chatID
-            )
 
-            Section {
+            Section("Chat Actions") {
+                ChatInfoTechnicalRows(
+                    profile: $profile,
+                    settings: settings,
+                    chatID: chatID
+                )
+
                 Button(
                     chat.listState.isArchived ? "Unarchive" : "Archive",
                     systemImage: "archivebox"
@@ -104,12 +104,13 @@ private struct DirectChatInfoView: View {
         }
         .navigationTitle("Chat Info")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $isShowingContact) {
+        .navigationDestination(isPresented: $isShowingAbout) {
             PersonProfileView(
                 profile: $profile,
                 settings: $settings,
-                personID: person.id,
-                onMessagePerson: { _ in dismiss() }
+                personID: personID,
+                onMessagePerson: { _ in },
+                showsMessageAction: false
             )
         }
         .alert(
@@ -127,27 +128,29 @@ private struct DirectChatInfoView: View {
     }
 
     private var identityHeader: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 10) {
+        VStack(spacing: 10) {
+            ProfileIdentityHeader(
+                name: person.name,
+                publicKey: person.publicKey,
+                nostrAddress: person.nostrAddress,
+                isNostrAddressVerified: person.isNostrAddressVerified
+            ) { size in
                 PrototypeChatAvatarView(
                     avatar: person.avatar,
-                    size: 104,
+                    size: size,
                     publicKey: person.publicKey
                 )
-                Text(person.name)
-                    .font(.title2.bold())
-                    .multilineTextAlignment(.center)
             }
 
             HStack(spacing: 12) {
-                ChatInfoQuickAction(title: "Contact") {
+                ChatInfoQuickAction(title: "About") {
                     Button {
-                        isShowingContact = true
+                        isShowingAbout = true
                     } label: {
                         ChatInfoQuickActionIcon(systemName: "person.crop.circle")
                     }
                     .buttonStyle(ChatInfoSecondaryActionButtonStyle())
-                    .accessibilityLabel("Contact")
+                    .accessibilityLabel("About")
                 }
 
                 ChatInfoQuickAction(title: muteActionTitle) {
@@ -564,6 +567,22 @@ private struct ChatInfoTechnicalLinks: View {
 
     var body: some View {
         Section("Advanced") {
+            ChatInfoTechnicalRows(
+                profile: $profile,
+                settings: settings,
+                chatID: chatID
+            )
+        }
+    }
+}
+
+private struct ChatInfoTechnicalRows: View {
+    @Binding var profile: PrototypeProfile
+    let settings: PrototypeSettingsState
+    let chatID: String
+
+    var body: some View {
+        Group {
             NavigationLink {
                 ChatRelaysView(profile: $profile, chatID: chatID)
             } label: {

@@ -1,0 +1,204 @@
+import SwiftUI
+import UIKit
+
+@MainActor
+struct PrototypeComposerTextView: UIViewRepresentable {
+    @Binding var text: String
+
+    let mentionNames: [String]
+    let isFocused: Bool
+    let isEnabled: Bool
+    let sendsWithReturn: Bool
+    let onFocusChange: (Bool) -> Void
+    let onSubmit: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView(usingTextLayoutManager: true)
+        textView.delegate = context.coordinator
+        textView.backgroundColor = .clear
+        textView.adjustsFontForContentSizeCategory = true
+        textView.isScrollEnabled = false
+        textView.showsVerticalScrollIndicator = false
+        textView.textContainerInset = UIEdgeInsets(
+            top: 10,
+            left: 0,
+            bottom: 10,
+            right: 0
+        )
+        textView.textContainer.lineFragmentPadding = 0
+        textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textView.accessibilityLabel = "Message"
+        textView.accessibilityIdentifier = "conversation.composer"
+        applyText(to: textView)
+        return textView
+    }
+
+    func updateUIView(_ textView: UITextView, context: Context) {
+        context.coordinator.parent = self
+
+        textView.isEditable = isEnabled
+        textView.isSelectable = isEnabled
+        textView.returnKeyType = sendsWithReturn ? .send : .default
+        textView.textHighlightAttributes = [
+            .foregroundColor: UIColor.label,
+            .backgroundColor: UIColor.secondarySystemFill,
+        ]
+
+        if textView.text != text || context.coordinator.styleSignature != styleSignature {
+            applyText(to: textView)
+            context.coordinator.styleSignature = styleSignature
+        }
+
+        if isFocused != textView.isFirstResponder {
+            DispatchQueue.main.async { [weak textView, weak coordinator = context.coordinator] in
+                guard let textView, let coordinator else { return }
+                if coordinator.parent.isFocused {
+                    textView.becomeFirstResponder()
+                } else {
+                    textView.resignFirstResponder()
+                }
+            }
+        }
+    }
+
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        uiView textView: UITextView,
+        context: Context
+    ) -> CGSize? {
+        guard let width = proposal.width, width.isFinite, width > 0 else {
+            return nil
+        }
+
+        let measured = textView.sizeThatFits(
+            CGSize(width: width, height: .greatestFiniteMagnitude)
+        )
+        let lineHeight = textView.font?.lineHeight
+            ?? UIFont.preferredFont(forTextStyle: .body).lineHeight
+        let maximumHeight = (lineHeight * 10)
+            + textView.textContainerInset.top
+            + textView.textContainerInset.bottom
+        let resolvedHeight = min(max(measured.height, 44), maximumHeight)
+        textView.isScrollEnabled = measured.height > maximumHeight
+
+        return CGSize(width: width, height: resolvedHeight)
+    }
+
+    private var styleSignature: Int {
+        var hasher = Hasher()
+        hasher.combine(mentionNames)
+        hasher.combine(colorScheme)
+        hasher.combine(dynamicTypeSize)
+        return hasher.finalize()
+    }
+
+    private func applyText(to textView: UITextView) {
+        guard textView.markedTextRange == nil else { return }
+
+        let selection = textView.selectedRange
+        let bodyFont = UIFont.preferredFont(forTextStyle: .body)
+        let mentionFont = UIFont.systemFont(
+            ofSize: bodyFont.pointSize,
+            weight: .semibold
+        )
+        let baseAttributes: [NSAttributedString.Key: Any] = [
+            .font: bodyFont,
+            .foregroundColor: UIColor.label,
+        ]
+        let attributedText = NSMutableAttributedString(
+            string: text,
+            attributes: baseAttributes
+        )
+
+        for range in mentionRanges(in: text) {
+            attributedText.addAttributes(
+                [
+                    .font: mentionFont,
+                    .textHighlightStyle: NSAttributedString.TextHighlightStyle.default,
+                    .textHighlightColorScheme: NSAttributedString.TextHighlightColorScheme.default,
+                ],
+                range: range
+            )
+        }
+
+        textView.attributedText = attributedText
+        textView.typingAttributes = baseAttributes
+        textView.selectedRange = NSRange(
+            location: min(selection.location, attributedText.length),
+            length: min(
+                selection.length,
+                max(0, attributedText.length - min(selection.location, attributedText.length))
+            )
+        )
+    }
+
+    private func mentionRanges(in value: String) -> [NSRange] {
+        let fullRange = NSRange(value.startIndex..., in: value)
+        var ranges: [NSRange] = []
+
+        for name in mentionNames.sorted(by: { $0.count > $1.count }) {
+            let token = NSRegularExpression.escapedPattern(for: "@\(name)")
+            let pattern = "(?<![\\p{L}\\p{N}_])\(token)(?=$|[^\\p{L}\\p{N}_])"
+            guard let expression = try? NSRegularExpression(pattern: pattern) else {
+                continue
+            }
+
+            for match in expression.matches(in: value, range: fullRange) {
+                guard !ranges.contains(where: { NSIntersectionRange($0, match.range).length > 0 })
+                else { continue }
+                ranges.append(match.range)
+            }
+        }
+
+        return ranges
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: PrototypeComposerTextView
+        var styleSignature: Int?
+
+        init(parent: PrototypeComposerTextView) {
+            self.parent = parent
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            let updatedText = textView.text ?? ""
+            if parent.text != updatedText {
+                parent.text = updatedText
+            }
+            parent.applyText(to: textView)
+            styleSignature = parent.styleSignature
+            textView.invalidateIntrinsicContentSize()
+        }
+
+        func textViewDidBeginEditing(_ textView: UITextView) {
+            if !parent.isFocused {
+                parent.onFocusChange(true)
+            }
+        }
+
+        func textViewDidEndEditing(_ textView: UITextView) {
+            if parent.isFocused {
+                parent.onFocusChange(false)
+            }
+        }
+
+        func textView(
+            _ textView: UITextView,
+            shouldChangeTextIn range: NSRange,
+            replacementText replacement: String
+        ) -> Bool {
+            guard replacement == "\n", parent.sendsWithReturn else { return true }
+            parent.onSubmit()
+            return false
+        }
+    }
+}

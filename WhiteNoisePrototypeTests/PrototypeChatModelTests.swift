@@ -150,6 +150,18 @@ struct PrototypeChatModelTests {
             "Direct - Replies & Deletion",
             "Direct - Reactions & Actions",
             "Direct - New Chat & Draft",
+            "Composer - Text",
+            "Composer - Multiline",
+            "Composer - Link",
+            "Composer - Link Preview",
+            "Composer - Photo",
+            "Composer - Photo Album",
+            "Composer - Mixed Media",
+            "Composer - File",
+            "Composer - GIF",
+            "Composer - Contact",
+            "Composer - Reply",
+            "Composer - Mention",
             "Media - Single Photos & Video",
             "Media - Gallery Layouts",
             "Media - Viewer & Actions",
@@ -284,6 +296,100 @@ struct PrototypeChatModelTests {
             support.row(people: profile.people, currentProfileID: profile.id).preview
                 == support.emptyPreview
         )
+    }
+
+    @Test("Composer catalog fixtures expose every unsent content state")
+    func composerCatalogFixtureCoverage() throws {
+        let profile = PrototypeProfile.marmota
+        let composerChats = profile.chats.filter {
+            $0.id.hasPrefix("catalog-composer-")
+        }
+
+        #expect(composerChats.count == 12)
+        #expect(composerChats.allSatisfy {
+            !$0.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !$0.draftAttachments.isEmpty
+        })
+
+        let chats = Dictionary(
+            uniqueKeysWithValues: composerChats.map { ($0.id, $0) }
+        )
+        #expect(chats["catalog-composer-text"]?.draft == "Here’s the updated plan.")
+        #expect(chats["catalog-composer-multiline"]?.draft.split(separator: "\n").count == 4)
+        #expect(chats["catalog-composer-link"]?.suppressedDraftLinkURL == "https://whitenoise.chat")
+        #expect(chats["catalog-composer-link-preview"]?.suppressedDraftLinkURL == nil)
+        #expect(chats["catalog-composer-photo"]?.draftAttachments.count == 1)
+        #expect(chats["catalog-composer-photo-album"]?.draftAttachments.count == 4)
+        #expect(chats["catalog-composer-mixed-media"]?.draftAttachments.count == 3)
+        #expect(chats["catalog-composer-file"]?.draftAttachments.count == 1)
+        #expect(chats["catalog-composer-gif"]?.draftAttachments.count == 1)
+        #expect(chats["catalog-composer-contact"]?.draftAttachments.count == 1)
+        #expect(chats["catalog-composer-reply"]?.replyToMessageID == "CMP-REPLY")
+        #expect(chats["catalog-composer-mention"]?.isGroup == true)
+
+        let album = try #require(
+            chats["catalog-composer-photo-album"]?.draftAttachments
+        )
+        #expect(album.allSatisfy { if case .photo = $0 { true } else { false } })
+
+        let mixed = try #require(
+            chats["catalog-composer-mixed-media"]?.draftAttachments
+        )
+        #expect(mixed.filter { if case .photo = $0 { true } else { false } }.count == 2)
+        #expect(mixed.filter { if case .video = $0 { true } else { false } }.count == 1)
+
+        let photoDraftRow = try #require(
+            chats["catalog-composer-photo"]?.row(
+                people: profile.people,
+                currentProfileID: profile.id
+            )
+        )
+        #expect(photoDraftRow.isDraft)
+        #expect(photoDraftRow.visiblePreview == "Photo")
+    }
+
+    @Test("Composer link detection accepts HTTPS and provides deterministic metadata")
+    func composerLinkPreviewDetection() throws {
+        let preview = try #require(
+            PrototypeComposerLinkPreview.first(
+                in: "Worth a look: https://developer.apple.com/design/human-interface-guidelines"
+            )
+        )
+
+        #expect(preview.url.absoluteString == "https://developer.apple.com/design/human-interface-guidelines")
+        #expect(preview.domain == "developer.apple.com")
+        #expect(preview.title == "Apple Human Interface Guidelines")
+        #expect(PrototypeComposerLinkPreview.first(in: "http://example.com") == nil)
+        #expect(PrototypeComposerLinkPreview.first(in: "No link here") == nil)
+    }
+
+    @Test("Sending clears every persisted composer state")
+    func sendingClearsPersistedComposerState() {
+        var chat = emptyDirectChat()
+        chat.draft = "Caption"
+        chat.draftAttachments = [
+            .photo(
+                id: "photo",
+                source: .asset("FiatjafMediaFox"),
+                label: "Fox"
+            ),
+        ]
+        chat.suppressedDraftLinkURL = "https://whitenoise.chat"
+        chat.replyToMessageID = "source"
+
+        chat.appendMessage(
+            authorID: "marmota",
+            text: chat.draft,
+            attachments: chat.draftAttachments
+        )
+
+        #expect(chat.draft.isEmpty)
+        #expect(chat.draftAttachments.isEmpty)
+        #expect(chat.suppressedDraftLinkURL == nil)
+        #expect(chat.replyToMessageID == nil)
+        #expect(chat.messages.last?.text == "Caption")
+        #expect(chat.messages.last?.attachments.count == 1)
+        #expect(chat.messages.last?.replyToMessageID == "source")
     }
 
     @Test("Reaction catalog distinguishes count and participation states")

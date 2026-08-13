@@ -1,5 +1,9 @@
 # Shared conversation
 
+The deterministic unsent-message examples, rich-link composition, and
+attachment-draft persistence are specified in
+[Conversation composer states](conversation-composer-states.md).
+
 ## Purpose
 
 Provide one native direct/group conversation surface for every chat row while

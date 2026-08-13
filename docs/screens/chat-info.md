@@ -2,29 +2,43 @@
 
 ## Purpose and navigation
 
-The conversation title/avatar pushes **Chat Info**. The destination owns only
-conversation information and settings; person-level identity and relationship
-management remain in **User Profile**.
+The conversation title/avatar pushes **Chat Info**. For a direct chat, the
+destination combines conversation information with the other person's compact
+profile identity and relationship actions. A separate **User Profile** remains
+available from entry points that do not yet have a chat.
 
 ## Behavior
 
-- The top identity area shows the person's avatar and name without duplicating
-  their bio, `npub`, addresses, contact state, shared groups, or block state.
+- The top identity area uses the shared profile identity presentation: avatar,
+  name, compact Verified Nostr Address when present, and the copyable public
+  key. The bio is not shown inline.
 - Four equal quick actions follow the identity as one centered group:
-  **Contact**, **Mute** or **Unmute**, **Disappearing Messages**, and
-  **Search**. Contact pushes the existing **User Profile**.
+  **About**, **Mute** or **Unmute**, **Disappearing Messages**, and **Search**.
+  About uses the simple `person.crop.circle` avatar symbol and pushes the same
+  authoritative **User Profile** presentation used when starting a chat.
   Mute opens the established duration menu; it is the single notification
   control and isn't duplicated as a settings row. Disappearing Messages opens
   a native selection menu and announces its current value. The actions form a
   compact centered group and use non-glass circular secondary controls on an
   adaptive white surface, with enough separation for each circle to read
-  clearly. Each circle has a concise centered caption beneath it: **Contact**,
+  clearly. Each circle has a concise centered caption beneath it: **About**,
   **Mute** or **Unmute**, **Disappearing**, and **Search**. The control retains
   the full explicit accessibility name; the visual caption is hidden from
   VoiceOver to prevent duplicate announcements. This white surface is the
   approved local exception to the system bordered style's gray accent-derived
   fill; standard `Button` and `Menu` controls continue to own interaction and
   accessibility semantics.
+- User Profile repeats its complete identity header, followed by an uncontained
+  centered bio line directly on the grouped background. The complete line uses
+  secondary gray body text; **About:** begins the same line at the same size
+  with a heavier weight. Extra vertical space separates it from the public key
+  and the actions. The **Groups in Common** avatar-stack row appears when
+  applicable; otherwise **Add to Group** appears in its place. **Add Contact**
+  or **Remove Contact**, and **Block** or **Unblock** follow. Contact changes in
+  place without confirmation. Block retains its native destructive confirmation
+  and Unblock is immediate. When User Profile is reached from Chat Info, it
+  omits the bottom Message action because the current navigation hierarchy
+  already belongs to that direct chat.
 - One scrolling `List` replaces the rejected category tabs and pager.
   **Photos & Videos**, **Links**, and **Documents** are disclosure rows in one
   grouped container titled **Shared in Chat**. The gap above this heading
@@ -84,8 +98,9 @@ management remain in **User Profile**.
   with the optional message, to every selected chat. Conversation message
   galleries remain independently pageable when a single message itself contains
   multiple media attachments.
-- **Relays** and **Developer Tools** are disclosure rows in the next grouped
-  container titled **Advanced**. Relays edits the chat's independent relay URLs
+- **Relays**, **Developer Tools**, **Archive** or **Unarchive**, and destructive
+  **Leave Chat** are rows in one grouped container titled **Chat Actions**.
+  Relays edits the chat's independent relay URLs
   and mirrors the established Settings relay list, detail, add, remove, and
   restore-default patterns without per-role toggles. Its explanation is a
   native section footer on the grouped surface rather than a contained row:
@@ -126,21 +141,22 @@ credential and key material, protocol-activity history, repair or event
 injection, and a second relay editor. Raw required event-kind numbers remain
 available only through their dedicated drill-down. Source reviewed:
 [White Noise](https://github.com/marmot-protocol/whitenoise) (`master`).
-- The final group contains **Archive** or **Unarchive** and destructive
-  **Leave Chat** without a redundant section title. Leave Chat uses red text
+- Leave Chat uses red text
   and a red symbol. Leaving uses a native alert with Cancel and a destructive
   confirmation, preserves read-only history, and stops new messages.
   Disappearing-message selection remains deterministic, profile-scoped, and
   retained with the chat for the process lifetime.
 - Search returns to the conversation and scrolls to the selected result.
 - Blocking uses native destructive confirmation, preserves history, and
-  replaces the composer with an **Unblock** recovery action from User Profile.
+  replaces the composer with an **Unblock** recovery action. User Profile
+  retains the same Unblock action when reached from Chat Info.
 - Direct chats never expose group metadata, members, admins, or Leave Group;
   **Leave Chat** is the direct-chat exit action.
 
 ## Native components and accessibility
 
-Use `List`, `Section`, `NavigationLink`, `Button`, `Menu`, `Picker`, Quick Look,
+Use `List`, `Section`, `NavigationLink`, `Button`, `Menu`, `Picker`,
+`ContentUnavailableView`, Quick Look,
 `LazyVGrid`, `ShareLink`, `safeAreaBar`, `glassEffect`, `fileExporter`, `confirmationDialog`, and system media
 presentation. Quick actions keep native 44-point targets. Disclosure rows and
 pushed destinations retain the standard navigation, motion, and accessibility
@@ -175,8 +191,12 @@ position and total.
 
 - Every action mutates only the active profile's authoritative people/chat
   state and updates Chats/conversation immediately.
-- Chat Info doesn't duplicate person-level details or relationship actions;
-  Contact opens the authoritative User Profile.
+- Direct Chat Info shows the shared identity header but never places the bio
+  inline. About opens the focused bio destination.
+- Direct Chat Info keeps profile actions out of its grouped content. About is a
+  quick action that opens the shared User Profile screen with identity, bio,
+  Groups in Common, contact, and block, but no redundant Message action.
+  Contact and block state mutate the authoritative person in place.
 - Every shared-content destination derives from the authoritative chat
   timeline and updates when chat content changes.
 - The direct-message showcase supplies multiple valid HTTPS link previews and

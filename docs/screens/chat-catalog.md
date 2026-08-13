@@ -26,6 +26,9 @@ and centered dots are not used for catalog separators.
   context-menu capability combination.
 - [ ] **Direct - New Chat & Draft** - direct inception with no sent messages
   and a persisted draft.
+- [ ] **Composer - Text** through **Composer - Mention** - deterministic
+  unsent text, multiline, raw-link, rich-link, media, file, GIF, contact,
+  reply, and mention states.
 - [ ] **Media - Single Photos & Video** - intrinsic photo/video ratios,
   captions, orientation, low-resolution safeguards, and unavailable media.
 - [ ] **Media - Gallery Layouts** - deterministic album counts, mixed media,
@@ -140,6 +143,26 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `VOICE-03` | Voice Messages | `VOICE-03-caption`, `VOICE-03` | Duration over one minute | Play/pause, elapsed/remaining | Implemented; review pending |
 | [ ] | `VOICE-04` | Voice Messages | existing composer recording state machine | Record → review → listen → discard/send | Native composer controls | Implemented; review pending |
 
+### Composer states
+
+| Done | Scenario ID | Catalog chat | Initial composer | Supported action | Implementation status |
+| --- | --- | --- | --- | --- | --- |
+| [ ] | `CMP-TEXT` | Composer - Text | Single-line text | Edit or send | Implemented; review pending |
+| [ ] | `CMP-MULTILINE` | Composer - Multiline | Four-line text | Edit, scroll after ten lines, or send | Implemented; review pending |
+| [ ] | `CMP-LINK` | Composer - Link | Raw `https` URL with preview already removed | Edit or send text-only link | Implemented; review pending |
+| [ ] | `CMP-LINK-PREVIEW` | Composer - Link Preview | Multiline text and native rich preview | Remove preview or send rich link | Implemented; review pending |
+| [ ] | `CMP-PHOTO` | Composer - Photo | One captionless photo | Remove, add caption, or send | Implemented; review pending |
+| [ ] | `CMP-PHOTO-ALBUM` | Composer - Photo Album | Four photos and caption | Remove any item, edit caption, or send | Implemented; review pending |
+| [ ] | `CMP-MIXED` | Composer - Mixed Media | Two photos, one video, and caption | Remove any item, edit caption, or send | Implemented; review pending |
+| [ ] | `CMP-FILE` | Composer - File | PDF and caption | Remove, edit caption, or send | Implemented; review pending |
+| [ ] | `CMP-GIF` | Composer - GIF | One captionless GIF | Remove, add caption, or send | Implemented; review pending |
+| [ ] | `CMP-CONTACT` | Composer - Contact | Contact and caption | Remove, edit caption, or send | Implemented; review pending |
+| [ ] | `CMP-REPLY` | Composer - Reply | Quote and text | Cancel reply, edit, or send | Implemented; review pending |
+| [ ] | `CMP-MENTION` | Composer - Mention | Group mention text | Edit or send | Implemented; review pending |
+
+All composer details and external comparison evidence are governed by
+[Conversation composer states](conversation-composer-states.md).
+
 ### Group messages, events, and permissions
 
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
@@ -217,7 +240,8 @@ intentional product fallback are outside catalog scope.
 - Group information remains the action owner for editing group identity, adding
   people, changing roles, removing members, and leaving.
 - Composer, attachment-menu, camera-sheet, and audio-recording behavior remain
-  governed by [Shared conversation](conversation-shared.md).
+  governed by [Shared conversation](conversation-shared.md) and
+  [Conversation composer states](conversation-composer-states.md).
 
 ### Interaction acceptance matrix
 
@@ -255,7 +279,7 @@ intentional product fallback are outside catalog scope.
 | [ ] | `GROUP-ACT-02` | `ROLE-01` | Admin can add people, grant/revoke admin, and remove members | Implemented; review pending |
 | [ ] | `GROUP-ACT-03` | `ROLE-02` | Member keeps messages/search/shared content/mute/archive/leave; admin-only controls are absent | Implemented; review pending |
 | [ ] | `GROUP-ACT-04` | `ROLE-03` | Sole-admin leave shows the existing alert; promotion makes leave valid | Implemented; review pending |
-| [ ] | `COMPOSER-ACT-01` | Any active catalog chat | Attachment menu, camera sheet, files/photos, and input growth use the accepted conversation flow | Implemented in shared flow; review pending |
+| [ ] | `COMPOSER-ACT-01` | `CMP-TEXT`–`CMP-MENTION` | Text growth, removable rich link preview, persisted attachment shelf, reply quote, and mention states use the accepted conversation flow | Implemented in shared flow; review pending |
 | [ ] | `COMPOSER-ACT-02` | Voice Messages | Hold threshold, live recording, review playback, discard, and send use the accepted audio flow | Implemented in shared flow; review pending |
 
 ## Accessibility

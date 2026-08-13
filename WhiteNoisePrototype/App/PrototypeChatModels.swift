@@ -257,6 +257,68 @@ enum PrototypeAttachment: Equatable, Identifiable {
     }
 }
 
+struct PrototypeComposerLinkPreview: Equatable {
+    let url: URL
+    let title: String
+    let domain: String
+    let summary: String
+    let image: PrototypeImageSource?
+
+    static func first(in text: String) -> PrototypeComposerLinkPreview? {
+        guard let detector = try? NSDataDetector(
+            types: NSTextCheckingResult.CheckingType.link.rawValue
+        ) else { return nil }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let url = detector.firstMatch(
+            in: text,
+            options: [],
+            range: range
+        )?.url,
+        url.scheme?.lowercased() == "https",
+        let host = url.host?.lowercased(),
+        !host.isEmpty
+        else { return nil }
+
+        switch host {
+        case "whitenoise.chat", "www.whitenoise.chat":
+            return PrototypeComposerLinkPreview(
+                url: url,
+                title: "White Noise",
+                domain: host,
+                summary: "Private, resilient conversations.",
+                image: .asset("WhiteNoiseMark")
+            )
+        case "developer.apple.com":
+            return PrototypeComposerLinkPreview(
+                url: url,
+                title: "Apple Human Interface Guidelines",
+                domain: host,
+                summary: "Guidance for clear, platform-consistent experiences.",
+                image: .asset("ProfileAvatarOpenCircuit")
+            )
+        default:
+            return PrototypeComposerLinkPreview(
+                url: url,
+                title: host,
+                domain: host,
+                summary: "A link shared in White Noise.",
+                image: nil
+            )
+        }
+    }
+
+    func attachment(id: String) -> PrototypeAttachment {
+        .link(
+            id: id,
+            title: title,
+            domain: domain,
+            summary: summary,
+            image: image
+        )
+    }
+}
+
 struct PrototypeReaction: Identifiable, Equatable {
     static let defaultQuickEmoji = ["❤", "🤘", "🔥", "😂", "🦫", "🚀"]
     static let supportedEmoji = ["❤", "😀", "👍", "👎", "🤣", "🔥", "🦫"]
@@ -408,6 +470,8 @@ struct PrototypeChat: Identifiable, Equatable {
     var timeline: [PrototypeTimelineEntry]
     var emptyPreview: String
     var draft: String
+    var draftAttachments: [PrototypeAttachment] = []
+    var suppressedDraftLinkURL: String? = nil
     var replyToMessageID: String?
     var listState: PrototypeChatListState
     var invitedByPersonID: String? = nil
@@ -466,10 +530,21 @@ struct PrototypeChat: Identifiable, Equatable {
         let previewMessage: PrototypeMessage?
         let previewDate: Date
 
-        if !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let hasDraft = !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !draftAttachments.isEmpty
+
+        if hasDraft {
             previewText = draft
             previewAuthor = nil
-            attachmentPreview = nil
+            if draftAttachments.count > 1,
+               draftAttachments.allSatisfy({ attachment in
+                   if case .photo = attachment { return true }
+                   return false
+               }) {
+                attachmentPreview = .photos(draftAttachments.count)
+            } else {
+                attachmentPreview = draftAttachments.first?.listPreview(people: people)
+            }
             previewMessage = nil
             previewDate = listState.activityDate
         } else if let latestEntry {
@@ -531,7 +606,7 @@ struct PrototypeChat: Identifiable, Equatable {
             unreadCount: listState.unreadCount,
             isMarkedUnread: listState.isMarkedUnread,
             isMuted: listState.muteDuration != nil,
-            isDraft: !draft.isEmpty,
+            isDraft: hasDraft,
             deliveryState: listState.membershipState == .active
                 && previewMessage?.deliveryState == .failed
                 ? .failed
@@ -558,6 +633,8 @@ struct PrototypeChat: Identifiable, Equatable {
             )
         )
         draft = ""
+        draftAttachments = []
+        suppressedDraftLinkURL = nil
         replyToMessageID = nil
         listState.activityDate = now
         listState.unreadCount = 0
@@ -585,6 +662,8 @@ struct PrototypeChat: Identifiable, Equatable {
             listState.activityDate = sentAt
         }
         draft = ""
+        draftAttachments = []
+        suppressedDraftLinkURL = nil
         replyToMessageID = nil
         listState.unreadCount = 0
         listState.isMarkedUnread = false

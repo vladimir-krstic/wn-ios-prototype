@@ -7,6 +7,18 @@ enum ChatListFixtures {
         "catalog-direct-replies",
         "catalog-direct-reactions",
         "catalog-direct-new-draft",
+        "catalog-composer-text",
+        "catalog-composer-multiline",
+        "catalog-composer-link",
+        "catalog-composer-link-preview",
+        "catalog-composer-photo",
+        "catalog-composer-photo-album",
+        "catalog-composer-mixed-media",
+        "catalog-composer-file",
+        "catalog-composer-gif",
+        "catalog-composer-contact",
+        "catalog-composer-reply",
+        "catalog-composer-mention",
         "catalog-media-single",
         "catalog-media-gallery",
         "catalog-media-viewer",
@@ -70,6 +82,79 @@ enum ChatListFixtures {
             id: "catalog-direct-new-draft",
             title: "Direct - New Chat & Draft",
             preview: "STATE-01: Unsent draft",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-text",
+            title: "Composer - Text",
+            preview: "Here’s the updated plan.",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-multiline",
+            title: "Composer - Multiline",
+            preview: "I pulled together the notes:",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-link",
+            title: "Composer - Link",
+            preview: "https://whitenoise.chat",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-link-preview",
+            title: "Composer - Link Preview",
+            preview: "Worth a look: https://developer.apple.com",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-photo",
+            title: "Composer - Photo",
+            preview: "Photo ready to send",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-photo-album",
+            title: "Composer - Photo Album",
+            preview: "A few from today.",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-mixed-media",
+            title: "Composer - Mixed Media",
+            preview: "Photos and a short clip from the walk.",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-file",
+            title: "Composer - File",
+            preview: "Here’s the brief.",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-gif",
+            title: "Composer - GIF",
+            preview: "GIF ready to send",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-contact",
+            title: "Composer - Contact",
+            preview: "Maya can help with this.",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-reply",
+            title: "Composer - Reply",
+            preview: "Yes—Thursday afternoon works for me.",
+            isDraft: true
+        ),
+        catalogItem(
+            id: "catalog-composer-mention",
+            title: "Composer - Mention",
+            preview: "@Maya Chen can you take a look?",
+            isGroup: true,
             isDraft: true
         ),
         catalogItem(

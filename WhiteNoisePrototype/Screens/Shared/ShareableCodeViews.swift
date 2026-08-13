@@ -64,24 +64,26 @@ struct ProfileIdentityHeader<Avatar: View>: View {
     let publicKey: String
     let nostrAddress: String?
     let isNostrAddressVerified: Bool
+    let bottomPadding: CGFloat
+    let showsIdentityValues: Bool
 
     private let avatar: (CGFloat) -> Avatar
-
-    @State private var copied = false
-    @State private var copyFeedbackTrigger = 0
-    @State private var copyResetTask: Task<Void, Never>?
 
     init(
         name: String,
         publicKey: String,
         nostrAddress: String? = nil,
         isNostrAddressVerified: Bool = false,
+        bottomPadding: CGFloat = 14,
+        showsIdentityValues: Bool = true,
         @ViewBuilder avatar: @escaping (CGFloat) -> Avatar
     ) {
         self.name = name
         self.publicKey = publicKey
         self.nostrAddress = nostrAddress
         self.isNostrAddressVerified = isNostrAddressVerified
+        self.bottomPadding = bottomPadding
+        self.showsIdentityValues = showsIdentityValues
         self.avatar = avatar
     }
 
@@ -102,7 +104,9 @@ struct ProfileIdentityHeader<Avatar: View>: View {
                 Text(name)
                     .font(.title2.weight(.semibold))
 
-                if let nostrAddress, !nostrAddress.isEmpty {
+                if showsIdentityValues,
+                   let nostrAddress,
+                   !nostrAddress.isEmpty {
                     InlineVerifiedNostrAddressValue(
                         address: nostrAddress,
                         isVerified: isNostrAddressVerified
@@ -110,21 +114,55 @@ struct ProfileIdentityHeader<Avatar: View>: View {
                 }
             }
 
-            Button(action: copyPublicKey) {
-                CompactCopyValueLabel(
-                    value: compactPublicKey,
-                    isCopied: copied
-                )
+            if showsIdentityValues {
+                ProfilePublicKeyCopyButton(publicKey: publicKey)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(
-                copied ? "Public key copied" : "Copy public key"
-            )
-            .accessibilityValue(compactPublicKey)
         }
         .frame(maxWidth: .infinity)
         .padding(.top)
-        .padding(.bottom, 14)
+        .padding(.bottom, bottomPadding)
+    }
+}
+
+struct ProfileIdentityValues: View {
+    let publicKey: String
+    let nostrAddress: String?
+    let isNostrAddressVerified: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            if let nostrAddress, !nostrAddress.isEmpty {
+                InlineVerifiedNostrAddressValue(
+                    address: nostrAddress,
+                    isVerified: isNostrAddressVerified
+                )
+            }
+
+            ProfilePublicKeyCopyButton(publicKey: publicKey)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct ProfilePublicKeyCopyButton: View {
+    let publicKey: String
+
+    @State private var copied = false
+    @State private var copyFeedbackTrigger = 0
+    @State private var copyResetTask: Task<Void, Never>?
+
+    var body: some View {
+        Button(action: copyPublicKey) {
+            CompactCopyValueLabel(
+                value: compactPublicKey,
+                isCopied: copied
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            copied ? "Public key copied" : "Copy public key"
+        )
+        .accessibilityValue(compactPublicKey)
         .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
         .onDisappear {
             resetCopyFeedback()
