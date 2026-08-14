@@ -13,8 +13,13 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 
 - The principal toolbar item is the single entry point to Chat Info or Group
   Info. It uses a 44-point avatar beside the conversation title and, for a
-  group, its member count. The system principal placement centers this combined
-  identity control in the navigation bar. Search is not duplicated as a
+  group, its member count. When disappearing messages are on, a direct chat
+  shows the compact timer symbol and 1d, 1w, or 4w below its title; a group
+  appends a centered dot and that same timer status after the member count.
+  The complete status treatment is defined in
+  [Disappearing-message indicators](disappearing-message-indicators.md). The
+  system principal placement centers this combined identity control in the
+  navigation bar. Search is not duplicated as a
   trailing conversation-toolbar action; it remains available inside the
   applicable info screen.
 - Messages use stable identities in a `ScrollViewReader`, `ScrollView`, and
@@ -485,6 +490,9 @@ that interaction split while using the user-approved visible copy above.
 ## Acceptance criteria
 
 - Every chat row opens the same conversation architecture.
+- The principal header removes its timer presentation while disappearing
+  messages are off, shows the compact timer and duration for an enabled direct
+  chat, and appends that status after the group member count when enabled.
 - Every catalog and legacy chat uses the same message shell, grouping,
   timestamp, reply, reaction, attachment, and group-identity rules.
 - Direct transcripts never show member avatars. Group transcripts show an

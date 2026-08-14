@@ -99,6 +99,7 @@ struct ConversationView: View {
     private let playback = PrototypePlaybackCoordinator.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .caption2) private var conversationHeaderTimerIconSize: CGFloat = 9
 
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
@@ -438,6 +439,12 @@ struct ConversationView: View {
                 onOpenMessage: openMessageFromChatInfo
             )
         }
+        .onChange(of: authoritativeDisappearingMessageDuration) { _, _ in
+            guard let current = profile.chats.first(where: { $0.id == chatID }) else {
+                return
+            }
+            renderedChat = current
+        }
         .navigationDestination(isPresented: messageDetailsIsPresented) {
             if let messageDetailsMessage {
                 PrototypeMessageDetailsView(
@@ -574,14 +581,12 @@ struct ConversationView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(chat.title(people: profile.people))
                                 .font(.headline).lineLimit(1)
-                            if chat.isGroup {
-                                Text("\(chat.members.count) members")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                            }
+                            conversationHeaderSubtitle
                         }
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(conversationHeaderAccessibilityLabel)
                 .accessibilityHint("Opens chat information.")
                 .accessibilityIdentifier("conversation.info")
             }
@@ -594,6 +599,52 @@ struct ConversationView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var conversationHeaderSubtitle: some View {
+        if chat.isGroup && chat.disappearingMessageDuration.isEnabled {
+            HStack(spacing: 0) {
+                Text("\(conversationMemberCountLabel) · ")
+                Image(systemName: "timer")
+                    .font(.system(size: conversationHeaderTimerIconSize))
+                Text(" \(chat.disappearingMessageDuration.compactTitle)")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        } else if chat.isGroup {
+            Text(conversationMemberCountLabel)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        } else if chat.disappearingMessageDuration.isEnabled {
+            HStack(spacing: 0) {
+                Image(systemName: "timer")
+                    .font(.system(size: conversationHeaderTimerIconSize))
+                Text(" \(chat.disappearingMessageDuration.compactTitle)")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+    }
+
+    private var conversationMemberCountLabel: String {
+        "\(chat.members.count) members"
+    }
+
+    private var conversationHeaderAccessibilityLabel: String {
+        var components = [chat.title(people: profile.people)]
+        if chat.isGroup {
+            components.append(conversationMemberCountLabel)
+        }
+        if chat.disappearingMessageDuration.isEnabled {
+            components.append(
+                "Disappearing messages, \(chat.disappearingMessageDuration.title)"
+            )
+        }
+        return components.joined(separator: ", ")
     }
 
     private func openSearchFromChatInfo() {
@@ -1839,6 +1890,11 @@ struct ConversationView: View {
     }
 
     private var chatIndex: Int? { profile.chats.firstIndex { $0.id == chatID } }
+    private var authoritativeDisappearingMessageDuration: PrototypeDisappearingMessageDuration {
+        profile.chats.first(where: { $0.id == chatID })?
+            .disappearingMessageDuration ?? .off
+    }
+
     private var chat: PrototypeChat {
         if let renderedChat { return renderedChat }
         return profile.chats[chatIndex!]

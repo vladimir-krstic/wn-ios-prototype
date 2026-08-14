@@ -29,6 +29,9 @@ enum ChatListFixtures {
         "catalog-group-events",
         "catalog-group-member",
         "catalog-group-sole-admin",
+        "catalog-direct-disappearing",
+        "catalog-direct-disappearing-muted",
+        "catalog-group-disappearing",
         "catalog-direct-invitation",
         "catalog-group-invitation",
         "catalog-direct-left",
@@ -215,6 +218,27 @@ enum ChatListFixtures {
             title: "Group - Sole Admin",
             preview: "ROLE-03: Promote another admin before leaving",
             isGroup: true
+        ),
+        catalogItem(
+            id: "catalog-direct-disappearing",
+            title: "Direct - Disappearing",
+            preview: "IND-01: 1 Day disappearing messages",
+            disappearingMessageDuration: .oneDay
+        ),
+        catalogItem(
+            id: "catalog-direct-disappearing-muted",
+            title: "Direct - Disappearing & Muted",
+            preview: "IND-02: 1 Week disappearing messages and muted",
+            muted: true,
+            disappearingMessageDuration: .oneWeek
+        ),
+        catalogItem(
+            id: "catalog-group-disappearing",
+            title: "Group - Disappearing",
+            preview: "IND-03: 4 Weeks disappearing messages",
+            previewAuthor: "Maya",
+            isGroup: true,
+            disappearingMessageDuration: .fourWeeks
         ),
         catalogItem(
             id: "catalog-direct-invitation",
@@ -781,6 +805,7 @@ enum ChatListFixtures {
         unreadCount: Int = 0,
         markedUnread: Bool = false,
         muted: Bool = false,
+        disappearingMessageDuration: PrototypeDisappearingMessageDuration = .off,
         isDraft: Bool = false,
         deliveryState: ChatListItem.DeliveryState = .none
     ) -> ChatListItem {
@@ -800,6 +825,7 @@ enum ChatListFixtures {
             unreadCount: unreadCount,
             isMarkedUnread: markedUnread,
             isMuted: muted,
+            disappearingMessageDuration: disappearingMessageDuration,
             isDraft: isDraft,
             deliveryState: deliveryState
         )

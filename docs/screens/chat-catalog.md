@@ -47,6 +47,11 @@ and centered dots are not used for catalog separators.
 - [ ] **Group - Member Permissions** - ordinary-member information and action
   boundaries.
 - [ ] **Group - Sole Admin** - protected leave and promotion recovery.
+- [ ] **Direct - Disappearing** - active 1 Day timer without mute.
+- [ ] **Direct - Disappearing & Muted** - adjacent mute and active 1 Week
+  timer indicators.
+- [ ] **Group - Disappearing** - active 4 Weeks timer combined with the group
+  member-count subtitle.
 - [ ] **Direct - Left** - ended direct chat with direct-specific copy.
 - [ ] **Group - Left** - voluntarily ended group membership.
 - [ ] **Group - Removed** - group membership ended by another admin.
@@ -212,6 +217,9 @@ All composer details and external comparison evidence are governed by
 | [ ] | `STATE-08` | Support - Timeline Notice | `STATE-08` notice | Guidance notice renders distinctly and is excluded from row activity | Standard support composer | Implemented; review pending |
 | [ ] | `STATE-09` | Direct - Invitation | `STATE-09` | Received direct message is readable before acceptance; Liquid Glass invitation actions replace the composer | Decline or Accept | Implemented; review pending |
 | [ ] | `STATE-10` | Group - Invitation | `STATE-10A`, `STATE-10B` | Received group messages and participant identity are readable before membership; Liquid Glass invitation actions replace the composer | Decline or Accept | Implemented; review pending |
+| [ ] | `IND-01` | Direct - Disappearing | row and principal header | Timer icon in Chats; timer icon plus **1d** below the direct-chat title | Change timer in Chat Info | Implemented; review pending |
+| [ ] | `IND-02` | Direct - Disappearing & Muted | row and principal header | Mute then timer icons in Chats; timer icon plus **1w** below the direct-chat title | Unmute or change timer | Implemented; review pending |
+| [ ] | `IND-03` | Group - Disappearing | row and principal header | Timer icon in Chats; **members · [timer] 4w** below the group title | Change timer in Group Info | Implemented; review pending |
 | [ ] | `LIST-01` | Direct - Text & Delivery | row `catalog-direct-text` | Pinned | Unpin | Implemented; review pending |
 | [ ] | `LIST-02` | Direct - Replies & Deletion | row `catalog-direct-replies` | Unread count | Read | Implemented; review pending |
 | [ ] | `LIST-03` | Direct - Reactions & Actions | row `catalog-direct-reactions` | Marked unread | Read | Implemented; review pending |
@@ -237,6 +245,11 @@ intentional product fallback are outside catalog scope.
   Pin/Unpin, Archive/Unarchive, Mute/Unmute, Leave, and Delete where permitted.
 - Mute values remain **1 Hour**, **8 Hours**, **1 Day**, **1 Week**, and
   **Always**.
+- Active disappearing-message timers use the compact presentation defined by
+  [Disappearing-message indicators](disappearing-message-indicators.md): Chats
+  shows a timer symbol beside mute when both apply, direct headers show
+  **[timer] 1d/1w/4w**, and group headers append
+  **· [timer] 1d/1w/4w** after the member count.
 - Group information remains the action owner for editing group identity, adding
   people, changing roles, removing members, and leaving.
 - Composer, attachment-menu, camera-sheet, and audio-recording behavior remain
@@ -270,6 +283,7 @@ intentional product fallback are outside catalog scope.
 | [ ] | `CHAT-ACT-05` | Active group | Leave appends a terminal event and moves the row to Left | Implemented; review pending |
 | [ ] | `CHAT-ACT-06` | `STATE-02`–`STATE-04` | Ended chat can be deleted from Left; active chat is not offered this action | Implemented; review pending |
 | [ ] | `CHAT-ACT-07` | Any populated catalog chat | Search finds text, author, and attachment label and jumps to the result | Implemented; review pending |
+| [ ] | `CHAT-ACT-08` | `IND-01`–`IND-03` | Changing or turning off disappearing messages updates or removes the Chats-row and conversation-header timer presentation from the shared chat state | Implemented; review pending |
 | [ ] | `DIRECT-ACT-01` | Any active direct catalog chat | Chat Info exposes contact, disappearing messages, chat relays, archive, and block controls | Implemented; review pending |
 | [ ] | `DIRECT-ACT-02` | `STATE-05` | Unblock restores the composer without losing timeline history | Implemented; review pending |
 | [ ] | `DIRECT-ACT-03` | `STATE-06` | Add or Restore Defaults re-enables the composer | Implemented; review pending |
@@ -296,6 +310,7 @@ intentional product fallback are outside catalog scope.
 
 - [Shared conversation](conversation-shared.md)
 - [Populated Chats](chats-populated.md)
+- [Disappearing-message indicators](disappearing-message-indicators.md)
 - [Group info](group-info.md)
 - [Chat creation](chat-creation.md)
 - [Context menus](https://developer.apple.com/design/human-interface-guidelines/context-menus)
@@ -310,6 +325,9 @@ intentional product fallback are outside catalog scope.
   recovery state appears without relying on a retained story chat.
 - Direct and group inception and exit copy use the correct noun.
 - Changing disappearing messages emits one event only when the value changes.
+- The catalog exposes disappearing-only, disappearing-and-muted, and
+  group-member-count-plus-disappearing states with compact 1d, 1w, and 4w
+  header values.
 - Removing a group photo is distinct from changing it.
 - Catalog chats precede all retained story chats and only the first catalog chat
   begins pinned.

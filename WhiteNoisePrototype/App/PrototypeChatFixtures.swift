@@ -17,6 +17,7 @@ enum PrototypeChatFixtures {
     static let groupIDs: Set<String> = [
         "catalog-group-messages", "catalog-group-colors", "catalog-group-events",
         "catalog-group-member", "catalog-group-sole-admin",
+        "catalog-group-disappearing",
         "catalog-group-invitation",
         "catalog-composer-mention",
         "catalog-group-left", "catalog-group-removed",
@@ -148,6 +149,27 @@ enum PrototypeChatFixtures {
             case "catalog-group-sole-admin":
                 chat.members = soleAdminMembers(profileID: profileID)
                 chat.timeline = soleAdminTimeline(profileID: profileID, now: now)
+            case "catalog-direct-disappearing":
+                chat.timeline = indicatorTimeline(
+                    scenarioID: "IND-01",
+                    authorID: row.id,
+                    label: "IND-01: 1 Day disappearing messages",
+                    now: now
+                )
+            case "catalog-direct-disappearing-muted":
+                chat.timeline = indicatorTimeline(
+                    scenarioID: "IND-02",
+                    authorID: row.id,
+                    label: "IND-02: 1 Week disappearing messages and muted",
+                    now: now
+                )
+            case "catalog-group-disappearing":
+                chat.timeline = indicatorTimeline(
+                    scenarioID: "IND-03",
+                    authorID: "maya-chen",
+                    label: "IND-03: 4 Weeks disappearing messages",
+                    now: now
+                )
             case "catalog-direct-invitation":
                 chat.kind = .direct(personID: "avery-stone")
                 chat.invitedByPersonID = "avery-stone"
@@ -325,7 +347,8 @@ enum PrototypeChatFixtures {
                 isMarkedUnread: row.isMarkedUnread,
                 muteDuration: row.muteDuration,
                 activityDate: seedDate(for: row.timestamp, now: now)
-            )
+            ),
+            disappearingMessageDuration: row.disappearingMessageDuration
         )
     }
 
@@ -1106,6 +1129,24 @@ enum PrototypeChatFixtures {
         return [
             catalogEvent("\(scenarioID)-started", date: start, kind: .directChatStarted(actorID: profileID)),
             .message(PrototypeMessage(id: scenarioID, authorID: otherID, sentAt: start.addingTimeInterval(120), text: label)),
+        ]
+    }
+
+    private static func indicatorTimeline(
+        scenarioID: String,
+        authorID: String,
+        label: String,
+        now: Date
+    ) -> [PrototypeTimelineEntry] {
+        [
+            .message(
+                PrototypeMessage(
+                    id: scenarioID,
+                    authorID: authorID,
+                    sentAt: now.addingTimeInterval(-1_800),
+                    text: label
+                )
+            ),
         ]
     }
 

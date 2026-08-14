@@ -172,6 +172,9 @@ struct PrototypeChatModelTests {
             "Group - Events & Roles",
             "Group - Member Permissions",
             "Group - Sole Admin",
+            "Direct - Disappearing",
+            "Direct - Disappearing & Muted",
+            "Group - Disappearing",
             "Direct - Invitation",
             "Group - Invitation",
             "Direct - Left",
@@ -202,6 +205,45 @@ struct PrototypeChatModelTests {
 
         let firstLegacyRow = try #require(ChatListFixtures.populated.dropFirst(rows.count).first)
         #expect(!ChatListFixtures.catalogChatIDs.contains(firstLegacyRow.id))
+    }
+
+    @Test("Developer catalog covers disappearing-message row and header states")
+    func developerCatalogDisappearingMessageIndicators() throws {
+        let profile = PrototypeProfile.marmota
+        let direct = try #require(
+            profile.chats.first { $0.id == "catalog-direct-disappearing" }
+        )
+        let mutedDirect = try #require(
+            profile.chats.first { $0.id == "catalog-direct-disappearing-muted" }
+        )
+        let group = try #require(
+            profile.chats.first { $0.id == "catalog-group-disappearing" }
+        )
+
+        #expect(direct.disappearingMessageDuration == .oneDay)
+        #expect(direct.disappearingMessageDuration.compactTitle == "1d")
+        #expect(direct.listState.muteDuration == nil)
+
+        #expect(mutedDirect.disappearingMessageDuration == .oneWeek)
+        #expect(mutedDirect.disappearingMessageDuration.compactTitle == "1w")
+        #expect(mutedDirect.listState.muteDuration != nil)
+
+        #expect(group.isGroup)
+        #expect(group.disappearingMessageDuration == .fourWeeks)
+        #expect(group.disappearingMessageDuration.compactTitle == "4w")
+        #expect(!group.members.isEmpty)
+
+        let rows = [direct, mutedDirect, group].map {
+            $0.row(
+                people: profile.people,
+                currentProfileID: profile.id,
+                now: .now
+            )
+        }
+        #expect(rows.allSatisfy(\.hasDisappearingMessages))
+        #expect(rows[0].disappearingMessageDuration == .oneDay)
+        #expect(rows[1].isMuted)
+        #expect(rows[2].isGroup)
     }
 
     @Test("Developer catalog fixtures cover every renderer without legacy chats")

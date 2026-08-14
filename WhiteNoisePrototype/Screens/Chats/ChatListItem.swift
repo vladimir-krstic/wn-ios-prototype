@@ -116,6 +116,7 @@ struct ChatListItem: Identifiable, Equatable {
     var unreadCount: Int
     var isMarkedUnread: Bool
     var muteDuration: MuteDuration?
+    var disappearingMessageDuration: PrototypeDisappearingMessageDuration
     let isDraft: Bool
     var deliveryState: DeliveryState
 
@@ -136,6 +137,7 @@ struct ChatListItem: Identifiable, Equatable {
         unreadCount: Int,
         isMarkedUnread: Bool = false,
         isMuted: Bool,
+        disappearingMessageDuration: PrototypeDisappearingMessageDuration = .off,
         isDraft: Bool,
         deliveryState: DeliveryState
     ) {
@@ -155,6 +157,7 @@ struct ChatListItem: Identifiable, Equatable {
         self.unreadCount = unreadCount
         self.isMarkedUnread = isMarkedUnread
         self.muteDuration = isMuted ? .always : nil
+        self.disappearingMessageDuration = disappearingMessageDuration
         self.isDraft = isDraft
         self.deliveryState = deliveryState
     }
@@ -165,6 +168,10 @@ struct ChatListItem: Identifiable, Equatable {
 
     var isMuted: Bool {
         muteDuration != nil
+    }
+
+    var hasDisappearingMessages: Bool {
+        disappearingMessageDuration.isEnabled
     }
 
     var hasEndedMembership: Bool {

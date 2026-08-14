@@ -457,6 +457,19 @@ enum PrototypeDisappearingMessageDuration: String, CaseIterable, Identifiable {
         case .fourWeeks: "4 Weeks"
         }
     }
+
+    var compactTitle: String {
+        switch self {
+        case .off: "Off"
+        case .oneDay: "1d"
+        case .oneWeek: "1w"
+        case .fourWeeks: "4w"
+        }
+    }
+
+    var isEnabled: Bool {
+        self != .off
+    }
 }
 
 struct PrototypeChat: Identifiable, Equatable {
@@ -606,6 +619,7 @@ struct PrototypeChat: Identifiable, Equatable {
             unreadCount: listState.unreadCount,
             isMarkedUnread: listState.isMarkedUnread,
             isMuted: listState.muteDuration != nil,
+            disappearingMessageDuration: disappearingMessageDuration,
             isDraft: hasDraft,
             deliveryState: listState.membershipState == .active
                 && previewMessage?.deliveryState == .failed

@@ -166,6 +166,12 @@ struct NativeChatList: UIViewRepresentable {
 
         private static func accessibilityLabel(for chat: ChatListItem) -> String {
             var components = [chat.title]
+            if chat.isMuted {
+                components.append("Muted")
+            }
+            if chat.hasDisappearingMessages {
+                components.append("Disappearing messages on")
+            }
             if let author = chat.visiblePreviewAuthor {
                 components.append("\(author): \(chat.visiblePreview)")
             } else if chat.isDraft && !chat.hasEndedMembership {

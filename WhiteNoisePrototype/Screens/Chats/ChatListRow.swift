@@ -24,6 +24,13 @@ struct ChatListRow: View {
                             .accessibilityLabel("Muted")
                     }
 
+                    if chat.hasDisappearingMessages {
+                        Image(systemName: "timer")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel("Disappearing messages on")
+                    }
+
                     if chat.hasEndedMembership {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
                             .font(.caption)

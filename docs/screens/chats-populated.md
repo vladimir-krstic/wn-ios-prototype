@@ -39,6 +39,11 @@ support native swipe actions.
 - The approved row avatar is a 56-point circle containing either a bundled photorealistic fictional portrait or a one-letter native monogram. SwiftUI has no stock avatar control or avatar size variants; 56 points is the user-approved custom list metric.
 - A pinned chat overlays `pin.fill` on the avatar’s bottom-trailing edge. The compact badge uses caption-two typography, four-point padding, an opaque semantic system-background circle, a thin separator outline, and a slight outward offset. It uses no accent color, translucency, shadow, label, pinned section, title indicator, or trailing timestamp indicator.
 - Titles use semantic headline typography. Previews use semantic subheadline typography and may occupy two lines.
+- An enabled disappearing-message timer adds the secondary `timer` SF Symbol
+  beside the title. It follows the existing mute symbol when both states apply
+  and does not show its duration in the compact list row. The complete shared
+  state and accessibility behavior is defined by
+  [Disappearing-message indicators](disappearing-message-indicators.md).
 - Every preview uses the same regular secondary style, regardless of unread state.
 - Timestamps use semantic caption typography in the title row. The deterministic fixtures cover today’s time, Yesterday, weekday, and calendar-date variants in chronological order.
 - Row separators and disclosure chevrons are hidden to keep the dense status list visually quiet.
@@ -79,7 +84,9 @@ support native swipe actions.
 - Calendar-date fixtures retain deterministic, plausible times of day instead
   of resolving to midnight. White Noise Support retains its stable Thursday
   fixture date, and Contact previews resolve the referenced person's name.
-- Representative rows cover ordinary, unread count, muted, draft, failed, direct-chat, group-chat, and ten distinct attachment-preview treatments.
+- Representative rows cover ordinary, unread count, muted, disappearing-only,
+  muted-and-disappearing, group-disappearing, draft, failed, direct-chat,
+  group-chat, and ten distinct attachment-preview treatments.
 - Maya Chen and Weekend Walks are the only initially pinned chats, keeping the
   complete direct and group showcase conversations immediately reachable.
   Unpinned activity retains its deterministic relative order beneath them.
@@ -283,6 +290,9 @@ They are not platform authority and are not required to implement this screen.
 - Pinning and unpinning close the system swipe presentation, then update directly to the final sorted state with no travelling row, duplicate row, temporary overlap, stacked text, or secondary transition.
 - Pinned state is shown only by the avatar-edge badge; it adds nothing beside the timestamp, title, preview status, or toolbar.
 - Mute presents all five durations; choosing one displays the mute symbol, and Unmute removes it.
+- An enabled disappearing-message timer displays one timer symbol beside the
+  title. The mute and timer symbols remain adjacent when both states apply, and
+  turning the timer off removes only the timer symbol.
 - Leave and Delete require explicit confirmation and Cancel leaves the chat unchanged.
 - Opening Mute, Leave, or Delete keeps the originating swipe actions revealed and dimmed behind the native dialog.
 - Leading and trailing swipes retain the rounded adaptive gray row container and vertically centered system action symbols.
