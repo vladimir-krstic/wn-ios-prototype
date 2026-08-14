@@ -87,6 +87,15 @@ struct ConversationView: View {
         static let separateCluster: CGFloat = 16
     }
 
+    private enum ExpandedComposerMediaLayout {
+        static let canvasHeight: CGFloat = 300
+        static let canvasInset: CGFloat = 6
+        static let verticalMediaInset: CGFloat = 6
+        static let terminalInset: CGFloat = 6
+        static let neighborRoom: CGFloat = 20
+        static let itemSpacing: CGFloat = 8
+    }
+
     private let playback = PrototypePlaybackCoordinator.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
@@ -100,6 +109,7 @@ struct ConversationView: View {
     @State private var isPhotoPickerPresented = false
     @State private var isCameraPresented = false
     @State private var queuedAttachments: [PrototypeAttachment] = []
+    @State private var expandedComposerMediaID: String?
     @State private var suppressedLinkPreviewURL: String?
     @State private var isFileImporterPresented = false
     @State private var isContactPickerPresented = false
@@ -159,6 +169,9 @@ struct ConversationView: View {
         )
         _queuedAttachments = State(
             initialValue: initialChat?.draftAttachments ?? []
+        )
+        _expandedComposerMediaID = State(
+            initialValue: initialChat?.draftAttachments.first?.id
         )
         _suppressedLinkPreviewURL = State(
             initialValue: initialChat?.suppressedDraftLinkURL
@@ -967,6 +980,7 @@ struct ConversationView: View {
                     if composerText.isEmpty {
                         Text("Message")
                             .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 4)
                             .allowsHitTesting(false)
                     }
 
@@ -976,6 +990,7 @@ struct ConversationView: View {
                         isFocused: composerIsFocused,
                         isEnabled: !isComposerInteractionBlocked,
                         sendsWithReturn: settings.returnKeyBehavior == .send,
+                        maximumVisibleLines: composerMaximumVisibleLines,
                         onFocusChange: { composerIsFocused = $0 },
                         onSubmit: send
                     )
@@ -1104,37 +1119,26 @@ struct ConversationView: View {
         }
     }
 
+    @ViewBuilder
     private var queuedAttachmentStrip: some View {
+        if isExpandedVisualMediaComposer {
+            expandedMediaCarousel
+        } else {
+            compactAttachmentShelf
+        }
+    }
+
+    private var compactAttachmentShelf: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 10) {
+            LazyHStack(spacing: 8) {
                 ForEach(queuedAttachments) { attachment in
-                    ZStack(alignment: .topTrailing) {
-                        queuedPreview(attachment)
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(attachment.accessibilityLabel)
-                            .accessibilityIdentifier(
-                                "conversation.attachment.\(attachment.id)"
-                            )
-                        Button {
-                            queuedAttachments.removeAll { $0.id == attachment.id }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, .black)
-                                .frame(minWidth: 44, minHeight: 44)
-                        }
-                        .offset(x: 5, y: -5)
-                        .accessibilityLabel("Remove \(attachment.accessibilityLabel)")
-                        .accessibilityIdentifier(
-                            "conversation.attachment.remove.\(attachment.id)"
-                        )
-                    }
+                    compactAttachmentCard(attachment)
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
+            .padding(.vertical, 8)
         }
+        .frame(height: 88)
         .scrollIndicators(.hidden)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
@@ -1142,18 +1146,316 @@ struct ConversationView: View {
         )
     }
 
+    private var expandedMediaCarousel: some View {
+        GeometryReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .center, spacing: 0) {
+                    ForEach(queuedAttachments) { attachment in
+                        expandedMediaPage(
+                            attachment,
+                            availableSize: proxy.size
+                        )
+                        .id(attachment.id)
+                    }
+                }
+                .scrollTargetLayout()
+                .frame(height: proxy.size.height)
+            }
+            .scrollTargetBehavior(
+                .viewAligned(limitBehavior: .alwaysByOne, anchor: .leading)
+            )
+            .scrollPosition(id: $expandedComposerMediaID, anchor: .leading)
+            .scrollIndicators(.hidden)
+        }
+        .frame(height: ExpandedComposerMediaLayout.canvasHeight)
+        .background(.black, in: .rect(cornerRadius: 16))
+        .clipShape(.rect(cornerRadius: 16))
+        .padding(ExpandedComposerMediaLayout.canvasInset)
+        .onAppear {
+            normalizeExpandedComposerMediaSelection()
+        }
+        .onChange(of: queuedAttachments.map(\.id)) { _, _ in
+            normalizeExpandedComposerMediaSelection()
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            "\(queuedAttachments.count) media item\(queuedAttachments.count == 1 ? "" : "s") ready to send"
+        )
+    }
+
+    private func compactAttachmentCard(
+        _ attachment: PrototypeAttachment
+    ) -> some View {
+        ZStack(alignment: .topTrailing) {
+            compactAttachmentContent(attachment)
+
+            PrototypeComposerRemoveButton(
+                accessibilityLabel: "Remove \(attachment.accessibilityLabel)",
+                accessibilityIdentifier: "conversation.attachment.remove.\(attachment.id)"
+            ) {
+                removeQueuedAttachment(attachment)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func compactAttachmentContent(
+        _ attachment: PrototypeAttachment
+    ) -> some View {
+        if composerIsFocused && isVisualMedia(attachment) {
+            Button {
+                expandedComposerMediaID = attachment.id
+                composerIsFocused = false
+            } label: {
+                queuedPreview(attachment)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                "Show large preview, \(attachment.accessibilityLabel)"
+            )
+            .accessibilityIdentifier(
+                "conversation.attachment.\(attachment.id)"
+            )
+        } else {
+            queuedPreview(attachment)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(attachment.accessibilityLabel)
+                .accessibilityIdentifier(
+                    "conversation.attachment.\(attachment.id)"
+                )
+        }
+    }
+
+    private func expandedMediaCard(
+        _ attachment: PrototypeAttachment
+    ) -> some View {
+        ZStack(alignment: .topTrailing) {
+            expandedMediaPreview(attachment)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(attachment.accessibilityLabel)
+                .accessibilityIdentifier(
+                    "conversation.attachment.\(attachment.id)"
+                )
+
+            PrototypeComposerRemoveButton(
+                accessibilityLabel: "Remove \(attachment.accessibilityLabel)",
+                accessibilityIdentifier: "conversation.attachment.remove.\(attachment.id)"
+            ) {
+                removeQueuedAttachment(attachment)
+            }
+        }
+    }
+
+    private func expandedMediaPage(
+        _ attachment: PrototypeAttachment,
+        availableSize: CGSize
+    ) -> some View {
+        let size = expandedMediaSize(
+            for: attachment,
+            availableSize: availableSize
+        )
+        let leadingOffset = expandedMediaLeadingOffset(
+            for: attachment,
+            mediaWidth: size.width,
+            availableWidth: availableSize.width
+        )
+        let targetWidth = expandedMediaTargetWidth(
+            for: attachment,
+            size: size,
+            leadingOffset: leadingOffset,
+            availableSize: availableSize
+        )
+        return expandedMediaCard(attachment)
+            .frame(width: size.width, height: size.height)
+            .offset(x: leadingOffset)
+            .frame(
+                width: targetWidth,
+                height: availableSize.height,
+                alignment: .leading
+            )
+    }
+
+    private func expandedMediaSize(
+        for attachment: PrototypeAttachment,
+        availableSize: CGSize
+    ) -> CGSize {
+        let ratio = composerMediaAspectRatio(for: attachment)
+        let neighborCount = expandedMediaNeighborCount(for: attachment)
+        let terminalInsetCount = expandedMediaTerminalInsetCount(
+            for: attachment
+        )
+        let maximumWidth = max(
+            1,
+            availableSize.width
+                - (CGFloat(neighborCount)
+                    * ExpandedComposerMediaLayout.neighborRoom)
+                - (CGFloat(terminalInsetCount)
+                    * ExpandedComposerMediaLayout.terminalInset)
+        )
+        let maximumHeight = max(
+            1,
+            availableSize.height
+                - (ExpandedComposerMediaLayout.verticalMediaInset * 2)
+        )
+
+        if maximumWidth / maximumHeight > ratio {
+            return CGSize(width: maximumHeight * ratio, height: maximumHeight)
+        }
+        return CGSize(width: maximumWidth, height: maximumWidth / ratio)
+    }
+
+    private func expandedMediaNeighborCount(
+        for attachment: PrototypeAttachment
+    ) -> Int {
+        guard queuedAttachments.count > 1 else { return 0 }
+        var count = 2
+        if attachment.id == queuedAttachments.first?.id { count -= 1 }
+        if attachment.id == queuedAttachments.last?.id { count -= 1 }
+        return count
+    }
+
+    private func expandedMediaTerminalInsetCount(
+        for attachment: PrototypeAttachment
+    ) -> Int {
+        guard queuedAttachments.count > 1 else { return 2 }
+        if attachment.id == queuedAttachments.first?.id { return 1 }
+        if attachment.id == queuedAttachments.last?.id { return 1 }
+        return 0
+    }
+
+    private func expandedMediaLeadingOffset(
+        for attachment: PrototypeAttachment,
+        mediaWidth: CGFloat,
+        availableWidth: CGFloat
+    ) -> CGFloat {
+        let remainingWidth = max(0, availableWidth - mediaWidth)
+        guard queuedAttachments.count > 1 else {
+            return remainingWidth / 2
+        }
+        if attachment.id == queuedAttachments.first?.id {
+            return ExpandedComposerMediaLayout.terminalInset
+        }
+        if attachment.id == queuedAttachments.last?.id {
+            return remainingWidth - ExpandedComposerMediaLayout.terminalInset
+        }
+        return remainingWidth / 2
+    }
+
+    private func expandedMediaTargetWidth(
+        for attachment: PrototypeAttachment,
+        size: CGSize,
+        leadingOffset: CGFloat,
+        availableSize: CGSize
+    ) -> CGFloat {
+        guard let attachmentIndex = queuedAttachments.firstIndex(
+            where: { $0.id == attachment.id }
+        ) else {
+            return availableSize.width
+        }
+        let nextIndex = queuedAttachments.index(after: attachmentIndex)
+        guard queuedAttachments.indices.contains(nextIndex) else {
+            return availableSize.width
+        }
+
+        let nextAttachment = queuedAttachments[nextIndex]
+        let nextSize = expandedMediaSize(
+            for: nextAttachment,
+            availableSize: availableSize
+        )
+        let nextLeadingOffset = expandedMediaLeadingOffset(
+            for: nextAttachment,
+            mediaWidth: nextSize.width,
+            availableWidth: availableSize.width
+        )
+        return max(
+            1,
+            leadingOffset
+                + size.width
+                + ExpandedComposerMediaLayout.itemSpacing
+                - nextLeadingOffset
+        )
+    }
+
+    private func removeQueuedAttachment(_ attachment: PrototypeAttachment) {
+        let removedIndex = queuedAttachments.firstIndex { $0.id == attachment.id }
+        queuedAttachments.removeAll { $0.id == attachment.id }
+
+        guard expandedComposerMediaID == attachment.id else { return }
+        guard let removedIndex, !queuedAttachments.isEmpty else {
+            expandedComposerMediaID = nil
+            return
+        }
+        expandedComposerMediaID = queuedAttachments[
+            min(removedIndex, queuedAttachments.count - 1)
+        ].id
+    }
+
+    private func normalizeExpandedComposerMediaSelection() {
+        if let expandedComposerMediaID,
+           queuedAttachments.contains(where: { $0.id == expandedComposerMediaID }) {
+            return
+        }
+        expandedComposerMediaID = queuedAttachments.first?.id
+    }
+
+    private var isExpandedVisualMediaComposer: Bool {
+        !composerIsFocused
+            && !queuedAttachments.isEmpty
+            && queuedAttachments.allSatisfy { isVisualMedia($0) }
+    }
+
+    private var composerMaximumVisibleLines: Int {
+        if isExpandedVisualMediaComposer { return 3 }
+        return queuedAttachments.isEmpty ? 10 : 6
+    }
+
+    private func isVisualMedia(_ attachment: PrototypeAttachment) -> Bool {
+        switch attachment {
+        case .photo, .video, .gif: true
+        case .file, .voice, .link, .contact: false
+        }
+    }
+
+    private func composerMediaAspectRatio(
+        for attachment: PrototypeAttachment
+    ) -> CGFloat {
+        let ratio: Double?
+        switch attachment {
+        case .photo, .video:
+            ratio = attachment.prototypeMediaDimensions?.aspectRatio
+        case let .gif(_, assetName, _):
+            if let size = UIImage(named: assetName)?.size, size.height > 0 {
+                ratio = Double(size.width / size.height)
+            } else {
+                ratio = nil
+            }
+        case .file, .voice, .link, .contact:
+            ratio = nil
+        }
+
+        guard let ratio, ratio.isFinite, ratio > 0 else { return 1 }
+        return CGFloat(ratio)
+    }
+
     @ViewBuilder
     private func queuedPreview(_ attachment: PrototypeAttachment) -> some View {
         switch attachment {
         case let .photo(_, source, _, _):
-            PrototypeImageSourceView(source: source).scaledToFill()
-                .frame(width: 72, height: 72).clipShape(.rect(cornerRadius: 10))
+            PrototypeImageSourceView(source: source)
+                .scaledToFill()
+                .frame(width: 72, height: 72)
+                .clipShape(.rect(cornerRadius: 10))
         case let .video(_, _, thumbnail, _, _):
             ZStack {
-                PrototypeImageSourceView(source: thumbnail).scaledToFill()
-                Image(systemName: "play.circle.fill").foregroundStyle(.white)
+                PrototypeImageSourceView(source: thumbnail)
+                    .scaledToFill()
+                Image(systemName: "play.circle.fill")
+                    .foregroundStyle(.white)
+                    .shadow(radius: 1)
             }
-            .frame(width: 72, height: 72).clipShape(.rect(cornerRadius: 10))
+            .frame(width: 72, height: 72)
+            .clipShape(.rect(cornerRadius: 10))
         case let .file(_, name, _, _):
             VStack(spacing: 5) {
                 Image(systemName: "doc")
@@ -1204,12 +1506,7 @@ struct ConversationView: View {
                 Image(assetName)
                     .resizable()
                     .scaledToFill()
-                Text("GIF")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(.black.opacity(0.6), in: .capsule)
+                composerGIFStamp
                     .padding(5)
             }
             .frame(width: 72, height: 72)
@@ -1232,6 +1529,51 @@ struct ConversationView: View {
         }
     }
 
+    @ViewBuilder
+    private func expandedMediaPreview(
+        _ attachment: PrototypeAttachment
+    ) -> some View {
+        switch attachment {
+        case let .photo(_, source, _, _):
+            PrototypeImageSourceView(source: source)
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipShape(.rect(cornerRadius: 14))
+        case let .video(_, _, thumbnail, _, _):
+            PrototypeImageSourceView(source: thumbnail)
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title)
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                }
+                .clipShape(.rect(cornerRadius: 14))
+        case let .gif(_, assetName, _):
+            Image(assetName)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .bottomLeading) {
+                    composerGIFStamp
+                        .padding(8)
+                }
+                .clipShape(.rect(cornerRadius: 14))
+        case .file, .voice, .link, .contact:
+            queuedPreview(attachment)
+        }
+    }
+
+    private var composerGIFStamp: some View {
+        Text("GIF")
+            .font(.caption2.bold())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(.black.opacity(0.68), in: .capsule)
+    }
+
     private func replyComposerQuote(_ replyID: String) -> some View {
         let target = chat.messages.first { $0.id == replyID }
         return HStack(spacing: 10) {
@@ -1247,17 +1589,7 @@ struct ConversationView: View {
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
 
-            Spacer()
-
-            Button {
-                updateChat { $0.replyToMessageID = nil }
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(.circle)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Cancel Reply")
+            Spacer(minLength: 44)
         }
         .padding(.leading, 10)
         .padding(.trailing, 2)
@@ -1266,6 +1598,14 @@ struct ConversationView: View {
             Color(uiColor: .secondarySystemFill),
             in: .rect(cornerRadius: 12)
         )
+        .overlay(alignment: .topTrailing) {
+            PrototypeComposerRemoveButton(
+                accessibilityLabel: "Cancel Reply",
+                accessibilityIdentifier: "conversation.reply.cancel"
+            ) {
+                updateChat { $0.replyToMessageID = nil }
+            }
+        }
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 8)
         .padding(.top, 8)
@@ -1619,6 +1959,7 @@ struct ConversationView: View {
             )
         }
         queuedAttachments.removeAll()
+        expandedComposerMediaID = nil
         updateChat { $0.appendMessage(authorID: profile.id, text: text, attachments: attachments) }
         composerText = ""
         suppressedLinkPreviewURL = nil

@@ -1,4 +1,3 @@
-import LinkPresentation
 import SwiftUI
 import UIKit
 
@@ -8,78 +7,63 @@ struct PrototypeComposerLinkPreviewView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            PrototypeNativeLinkPreview(preview: preview)
-                .allowsHitTesting(false)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Link preview, \(preview.title), \(preview.domain)")
-                .accessibilityIdentifier("conversation.link-preview")
+            HStack(spacing: 10) {
+                artwork
 
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, .black)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(.circle)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(preview.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+
+                    Text(preview.domain)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, 28)
             }
-            .buttonStyle(.plain)
-            .offset(x: 5, y: -5)
-            .accessibilityLabel("Remove Link Preview")
-            .accessibilityIdentifier("conversation.link-preview.remove")
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                Color(uiColor: .secondarySystemFill),
+                in: .rect(cornerRadius: 14)
+            )
+            .allowsHitTesting(false)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Link preview, \(preview.title), \(preview.domain)")
+            .accessibilityIdentifier("conversation.link-preview")
+
+            PrototypeComposerRemoveButton(
+                accessibilityLabel: "Remove Link Preview",
+                accessibilityIdentifier: "conversation.link-preview.remove",
+                action: onRemove
+            )
         }
         .padding(.horizontal, 8)
         .padding(.top, 8)
         .padding(.bottom, 4)
     }
-}
 
-@MainActor
-private struct PrototypeNativeLinkPreview: UIViewRepresentable {
-    let preview: PrototypeComposerLinkPreview
-
-    func makeUIView(context: Context) -> LPLinkView {
-        LPLinkView(metadata: metadata)
-    }
-
-    func updateUIView(_ linkView: LPLinkView, context: Context) {
-        linkView.metadata = metadata
-    }
-
-    func sizeThatFits(
-        _ proposal: ProposedViewSize,
-        uiView: LPLinkView,
-        context: Context
-    ) -> CGSize? {
-        guard let width = proposal.width else { return nil }
-        let size = uiView.systemLayoutSizeFitting(
-            CGSize(
-                width: width,
-                height: UIView.layoutFittingCompressedSize.height
-            ),
-            withHorizontalFittingPriority: .required,
-            verticalFittingPriority: .fittingSizeLevel
-        )
-        return CGSize(width: width, height: size.height)
-    }
-
-    private var metadata: LPLinkMetadata {
-        let result = LPLinkMetadata()
-        result.originalURL = preview.url
-        result.url = preview.url
-        result.title = preview.title
-
-        if let image = resolvedImage {
-            result.imageProvider = NSItemProvider(object: image)
+    @ViewBuilder
+    private var artwork: some View {
+        Group {
+            if let image = preview.image {
+                PrototypeImageSourceView(source: image)
+                    .scaledToFill()
+            } else {
+                ZStack {
+                    Color(uiColor: .tertiarySystemFill)
+                    Image(systemName: "link")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
-        return result
-    }
-
-    private var resolvedImage: UIImage? {
-        guard let source = preview.image else { return nil }
-        switch source {
-        case let .asset(name):
-            return UIImage(named: name)
-        case let .data(data):
-            return UIImage(data: data)
-        }
+        .frame(width: 72, height: 72)
+        .clipShape(.rect(cornerRadius: 10))
+        .accessibilityHidden(true)
     }
 }

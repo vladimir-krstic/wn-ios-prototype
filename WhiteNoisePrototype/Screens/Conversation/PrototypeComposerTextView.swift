@@ -9,6 +9,7 @@ struct PrototypeComposerTextView: UIViewRepresentable {
     let isFocused: Bool
     let isEnabled: Bool
     let sendsWithReturn: Bool
+    let maximumVisibleLines: Int
     let onFocusChange: (Bool) -> Void
     let onSubmit: () -> Void
 
@@ -28,9 +29,9 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         textView.showsVerticalScrollIndicator = false
         textView.textContainerInset = UIEdgeInsets(
             top: 10,
-            left: 0,
+            left: 4,
             bottom: 10,
-            right: 0
+            right: 4
         )
         textView.textContainer.lineFragmentPadding = 0
         textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -55,6 +56,11 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         if textView.text != text || context.coordinator.styleSignature != styleSignature {
             applyText(to: textView)
             context.coordinator.styleSignature = styleSignature
+        }
+
+        if context.coordinator.maximumVisibleLines != maximumVisibleLines {
+            context.coordinator.maximumVisibleLines = maximumVisibleLines
+            textView.invalidateIntrinsicContentSize()
         }
 
         if isFocused != textView.isFirstResponder {
@@ -83,7 +89,7 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         )
         let lineHeight = textView.font?.lineHeight
             ?? UIFont.preferredFont(forTextStyle: .body).lineHeight
-        let maximumHeight = (lineHeight * 10)
+        let maximumHeight = (lineHeight * CGFloat(max(1, maximumVisibleLines)))
             + textView.textContainerInset.top
             + textView.textContainerInset.bottom
         let resolvedHeight = min(max(measured.height, 44), maximumHeight)
@@ -164,6 +170,7 @@ struct PrototypeComposerTextView: UIViewRepresentable {
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: PrototypeComposerTextView
         var styleSignature: Int?
+        var maximumVisibleLines: Int?
 
         init(parent: PrototypeComposerTextView) {
             self.parent = parent
