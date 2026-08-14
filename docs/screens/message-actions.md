@@ -11,15 +11,21 @@ one bounded flow.
 
 ## Context presentation and exact copy
 
-- A native 0.2-second `LongPressGesture` on a nondeleted message compresses the
-  pressed message to 95 percent, dismisses the keyboard, gives one impact
-  response, and opens the focused presentation. Cancelling the hold restores
-  the message on the same 0.2-second ease-in-out curve.
+- A nondeleted message uses Signal's deliberate two-phase hold timing: a native
+  `UILongPressGestureRecognizer` bridged through
+  `UIGestureRecognizerRepresentable` must first remain within ten points for
+  0.2 seconds, then the pressed message compresses to 95 percent over 0.2
+  seconds before the focused presentation opens. Cancelling during either
+  phase restores the message on the same ease-in-out curve. This keeps the
+  visible presentation about 0.4 seconds away from touch-down without making
+  transcript scrolling wait for a custom timer.
 - Interactive bubble content keeps two distinct outcomes. A short tap performs
   the content action, including opening a quoted message, media viewer, link,
-  file, person, or playback control. A successful hold takes high priority over
-  those child controls, cancels their tap activation, and opens the owning
-  message's action presentation from every point inside the bubble.
+  file, person, or playback control. The message hold explicitly recognizes
+  alongside pan recognizers so the transcript's native vertical pan can begin
+  directly over a bubble. Movement cancels the pending hold, while a successful
+  stationary hold cancels the child tap and opens the owning message's action
+  presentation from every point inside the bubble.
 - The source message lifts above a regular-material conversation backdrop. Its
   reaction strip sits above it and its action surface sits below it, aligned to
   the message direction. The group shifts within safe margins when the source
@@ -116,8 +122,10 @@ one bounded flow.
   symbols, glass, and rounded edges do not animate as disconnected subviews.
   Reduce Motion replaces scaling, spring, and directional travel with a short
   opacity transition.
-- Long-press movement tolerance remains ten points. A tap continues to perform
-  the message's ordinary action; it never opens the context presentation.
+- Long-press movement tolerance remains ten points. Vertical movement before
+  recognition fails the hold and scrolls the transcript, including when the
+  touch began directly on a bubble. A tap continues to perform the message's
+  ordinary action; it never opens the context presentation.
 
 ## Selection mode
 
@@ -178,9 +186,9 @@ one bounded flow.
 
 - Native SwiftUI `Button`, `Label`, `List`, `NavigationStack`, `TextField`
   search, `ScrollView`, `LazyVGrid`, `safeAreaBar`, `sheet`,
-  `presentationDetents`, `confirmationDialog`, `LongPressGesture`,
-  `highPriorityGesture`, semantic colors/type, SF Symbols, and
-  `sensoryFeedback` own their applicable behavior.
+  `presentationDetents`, `confirmationDialog`,
+  `UIGestureRecognizerRepresentable`, `UILongPressGestureRecognizer`, semantic
+  colors/type, SF Symbols, and `sensoryFeedback` own their applicable behavior.
 - UIKit's public context-menu API owns a preview and a `UIMenu`, but exposes no
   public reaction-bar accessory. iOS also exposes no public system emoji-picker
   controller and doesn't let an app force the emoji keyboard. The user-approved
@@ -213,8 +221,9 @@ one bounded flow.
 
 - [Apple context menus](https://developer.apple.com/design/human-interface-guidelines/context-menus)
 - [UIContextMenuInteraction](https://developer.apple.com/documentation/uikit/uicontextmenuinteraction)
-- [LongPressGesture](https://developer.apple.com/documentation/swiftui/longpressgesture)
-- [highPriorityGesture](https://developer.apple.com/documentation/swiftui/view/highprioritygesture(_:including:))
+- [UIGestureRecognizerRepresentable](https://developer.apple.com/documentation/swiftui/uigesturerecognizerrepresentable)
+- [UILongPressGestureRecognizer](https://developer.apple.com/documentation/uikit/uilongpressgesturerecognizer)
+- [UIGestureRecognizerDelegate](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate)
 - [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
 - [presentationDetents](https://developer.apple.com/documentation/swiftui/view/presentationdetents(_:))
 - [Search modifiers](https://developer.apple.com/documentation/swiftui/view-search)
@@ -226,6 +235,8 @@ one bounded flow.
 - [Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)
 - [General pasteboard](https://developer.apple.com/documentation/uikit/uipasteboard/general)
 - [Signal custom context menu](https://github.com/signalapp/Signal-iOS/tree/main/Signal/src/ViewControllers/ContextMenus/CustomContextMenus)
+- [Signal conversation gesture recognizers](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/ConversationViewController%2BGestureRecognizers.swift)
+- [Signal context-menu interaction](https://github.com/signalapp/Signal-iOS/blob/main/Signal/src/ViewControllers/ContextMenus/CustomContextMenus/ContextMenuInteraction.swift)
 - [Signal reaction picker](https://github.com/signalapp/Signal-iOS/blob/main/Signal/src/ViewControllers/MessageReactionPicker.swift)
 - [Signal emoji sheet](https://github.com/signalapp/Signal-iOS/blob/main/Signal/Emoji/EmojiPickerSheet.swift)
 - [Signal reaction configuration](https://github.com/signalapp/Signal-iOS/blob/main/Signal/Emoji/EmojiReactionPickerConfigViewController.swift)
@@ -237,6 +248,9 @@ one bounded flow.
 
 - Holding any nondeleted message opens the correctly aligned focused preview,
   quick reactions, More Reactions, and exactly the requested actions.
+- Starting a vertical transcript scroll on any part of a message bubble scrolls
+  normally and never opens or visibly starts message actions; the action flow
+  requires an intentional stationary hold through both timing phases.
 - Tapping any interactive quote, media, link, file, person, or playback control
   performs that control's action, while holding the same point opens message
   actions without also performing the tap action.

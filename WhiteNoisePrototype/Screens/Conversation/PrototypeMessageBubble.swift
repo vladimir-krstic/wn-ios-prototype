@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct PrototypeMessageBubble: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -29,15 +30,11 @@ struct PrototypeMessageBubble: View {
     let onSwipeToReply: () -> Void
     let onContextContentFrameChange: (CGRect) -> Void
 
+    @State private var contextPresentationTask: Task<Void, Never>?
     @State private var isContextPressing = false
-    @State private var replySwipeAxis = ReplySwipeAxis.undetermined
     @State private var replySwipeFeedbackTrigger = 0
     @State private var replySwipeIsReady = false
     @State private var replySwipeOffset: CGFloat = 0
-
-    private enum ReplySwipeAxis: Equatable {
-        case undetermined, horizontal, vertical
-    }
 
     private enum ReplySwipeMetrics {
         static let activationOffset: CGFloat = 55
@@ -46,6 +43,12 @@ struct PrototypeMessageBubble: View {
         static let indicatorMovementDivisor: CGFloat = 8
         static let overdragResistance: CGFloat = 6
         static let resetDuration: TimeInterval = 0.2
+    }
+
+    private enum ContextPressMetrics {
+        static let recognitionDuration: TimeInterval = 0.2
+        static let compressionDuration: TimeInterval = 0.2
+        static let maximumMovement: CGFloat = 10
     }
 
     @ViewBuilder
@@ -101,7 +104,14 @@ struct PrototypeMessageBubble: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityIdentifier("message.\(message.id)")
-        .simultaneousGesture(swipeToReplyGesture, including: .all)
+        .gesture(
+            PrototypeMessageReplyPanGesture(
+                isEnabled: isSwipeToReplyEnabled,
+                onChanged: updateReplySwipe,
+                onEnded: finishReplySwipe,
+                onCancelled: { resetReplySwipe(animated: true) }
+            )
+        )
         .sensoryFeedback(
             .impact(weight: .light, intensity: 1),
             trigger: replySwipeFeedbackTrigger
@@ -166,11 +176,13 @@ struct PrototypeMessageBubble: View {
                         )
                 } else if showsFailedDeliveryStatus {
                     failedDeliveryStatus
-                        .onLongPressGesture(
-                            minimumDuration: 0.2,
-                            maximumDistance: 10,
-                            perform: showActionsIfEnabled,
-                            onPressingChanged: updateContextPress
+                        .gesture(
+                            PrototypeMessageContextLongPressGesture(
+                                minimumDuration: ContextPressMetrics.recognitionDuration,
+                                maximumMovement: ContextPressMetrics.maximumMovement,
+                                onRecognized: beginContextPresentation,
+                                onCancelled: cancelContextPresentation
+                            )
                         )
                         .offset(x: replySwipeOffset, y: 18)
                 }
@@ -216,23 +228,10 @@ struct PrototypeMessageBubble: View {
             : ReplySwipeMetrics.indicatorRestingInset
     }
 
-    private var swipeToReplyGesture: some Gesture {
-        DragGesture(minimumDistance: 10, coordinateSpace: .local)
-            .onChanged(updateReplySwipe)
-            .onEnded(finishReplySwipe)
-    }
-
-    private func updateReplySwipe(_ value: DragGesture.Value) {
+    private func updateReplySwipe(_ translation: CGPoint) {
         guard isSwipeToReplyEnabled else { return }
 
-        if replySwipeAxis == .undetermined {
-            replySwipeAxis = abs(value.translation.width) > abs(value.translation.height)
-                ? .horizontal
-                : .vertical
-        }
-        guard replySwipeAxis == .horizontal else { return }
-
-        let semanticOffset = semanticReplyOffset(value.translation.width)
+        let semanticOffset = semanticReplyOffset(translation.x)
         let positiveOffset = max(0, semanticOffset)
         let wasReady = replySwipeIsReady
         replySwipeIsReady = positiveOffset >= ReplySwipeMetrics.activationOffset
@@ -255,11 +254,10 @@ struct PrototypeMessageBubble: View {
             : resistedOffset
     }
 
-    private func finishReplySwipe(_ value: DragGesture.Value) {
+    private func finishReplySwipe(_ translation: CGPoint) {
         let shouldReply = isSwipeToReplyEnabled
-            && replySwipeAxis == .horizontal
             && replySwipeIsReady
-            && semanticReplyOffset(value.translation.width)
+            && semanticReplyOffset(translation.x)
                 >= ReplySwipeMetrics.activationOffset
 
         resetReplySwipe(animated: true)
@@ -271,8 +269,6 @@ struct PrototypeMessageBubble: View {
     }
 
     private func resetReplySwipe(animated: Bool) {
-        replySwipeAxis = .undetermined
-
         let changes = {
             replySwipeOffset = 0
             replySwipeIsReady = false
@@ -295,25 +291,36 @@ struct PrototypeMessageBubble: View {
                     anchor: outgoing ? .trailing : .leading
                 )
                 .animation(
-                    .easeInOut(duration: 0.2),
+                    .easeInOut(duration: ContextPressMetrics.compressionDuration),
                     value: isContextPressing
                 )
-                .onLongPressGesture(
-                    minimumDuration: 0.2,
-                    maximumDistance: 10,
-                    perform: {},
-                    onPressingChanged: updateContextPress
-                )
-                .highPriorityGesture(
-                    LongPressGesture(
-                        minimumDuration: 0.2,
-                        maximumDistance: 10
+                .gesture(
+                    PrototypeMessageContextLongPressGesture(
+                        minimumDuration: ContextPressMetrics.recognitionDuration,
+                        maximumMovement: ContextPressMetrics.maximumMovement,
+                        onRecognized: beginContextPresentation,
+                        onCancelled: cancelContextPresentation
                     )
-                    .onEnded { _ in showActionsIfEnabled() },
-                    including: .all
                 )
         } else {
             bubbleContent
+        }
+    }
+
+    private func beginContextPresentation() {
+        guard isContextInteractionEnabled, !message.isDeleted else { return }
+
+        contextPresentationTask?.cancel()
+        isContextPressing = true
+        contextPresentationTask = Task { @MainActor in
+            try? await Task.sleep(
+                for: .seconds(ContextPressMetrics.compressionDuration)
+            )
+            guard !Task.isCancelled else { return }
+
+            contextPresentationTask = nil
+            isContextPressing = false
+            showActionsIfEnabled()
         }
     }
 
@@ -322,10 +329,10 @@ struct PrototypeMessageBubble: View {
         onShowActions()
     }
 
-    private func updateContextPress(_ isPressing: Bool) {
-        isContextPressing = isPressing
-            && isContextInteractionEnabled
-            && !message.isDeleted
+    private func cancelContextPresentation() {
+        contextPresentationTask?.cancel()
+        contextPresentationTask = nil
+        isContextPressing = false
     }
 
     private var timestamp: some View {
@@ -1159,6 +1166,162 @@ private struct PrototypeAttachmentCollectionView: View {
         case "zip": "archivebox"
         default: "doc"
         }
+    }
+}
+
+private struct PrototypeMessageContextLongPressGesture: UIGestureRecognizerRepresentable {
+    let minimumDuration: TimeInterval
+    let maximumMovement: CGFloat
+    let onRecognized: () -> Void
+    let onCancelled: () -> Void
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var recognitionLocation: CGPoint?
+        var cancelledForMovement = false
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            otherGestureRecognizer is UIPanGestureRecognizer
+        }
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+        let recognizer = UILongPressGestureRecognizer()
+        configure(recognizer, coordinator: context.coordinator)
+        return recognizer
+    }
+
+    func updateUIGestureRecognizer(
+        _ recognizer: UILongPressGestureRecognizer,
+        context: Context
+    ) {
+        configure(recognizer, coordinator: context.coordinator)
+    }
+
+    func handleUIGestureRecognizerAction(
+        _ recognizer: UILongPressGestureRecognizer,
+        context: Context
+    ) {
+        switch recognizer.state {
+        case .began:
+            context.coordinator.recognitionLocation = recognizer.location(in: recognizer.view)
+            context.coordinator.cancelledForMovement = false
+            onRecognized()
+
+        case .changed:
+            guard !context.coordinator.cancelledForMovement,
+                  let recognitionLocation = context.coordinator.recognitionLocation
+            else { return }
+
+            let location = recognizer.location(in: recognizer.view)
+            let movement = hypot(
+                location.x - recognitionLocation.x,
+                location.y - recognitionLocation.y
+            )
+            guard movement > maximumMovement else { return }
+
+            context.coordinator.cancelledForMovement = true
+            onCancelled()
+
+        case .ended, .cancelled, .failed:
+            context.coordinator.recognitionLocation = nil
+            context.coordinator.cancelledForMovement = false
+            onCancelled()
+
+        case .possible:
+            break
+
+        @unknown default:
+            onCancelled()
+        }
+    }
+
+    private func configure(
+        _ recognizer: UILongPressGestureRecognizer,
+        coordinator: Coordinator
+    ) {
+        recognizer.minimumPressDuration = minimumDuration
+        recognizer.allowableMovement = maximumMovement
+        recognizer.cancelsTouchesInView = true
+        recognizer.delegate = coordinator
+    }
+}
+
+private struct PrototypeMessageReplyPanGesture: UIGestureRecognizerRepresentable {
+    let isEnabled: Bool
+    let onChanged: (CGPoint) -> Void
+    let onEnded: (CGPoint) -> Void
+    let onCancelled: () -> Void
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var isEnabled = true
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard isEnabled,
+                  let panGestureRecognizer = gestureRecognizer as? UIPanGestureRecognizer
+            else { return false }
+
+            let velocity = panGestureRecognizer.velocity(in: panGestureRecognizer.view)
+            return abs(velocity.x) > abs(velocity.y)
+        }
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let recognizer = UIPanGestureRecognizer()
+        recognizer.maximumNumberOfTouches = 1
+        recognizer.cancelsTouchesInView = true
+        configure(recognizer, coordinator: context.coordinator)
+        return recognizer
+    }
+
+    func updateUIGestureRecognizer(
+        _ recognizer: UIPanGestureRecognizer,
+        context: Context
+    ) {
+        configure(recognizer, coordinator: context.coordinator)
+    }
+
+    func handleUIGestureRecognizerAction(
+        _ recognizer: UIPanGestureRecognizer,
+        context: Context
+    ) {
+        let translation = recognizer.translation(in: recognizer.view)
+
+        switch recognizer.state {
+        case .began, .changed:
+            onChanged(translation)
+
+        case .ended:
+            onEnded(translation)
+
+        case .cancelled, .failed:
+            onCancelled()
+
+        case .possible:
+            break
+
+        @unknown default:
+            onCancelled()
+        }
+    }
+
+    private func configure(
+        _ recognizer: UIPanGestureRecognizer,
+        coordinator: Coordinator
+    ) {
+        coordinator.isEnabled = isEnabled
+        recognizer.delegate = coordinator
+        recognizer.isEnabled = isEnabled
     }
 }
 

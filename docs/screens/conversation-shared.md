@@ -95,8 +95,12 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 - Signal's current iOS message component and conversation pan recognizer are
   bounded comparison evidence for that threshold, direction lock, feedback,
   elastic reveal, and reset. White Noise recreates the behavior with an
-  original SwiftUI `DragGesture`; it does not copy or port Signal source. The
-  user-approved visual difference is the filled SF Symbol
+  original `UIPanGestureRecognizer` bridged through
+  `UIGestureRecognizerRepresentable`; it does not copy or port Signal source.
+  Its delegate rejects vertical-dominant movement while the recognizer is still
+  possible, before the reply pan can claim the touch, so the transcript's
+  native vertical scroll recognizer remains the owner. The user-approved visual
+  difference is the filled SF Symbol
   `arrowshape.turn.up.left.fill` rather than Signal's outlined reply asset. It
   retains the semantic secondary-gray foreground before and after activation,
   following the user-supplied Apple Messages reference; threshold scale and
@@ -428,10 +432,12 @@ Apple's default full-screen camera treatment is an explicit user-approved
 presentation choice; the standard sheet still owns all geometry and dismissal
 behavior.
 Apple also does not provide a message-level swipe-to-reply control for a custom
-conversation timeline. The user-approved Signal-informed `DragGesture` is a
-bounded custom exception. Direct manipulation remains visible during the drag;
-Reduce Motion removes the threshold scale animation, and the existing Reply
-command and accessibility action provide equivalent explicit activation.
+conversation timeline. The user-approved Signal-informed, direction-gated
+`UIPanGestureRecognizer` is a bounded custom exception exposed to SwiftUI only
+through Apple's public `UIGestureRecognizerRepresentable`. Direct manipulation
+remains visible during the drag; Reduce Motion removes the threshold scale
+animation, and the existing Reply command and accessibility action provide
+equivalent explicit activation.
 The unified media viewer's 32-point interpage gutter is an explicit
 user-approved custom spacing value shared with the composer media preview; it
 does not inset a settled page.
@@ -469,6 +475,9 @@ download, remote lookup, or attribution request.
 - [onLongPressGesture](https://developer.apple.com/documentation/swiftui/view/onlongpressgesture(minimumduration:maximumdistance:perform:onpressingchanged:))
 - [DragGesture](https://developer.apple.com/documentation/swiftui/draggesture)
 - [simultaneousGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/simultaneousgesture(_:including:))
+- [UIGestureRecognizerRepresentable](https://developer.apple.com/documentation/swiftui/uigesturerecognizerrepresentable)
+- [UIPanGestureRecognizer](https://developer.apple.com/documentation/uikit/uipangesturerecognizer)
+- [gestureRecognizerShouldBegin(_:)](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate/gesturerecognizershouldbegin(_:))
 - [lineLimit](https://developer.apple.com/documentation/swiftui/view/linelimit(_:reservesspace:))
 - [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview)
 - [defaultScrollAnchor](https://developer.apple.com/documentation/swiftui/view/defaultscrollanchor(_:for:))

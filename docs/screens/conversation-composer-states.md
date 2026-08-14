@@ -71,37 +71,46 @@ selection states remain part of the shared composer flow.
 - Only the compact composer's measured footprint participates in transcript
   layout. Ordinary compact growth while typing new lines continues to reserve
   more room and move the transcript as it does today. Direct manipulation and
-  the expanded resting state instead layer that same composer upward over the
-  transcript, so message bubbles remain stationary during the pull and can
-  scroll beneath the expanded surface. This follows SwiftUI's overlay layout
-  model: the compact reservation remains the dominant layout view while the
-  expanded composer is foreground content. The real composer, not a visual
-  overflow from the compact bar, owns its complete foreground rectangle for hit
-  testing. A touch that begins anywhere inside the visible composer therefore
-  manipulates the composer or one of its controls and never scrolls, selects, or
-  activates the covered transcript. The compact editor-height observation that
-  keeps the newest message visible runs only while the composer is resting in
-  compact layout; direct manipulation and settling never issue transcript scroll
-  requests from the editor's changing presentation height. Continuous expansion
-  state belongs to the bounded foreground composer container rather than the
-  conversation screen, so drag samples invalidate only the composer subtree and
-  never rebuild the timeline, toolbar, or presentation modifiers.
+  spring settling layer that same composer upward. Expansion captures whether
+  the transcript's bottom marker was visible before the first movement and
+  holds that decision through the complete presentation. When the transcript
+  begins at the bottom, its viewport translates upward by the exact composer
+  travel, preserving the compact gap from the newest bubble without issuing
+  per-frame scroll requests. When expansion begins higher in history, the
+  transcript remains fixed instead. An adaptive `systemBackground` backing in
+  the same rounded shape fades in directly beneath the glass with expansion
+  progress, preventing covered bubbles from reducing editor contrast while
+  preserving the glass surface above it. The main regular-glass field
+  owns one explicit rectangular interaction shape and one high-priority SwiftUI
+  pull throughout its visible bounds, including over the bridged `UITextView`
+  and nested controls. There is no second editor-pan expansion driver. A pull
+  therefore has one source of translation and endpoint settling in both
+  directions. Taps still reach the editor and controls.
+  Inline and pinned date pills remain structurally present but are visually and
+  accessibly hidden from the first expansion movement until collapse settles.
+  The covered transcript is also removed from the accessibility tree for that
+  interval, matching its disabled touch interaction and preventing assistive
+  navigation into content behind the focused composer.
 - Expansion and keyboard focus are independent. With the software keyboard
   visible, the expanded surface fills the available region from 24 points
   below the navigation bar to the keyboard. Hiding the keyboard keeps the
   composer expanded and lets it extend to the bottom safe area; focusing the
   same text view restores the keyboard while keeping the top edge fixed.
   Collapsing never changes keyboard focus. The expanded `UITextView` scrolls
-  vertically within the remaining surface and supports interactive keyboard
-  dismissal without replacing the editor or losing its selection.
+  vertically within the remaining surface without replacing the editor or
+  losing its selection. The glass pull takes precedence over editor scrolling
+  while composer expansion is available; outside taps and the accessibility
+  action remain the keyboard-dismissal routes.
 - Tapping the transcript outside the composer dismisses the keyboard without
   consuming the underlying message interaction. Composer controls, including
   the attachment menu, editor, and Send action, never count as an outside tap
   and therefore do not dismiss the keyboard implicitly. When expanded, the
   empty leading lane above the attachment control is also outside the editor:
   tapping it dismisses the keyboard and returns the composer to its compact
-  state, while pulling there still manipulates the composer and tapping the
-  attachment control still opens its menu.
+  state, while tapping the attachment control still opens its menu. Throughout
+  direct manipulation and settling, the transcript is noninteractive and
+  scrolling beneath the composer is disabled. A drag outside the glass does
+  nothing instead of competing with the composer pull or covered messages.
 - The attachment menu continues to open the public camera flow,
   `PhotosPicker`, file importer, and contact picker.
 - Selected attachments appear in one horizontally scrolling, ordered,
@@ -273,9 +282,13 @@ Comparison sources:
 - [overlay(alignment:content:)](https://developer.apple.com/documentation/swiftui/view/overlay(alignment:content:))
 - [contentShape(_:eoFill:)](https://developer.apple.com/documentation/swiftui/view/contentshape(_:eofill:))
 - [DragGesture](https://developer.apple.com/documentation/swiftui/draggesture)
+- [highPriorityGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/highprioritygesture(_:including:))
 - [interactiveSpring](https://developer.apple.com/documentation/swiftui/animation/interactivespring)
 - [withAnimation(_:completionCriteria:_:completion:)](https://developer.apple.com/documentation/swiftui/withanimation(_:completioncriteria:_:completion:))
 - [simultaneousGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/simultaneousgesture(_:including:))
+- [scrollDisabled(_:)](https://developer.apple.com/documentation/swiftui/view/scrolldisabled(_:))
+- [offset(x:y:)](https://developer.apple.com/documentation/swiftui/view/offset(x:y:))
+- [accessibilityHidden(_:)](https://developer.apple.com/documentation/swiftui/view/accessibilityhidden(_:))
 - [scrollDismissesKeyboard(_:)](https://developer.apple.com/documentation/swiftui/view/scrolldismisseskeyboard(_:))
 - [UITextView](https://developer.apple.com/documentation/uikit/uitextview)
 - [Adjusting layout with the keyboard layout guide](https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide)
@@ -352,20 +365,27 @@ Comparison sources:
   the reported drag position or make the surface oscillate.
 - Compact line growth continues to increase the transcript's reserved bottom
   region. Beginning an expansion pull freezes that compact reservation; the
-  composer grows upward as an overlay and neither the pull nor its settling
-  animation reflows or translates the message bubbles. The expanded composer
-  remains in front while the transcript scrolls underneath it. Every visible
-  point inside that foreground composer blocks hit testing of covered message
-  bubbles; starting a downward pull there cannot scroll the transcript. Pulling
-  or settling also cannot trigger the compact line-growth `scrollTo` path on any
-  animation frame or invalidate the conversation timeline for presentation-only
-  composer geometry.
+  composer grows upward as an overlay. If the bottom marker was visible at the
+  start, the complete transcript viewport translates upward by precisely the
+  same amount throughout the pull and spring. If expansion began higher in
+  history, the transcript remains stationary and the composer's matching
+  adaptive system-background backing fades from clear to opaque beneath its
+  glass. That starting decision cannot change during the presentation. Every
+  visible point inside the main glass field owns the same
+  high-priority pull and blocks covered message bubbles; downward movement
+  collapses rather than scrolling either editor or transcript. Transcript
+  scrolling, message hit testing, and transcript accessibility remain disabled
+  throughout every noncompact presentation. Pulling or settling cannot trigger the compact line-growth
+  `scrollTo` path. Inline and pinned date pills are hidden throughout every
+  noncompact presentation and return only after compact settling completes.
 - Tapping or scrolling the transcript dismisses the keyboard while preserving
   the underlying message interaction. Interacting with any composer control does
   not trigger outside-tap dismissal or change the expansion target mid-animation.
-  In the expanded state, tapping the otherwise empty leading lane above the
-  attachment button dismisses the keyboard and collapses the composer without
-  exposing the transcript below or interfering with a pull that begins there.
+  In the expanded state, tapping outside the glass, including the otherwise
+  empty leading lane above the attachment button, dismisses the keyboard and
+  collapses the composer. A drag beginning outside the glass cannot scroll or
+  activate the transcript, while the attachment button retains its normal menu
+  action.
 - Expanded with the keyboard visible leaves 24 points below the navigation bar
   and ends above the keyboard. Dismissing the keyboard keeps the top edge fixed
   and extends the same composer to the bottom safe area; focusing the text view

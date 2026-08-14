@@ -51,7 +51,7 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         textView.isEditable = isEnabled
         textView.isSelectable = isEnabled
         textView.returnKeyType = sendsWithReturn ? .send : .default
-        textView.keyboardDismissMode = usesAvailableHeight ? .interactive : .none
+        textView.keyboardDismissMode = .none
         textView.showsVerticalScrollIndicator = usesAvailableHeight
         textView.textHighlightAttributes = [
             .foregroundColor: UIColor.label,

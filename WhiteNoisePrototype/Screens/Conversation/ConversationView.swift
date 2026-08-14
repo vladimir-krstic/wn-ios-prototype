@@ -91,6 +91,12 @@ private enum ConversationExpandableComposerLayout {
     static let projectedTravelThreshold: CGFloat = 48
 }
 
+private struct ConversationComposerExpansionInteraction {
+    let isEnabled: Bool
+    let update: (CGFloat) -> Void
+    let finish: (CGFloat) -> Void
+}
+
 private struct ConversationExpandableComposerSurface<
     Transcript: View,
     Composer: View
@@ -100,29 +106,52 @@ private struct ConversationExpandableComposerSurface<
 
     let availableHeight: CGFloat
     let isExpansionEnabled: Bool
-    let transcript: Transcript
-    let composer: (Bool) -> Composer
+    let shouldPushTranscript: Bool
+    let onOutsideTap: () -> Void
+    let transcript: (Bool) -> Transcript
+    let composer: (
+        Bool,
+        Double,
+        ConversationComposerExpansionInteraction
+    ) -> Composer
 
     @State private var compactHeight: CGFloat = 0
     @State private var expansionProgress: CGFloat = 0
     @State private var isSettling = false
+    @State private var pushesTranscriptForPresentation: Bool?
 
     init(
         availableHeight: CGFloat,
         isExpanded: Binding<Bool>,
         isExpansionEnabled: Bool,
-        @ViewBuilder transcript: () -> Transcript,
-        @ViewBuilder composer: @escaping (Bool) -> Composer
+        shouldPushTranscript: Bool,
+        onOutsideTap: @escaping () -> Void,
+        @ViewBuilder transcript: @escaping (Bool) -> Transcript,
+        @ViewBuilder composer: @escaping (
+            Bool,
+            Double,
+            ConversationComposerExpansionInteraction
+        ) -> Composer
     ) {
         self.availableHeight = availableHeight
         _isExpanded = isExpanded
         self.isExpansionEnabled = isExpansionEnabled
-        self.transcript = transcript()
+        self.shouldPushTranscript = shouldPushTranscript
+        self.onOutsideTap = onOutsideTap
+        self.transcript = transcript
         self.composer = composer
     }
 
     var body: some View {
-        transcript
+        transcript(usesFlexibleLayout)
+            .scrollDisabled(usesFlexibleLayout)
+            .allowsHitTesting(!usesFlexibleLayout)
+            .accessibilityHidden(usesFlexibleLayout)
+            .offset(
+                y: pushesTranscriptForPresentation == true
+                    ? -transcriptPushOffset
+                    : 0
+            )
             .safeAreaBar(edge: .bottom, spacing: 0) {
                 compactReservation
             }
@@ -153,9 +182,12 @@ private struct ConversationExpandableComposerSurface<
         GeometryReader { proxy in
             let frame = proxy[bounds]
 
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                    .allowsHitTesting(false)
+            ZStack(alignment: .bottom) {
+                Color.clear
+                    .contentShape(.rect)
+                    .onTapGesture(perform: onOutsideTap)
+                    .allowsHitTesting(usesFlexibleLayout)
+                    .accessibilityHidden(true)
 
                 presentedComposer
             }
@@ -169,7 +201,11 @@ private struct ConversationExpandableComposerSurface<
     }
 
     private var presentedComposer: some View {
-        composer(usesFlexibleLayout)
+        composer(
+            usesFlexibleLayout,
+            transcriptBackingOpacity,
+            expansionInteraction
+        )
             .frame(height: presentationHeight, alignment: .bottom)
             .fixedSize(horizontal: false, vertical: !usesFlexibleLayout)
             .onGeometryChange(for: CGFloat.self) { proxy in
@@ -178,8 +214,6 @@ private struct ConversationExpandableComposerSurface<
                 guard !usesFlexibleLayout else { return }
                 compactHeight = height
             }
-            .contentShape(.rect)
-            .simultaneousGesture(expansionGesture)
     }
 
     private var usesFlexibleLayout: Bool {
@@ -197,6 +231,15 @@ private struct ConversationExpandableComposerSurface<
         max(1, compactHeight)
     }
 
+    private var transcriptPushOffset: CGFloat {
+        (expandedHeight - compactResolvedHeight) * expansionProgress
+    }
+
+    private var transcriptBackingOpacity: Double {
+        guard pushesTranscriptForPresentation == false else { return 0 }
+        return Double(expansionProgress)
+    }
+
     private var expandedHeight: CGFloat {
         max(
             compactResolvedHeight,
@@ -205,47 +248,47 @@ private struct ConversationExpandableComposerSurface<
         )
     }
 
-    private var expansionGesture: some Gesture {
-        DragGesture(
-            minimumDistance:
-                ConversationExpandableComposerLayout.minimumDragDistance,
-            coordinateSpace: .global
+    private var expansionInteraction: ConversationComposerExpansionInteraction {
+        ConversationComposerExpansionInteraction(
+            isEnabled: isExpansionEnabled,
+            update: updateExpansion(translationHeight:),
+            finish: finishExpansion(projectedTravel:)
         )
-            .onChanged { value in
-                guard isExpansionEnabled, !isSettling else { return }
+    }
 
-                let travel = expandedHeight - compactResolvedHeight
-                guard travel > 0 else { return }
-                let startingProgress: CGFloat = isExpanded ? 1 : 0
-                let progress = startingProgress
-                    - (value.translation.height / travel)
+    private func updateExpansion(translationHeight: CGFloat) {
+        guard isExpansionEnabled, !isSettling else { return }
 
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    expansionProgress = min(max(progress, 0), 1)
-                }
-            }
-            .onEnded { value in
-                guard isExpansionEnabled, !isSettling else { return }
+        let travel = expandedHeight - compactResolvedHeight
+        guard travel > 0 else { return }
+        captureTranscriptBehaviorIfNeeded()
+        let startingProgress: CGFloat = isExpanded ? 1 : 0
+        let progress = startingProgress - (translationHeight / travel)
 
-                let projectedTravel = value.predictedEndTranslation.height
-                    - value.translation.height
-                let destination: Bool
-                if projectedTravel
-                    <= -ConversationExpandableComposerLayout
-                        .projectedTravelThreshold {
-                    destination = true
-                } else if projectedTravel
-                    >= ConversationExpandableComposerLayout
-                        .projectedTravelThreshold {
-                    destination = false
-                } else {
-                    destination = expansionProgress >= 0.5
-                }
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            expansionProgress = min(max(progress, 0), 1)
+        }
+    }
 
-                settle(toExpanded: destination, updatesBinding: true)
-            }
+    private func finishExpansion(projectedTravel: CGFloat) {
+        guard isExpansionEnabled, !isSettling else { return }
+
+        let destination: Bool
+        if projectedTravel
+            <= -ConversationExpandableComposerLayout
+                .projectedTravelThreshold {
+            destination = true
+        } else if projectedTravel
+            >= ConversationExpandableComposerLayout
+                .projectedTravelThreshold {
+            destination = false
+        } else {
+            destination = expansionProgress >= 0.5
+        }
+
+        settle(toExpanded: destination, updatesBinding: true)
     }
 
     private func settle(toExpanded expanded: Bool, updatesBinding: Bool) {
@@ -254,9 +297,16 @@ private struct ConversationExpandableComposerSurface<
             isExpanded = expanded
         }
 
+        if expanded || expansionProgress > 0 {
+            captureTranscriptBehaviorIfNeeded()
+        }
+
         if reduceMotion {
             expansionProgress = targetProgress
             isSettling = false
+            if !expanded {
+                pushesTranscriptForPresentation = nil
+            }
             return
         }
 
@@ -269,8 +319,16 @@ private struct ConversationExpandableComposerSurface<
         } completion: {
             if expansionProgress == targetProgress {
                 isSettling = false
+                if !expanded {
+                    pushesTranscriptForPresentation = nil
+                }
             }
         }
+    }
+
+    private func captureTranscriptBehaviorIfNeeded() {
+        guard pushesTranscriptForPresentation == nil else { return }
+        pushesTranscriptForPresentation = shouldPushTranscript
     }
 }
 
@@ -362,6 +420,7 @@ struct ConversationView: View {
     @State private var composerTextHeight: CGFloat = 0
     @State private var composerIsExpanded = false
     @State private var conversationAvailableHeight: CGFloat = 0
+    @State private var isTimelineBottomVisible = true
     @State private var activeTimelineDate: Date?
     @State private var visibleTimelineDateHeaders: Set<Date> = []
     @State private var composerIsFocused = false
@@ -406,13 +465,15 @@ struct ConversationView: View {
         ScrollViewReader { proxy in
             conversationBottomSurface(
                 availableHeight: conversationAvailableHeight
-            ) {
+            ) { hidesDatePills in
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(timelineDays) { day in
                             ConversationDateHeader(date: day.date) { isVisible in
                                 setDateHeader(day.date, isVisible: isVisible)
                             }
+                            .opacity(hidesDatePills ? 0 : 1)
+                            .accessibilityHidden(hidesDatePills)
 
                             ForEach(day.entries) { indexedEntry in
                                 timelineEntry(indexedEntry.entry, at: indexedEntry.index)
@@ -439,10 +500,14 @@ struct ConversationView: View {
                 .scrollIndicators(.hidden)
                 .scrollEdgeEffectStyle(.soft, for: .bottom)
                 .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { identifiers in
+                    if !hidesDatePills {
+                        isTimelineBottomVisible = identifiers.contains(bottomID)
+                    }
                     updateActiveTimelineDate(from: identifiers)
                 }
                 .overlay(alignment: .top) {
-                    if let activeTimelineDate,
+                    if !hidesDatePills,
+                       let activeTimelineDate,
                        !visibleTimelineDateHeaders.contains(activeTimelineDate) {
                         ConversationPinnedDateHeader(date: activeTimelineDate)
                     }
@@ -740,35 +805,35 @@ struct ConversationView: View {
     @ViewBuilder
     private func conversationBottomSurface<Content: View>(
         availableHeight: CGFloat,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: @escaping (Bool) -> Content
     ) -> some View {
         if chat.listState.membershipState == .invited {
-            content()
+            content(false)
                 .safeAreaBar(edge: .bottom, spacing: 0) {
                     invitationActionBar
                 }
         } else if isSelectingMessages {
-            content()
+            content(false)
                 .safeAreaBar(edge: .bottom, spacing: 0) {
                     selectionToolbar
                 }
         } else {
             switch chat.listState.membershipState {
             case .invited:
-                content()
+                content(false)
             case .left:
-                content()
+                content(false)
                     .safeAreaBar(edge: .bottom, spacing: 0) {
                         recoveryView(.left)
                     }
             case .removed:
-                content()
+                content(false)
                     .safeAreaBar(edge: .bottom, spacing: 0) {
                         recoveryView(.removed)
                     }
             case .active:
                 if let recovery = composerRecovery {
-                    content()
+                    content(false)
                         .safeAreaBar(edge: .bottom, spacing: 0) {
                             recoveryView(recovery)
                         }
@@ -778,15 +843,23 @@ struct ConversationView: View {
                         isExpanded: $composerIsExpanded,
                         isExpansionEnabled: !isRecording
                             && !isReviewingVoice
-                            && !isComposerInteractionBlocked
-                    ) {
-                        content()
+                            && !isComposerInteractionBlocked,
+                        shouldPushTranscript: isTimelineBottomVisible,
+                        onOutsideTap: dismissComposerFromOutside
+                    ) { hidesDatePills in
+                        content(hidesDatePills)
                             .simultaneousGesture(
                                 conversationKeyboardDismissTapGesture
                             )
-                    } composer: { usesFlexibleLayout in
+                    } composer: {
+                        usesFlexibleLayout,
+                        transcriptBackingOpacity,
+                        expansionInteraction in
                         composerArea(
-                            usesFlexibleLayout: usesFlexibleLayout
+                            usesFlexibleLayout: usesFlexibleLayout,
+                            transcriptBackingOpacity:
+                                transcriptBackingOpacity,
+                            expansionInteraction: expansionInteraction
                         )
                     }
                 }
@@ -797,10 +870,36 @@ struct ConversationView: View {
     private var conversationKeyboardDismissTapGesture: some Gesture {
         TapGesture()
             .onEnded {
-                guard composerIsFocused, !isAttachmentMenuPresented else {
-                    return
-                }
-                composerIsFocused = false
+                dismissComposerFromOutside()
+            }
+    }
+
+    private func dismissComposerFromOutside() {
+        guard !isAttachmentMenuPresented,
+              composerIsFocused || composerIsExpanded else {
+            return
+        }
+        composerIsFocused = false
+        composerIsExpanded = false
+    }
+
+    private func composerExpansionGesture(
+        _ interaction: ConversationComposerExpansionInteraction
+    ) -> some Gesture {
+        DragGesture(
+            minimumDistance:
+                ConversationExpandableComposerLayout.minimumDragDistance,
+            coordinateSpace: .global
+        )
+            .onChanged { value in
+                interaction.update(value.translation.height)
+            }
+            .onEnded { value in
+                interaction.update(value.translation.height)
+                interaction.finish(
+                    value.predictedEndTranslation.height
+                        - value.translation.height
+                )
             }
     }
 
@@ -1187,17 +1286,29 @@ struct ConversationView: View {
     }
 
     @ViewBuilder
-    private func composerArea(usesFlexibleLayout: Bool) -> some View {
+    private func composerArea(
+        usesFlexibleLayout: Bool,
+        transcriptBackingOpacity: Double,
+        expansionInteraction: ConversationComposerExpansionInteraction
+    ) -> some View {
         VStack(spacing: 0) {
             if mentionQuery != nil, !mentionMatches.isEmpty {
                 mentionSuggestions
             }
 
-            composer(usesFlexibleLayout: usesFlexibleLayout)
+            composer(
+                usesFlexibleLayout: usesFlexibleLayout,
+                transcriptBackingOpacity: transcriptBackingOpacity,
+                expansionInteraction: expansionInteraction
+            )
         }
     }
 
-    private func composer(usesFlexibleLayout: Bool) -> some View {
+    private func composer(
+        usesFlexibleLayout: Bool,
+        transcriptBackingOpacity: Double,
+        expansionInteraction: ConversationComposerExpansionInteraction
+    ) -> some View {
         GlassEffectContainer {
             HStack(alignment: .bottom, spacing: 8) {
                 if isReviewingVoice {
@@ -1212,43 +1323,26 @@ struct ConversationView: View {
                     .accessibilityLabel("Cancel Voice Message")
                     .accessibilityIdentifier("conversation.voice.cancel")
                 } else if !isRecording {
-                    VStack(spacing: 0) {
-                        if usesFlexibleLayout {
-                            Color.clear
-                                .contentShape(.rect)
-                                .onTapGesture {
-                                    composerIsFocused = false
-                                    composerIsExpanded = false
-                                }
-                                .accessibilityHidden(true)
+                    ConversationAttachmentMenuButton(
+                        onCamera: {
+                            presentAttachmentDestination(.camera)
+                        },
+                        onPhotosAndVideos: {
+                            presentAttachmentDestination(.photosAndVideos)
+                        },
+                        onFiles: {
+                            presentAttachmentDestination(.files)
+                        },
+                        onContact: {
+                            presentAttachmentDestination(.contact)
+                        },
+                        onMenuVisibilityChanged: { shown in
+                            attachmentMenuVisibilityDidChange(shown)
                         }
-
-                        ConversationAttachmentMenuButton(
-                            onCamera: {
-                                presentAttachmentDestination(.camera)
-                            },
-                            onPhotosAndVideos: {
-                                presentAttachmentDestination(.photosAndVideos)
-                            },
-                            onFiles: {
-                                presentAttachmentDestination(.files)
-                            },
-                            onContact: {
-                                presentAttachmentDestination(.contact)
-                            },
-                            onMenuVisibilityChanged: { shown in
-                                attachmentMenuVisibilityDidChange(shown)
-                            }
-                        )
-                        .frame(width: 44, height: 44)
-                        .contentShape(.circle)
-                        .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .frame(width: 44)
-                    .frame(
-                        maxHeight: usesFlexibleLayout ? .infinity : nil,
-                        alignment: .bottom
                     )
+                    .frame(width: 44, height: 44)
+                    .contentShape(.circle)
+                    .glassEffect(.regular.interactive(), in: .circle)
                 }
 
                 VStack(spacing: 0) {
@@ -1281,14 +1375,27 @@ struct ConversationView: View {
                         replyComposerQuote(replyID)
                     }
 
-                    composerInputRow(usesFlexibleLayout: usesFlexibleLayout)
+                    composerInputRow(
+                        usesFlexibleLayout: usesFlexibleLayout,
+                        expansionInteraction: expansionInteraction
+                    )
                 }
                 .frame(
                     maxWidth: .infinity,
                     maxHeight: usesFlexibleLayout ? .infinity : nil,
                     alignment: .bottom
                 )
+                .contentShape(.rect)
+                .highPriorityGesture(
+                    composerExpansionGesture(expansionInteraction),
+                    isEnabled: expansionInteraction.isEnabled
+                )
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
+                .background(
+                    Color(uiColor: .systemBackground)
+                        .opacity(transcriptBackingOpacity),
+                    in: .rect(cornerRadius: 22)
+                )
                 .overlay {
                     if isComposerInteractionBlocked {
                         Color.clear
@@ -1313,7 +1420,10 @@ struct ConversationView: View {
     }
 
     @ViewBuilder
-    private func composerInputRow(usesFlexibleLayout: Bool) -> some View {
+    private func composerInputRow(
+        usesFlexibleLayout: Bool,
+        expansionInteraction: ConversationComposerExpansionInteraction
+    ) -> some View {
         HStack(alignment: .bottom, spacing: 4) {
             if isRecording {
                 recordingStatus
