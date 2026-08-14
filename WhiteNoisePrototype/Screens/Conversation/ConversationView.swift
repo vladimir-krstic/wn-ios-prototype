@@ -74,6 +74,206 @@ private struct ConversationPinnedDateHeader: View {
     }
 }
 
+private struct ConversationComposerBarBoundsKey: PreferenceKey {
+    static let defaultValue: Anchor<CGRect>? = nil
+
+    static func reduce(
+        value: inout Anchor<CGRect>?,
+        nextValue: () -> Anchor<CGRect>?
+    ) {
+        value = nextValue() ?? value
+    }
+}
+
+private enum ConversationExpandableComposerLayout {
+    static let expandedTopGap: CGFloat = 24
+    static let minimumDragDistance: CGFloat = 3
+    static let projectedTravelThreshold: CGFloat = 48
+}
+
+private struct ConversationExpandableComposerSurface<
+    Transcript: View,
+    Composer: View
+>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Binding private var isExpanded: Bool
+
+    let availableHeight: CGFloat
+    let isExpansionEnabled: Bool
+    let transcript: Transcript
+    let composer: (Bool) -> Composer
+
+    @State private var compactHeight: CGFloat = 0
+    @State private var expansionProgress: CGFloat = 0
+    @State private var isSettling = false
+
+    init(
+        availableHeight: CGFloat,
+        isExpanded: Binding<Bool>,
+        isExpansionEnabled: Bool,
+        @ViewBuilder transcript: () -> Transcript,
+        @ViewBuilder composer: @escaping (Bool) -> Composer
+    ) {
+        self.availableHeight = availableHeight
+        _isExpanded = isExpanded
+        self.isExpansionEnabled = isExpansionEnabled
+        self.transcript = transcript()
+        self.composer = composer
+    }
+
+    var body: some View {
+        transcript
+            .safeAreaBar(edge: .bottom, spacing: 0) {
+                compactReservation
+            }
+            .overlayPreferenceValue(
+                ConversationComposerBarBoundsKey.self
+            ) { bounds in
+                if let bounds {
+                    foregroundComposer(bounds: bounds)
+                }
+            }
+            .onChange(of: isExpanded) { _, expanded in
+                let targetProgress: CGFloat = expanded ? 1 : 0
+                guard expansionProgress != targetProgress else { return }
+                settle(toExpanded: expanded, updatesBinding: false)
+            }
+    }
+
+    private var compactReservation: some View {
+        Color.clear
+            .frame(height: max(1, compactHeight))
+            .anchorPreference(
+                key: ConversationComposerBarBoundsKey.self,
+                value: .bounds
+            ) { $0 }
+    }
+
+    private func foregroundComposer(bounds: Anchor<CGRect>) -> some View {
+        GeometryReader { proxy in
+            let frame = proxy[bounds]
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                    .allowsHitTesting(false)
+
+                presentedComposer
+            }
+            .frame(
+                width: frame.width,
+                height: max(1, frame.maxY),
+                alignment: .bottom
+            )
+            .offset(x: frame.minX)
+        }
+    }
+
+    private var presentedComposer: some View {
+        composer(usesFlexibleLayout)
+            .frame(height: presentationHeight, alignment: .bottom)
+            .fixedSize(horizontal: false, vertical: !usesFlexibleLayout)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.height
+            } action: { height in
+                guard !usesFlexibleLayout else { return }
+                compactHeight = height
+            }
+            .contentShape(.rect)
+            .simultaneousGesture(expansionGesture)
+    }
+
+    private var usesFlexibleLayout: Bool {
+        isExpansionEnabled
+            && (isExpanded || expansionProgress > 0 || isSettling)
+    }
+
+    private var presentationHeight: CGFloat? {
+        guard usesFlexibleLayout else { return nil }
+        return compactResolvedHeight
+            + ((expandedHeight - compactResolvedHeight) * expansionProgress)
+    }
+
+    private var compactResolvedHeight: CGFloat {
+        max(1, compactHeight)
+    }
+
+    private var expandedHeight: CGFloat {
+        max(
+            compactResolvedHeight,
+            availableHeight
+                - ConversationExpandableComposerLayout.expandedTopGap
+        )
+    }
+
+    private var expansionGesture: some Gesture {
+        DragGesture(
+            minimumDistance:
+                ConversationExpandableComposerLayout.minimumDragDistance,
+            coordinateSpace: .global
+        )
+            .onChanged { value in
+                guard isExpansionEnabled, !isSettling else { return }
+
+                let travel = expandedHeight - compactResolvedHeight
+                guard travel > 0 else { return }
+                let startingProgress: CGFloat = isExpanded ? 1 : 0
+                let progress = startingProgress
+                    - (value.translation.height / travel)
+
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    expansionProgress = min(max(progress, 0), 1)
+                }
+            }
+            .onEnded { value in
+                guard isExpansionEnabled, !isSettling else { return }
+
+                let projectedTravel = value.predictedEndTranslation.height
+                    - value.translation.height
+                let destination: Bool
+                if projectedTravel
+                    <= -ConversationExpandableComposerLayout
+                        .projectedTravelThreshold {
+                    destination = true
+                } else if projectedTravel
+                    >= ConversationExpandableComposerLayout
+                        .projectedTravelThreshold {
+                    destination = false
+                } else {
+                    destination = expansionProgress >= 0.5
+                }
+
+                settle(toExpanded: destination, updatesBinding: true)
+            }
+    }
+
+    private func settle(toExpanded expanded: Bool, updatesBinding: Bool) {
+        let targetProgress: CGFloat = expanded ? 1 : 0
+        if updatesBinding, isExpanded != expanded {
+            isExpanded = expanded
+        }
+
+        if reduceMotion {
+            expansionProgress = targetProgress
+            isSettling = false
+            return
+        }
+
+        isSettling = true
+        withAnimation(
+            .interactiveSpring,
+            completionCriteria: .logicallyComplete
+        ) {
+            expansionProgress = targetProgress
+        } completion: {
+            if expansionProgress == targetProgress {
+                isSettling = false
+            }
+        }
+    }
+}
+
 struct ConversationView: View {
     private let bottomID = "conversation-bottom"
 
@@ -160,6 +360,8 @@ struct ConversationView: View {
     @State private var fileImportTask: Task<Void, Never>?
     @State private var attachmentPresentationTask: Task<Void, Never>?
     @State private var composerTextHeight: CGFloat = 0
+    @State private var composerIsExpanded = false
+    @State private var conversationAvailableHeight: CGFloat = 0
     @State private var activeTimelineDate: Date?
     @State private var visibleTimelineDateHeaders: Set<Date> = []
     @State private var composerIsFocused = false
@@ -202,7 +404,9 @@ struct ConversationView: View {
 
     private var conversation: some View {
         ScrollViewReader { proxy in
-            conversationBottomSurface {
+            conversationBottomSurface(
+                availableHeight: conversationAvailableHeight
+            ) {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(timelineDays) { day in
@@ -291,13 +495,12 @@ struct ConversationView: View {
         .navigationBarBackButtonHidden(isSelectingMessages)
         .toolbar { conversationToolbar }
         .background {
-            ConversationKeyboardDismissInstaller {
-                if composerIsFocused, !isAttachmentMenuPresented {
-                    composerIsFocused = false
-                }
+            ConversationKeyboardLayoutReader { availableHeight in
+                conversationAvailableHeight = availableHeight
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .fullScreenCover(item: $mediaSelection, onDismiss: openPendingMediaMessage) { selection in
+        .sheet(item: $mediaSelection, onDismiss: openPendingMediaMessage) { selection in
             PrototypeMediaViewer(
                 profile: $profile,
                 sourceChatID: chatID,
@@ -536,6 +739,7 @@ struct ConversationView: View {
 
     @ViewBuilder
     private func conversationBottomSurface<Content: View>(
+        availableHeight: CGFloat,
         @ViewBuilder content: () -> Content
     ) -> some View {
         if chat.listState.membershipState == .invited {
@@ -563,12 +767,41 @@ struct ConversationView: View {
                         recoveryView(.removed)
                     }
             case .active:
-                content()
-                    .safeAreaBar(edge: .bottom, spacing: 0) {
-                        composerArea
+                if let recovery = composerRecovery {
+                    content()
+                        .safeAreaBar(edge: .bottom, spacing: 0) {
+                            recoveryView(recovery)
+                        }
+                } else {
+                    ConversationExpandableComposerSurface(
+                        availableHeight: availableHeight,
+                        isExpanded: $composerIsExpanded,
+                        isExpansionEnabled: !isRecording
+                            && !isReviewingVoice
+                            && !isComposerInteractionBlocked
+                    ) {
+                        content()
+                            .simultaneousGesture(
+                                conversationKeyboardDismissTapGesture
+                            )
+                    } composer: { usesFlexibleLayout in
+                        composerArea(
+                            usesFlexibleLayout: usesFlexibleLayout
+                        )
                     }
+                }
             }
         }
+    }
+
+    private var conversationKeyboardDismissTapGesture: some Gesture {
+        TapGesture()
+            .onEnded {
+                guard composerIsFocused, !isAttachmentMenuPresented else {
+                    return
+                }
+                composerIsFocused = false
+            }
     }
 
     @ToolbarContentBuilder
@@ -817,6 +1050,12 @@ struct ConversationView: View {
                 && contextMessageID == nil
                 && chat.listState.membershipState != .invited,
             onShowActions: { showMessageActions(message.id) },
+            isSwipeToReplyEnabled: !message.isDeleted
+                && !isSelectingMessages
+                && contextMessageID == nil
+                && chat.listState.membershipState == .active
+                && composerRecovery == nil,
+            onSwipeToReply: { beginReply(to: message.id) },
             onContextContentFrameChange: { frame in
                 guard reportsContextContentFrame else { return }
                 messageContextContentFrames[message.id] = frame
@@ -948,21 +1187,17 @@ struct ConversationView: View {
     }
 
     @ViewBuilder
-    private var composerArea: some View {
+    private func composerArea(usesFlexibleLayout: Bool) -> some View {
         VStack(spacing: 0) {
             if mentionQuery != nil, !mentionMatches.isEmpty {
                 mentionSuggestions
             }
 
-            if let recovery = composerRecovery {
-                recoveryView(recovery)
-            } else {
-                composer
-            }
+            composer(usesFlexibleLayout: usesFlexibleLayout)
         }
     }
 
-    private var composer: some View {
+    private func composer(usesFlexibleLayout: Bool) -> some View {
         GlassEffectContainer {
             HStack(alignment: .bottom, spacing: 8) {
                 if isReviewingVoice {
@@ -977,26 +1212,43 @@ struct ConversationView: View {
                     .accessibilityLabel("Cancel Voice Message")
                     .accessibilityIdentifier("conversation.voice.cancel")
                 } else if !isRecording {
-                    ConversationAttachmentMenuButton(
-                        onCamera: {
-                            presentAttachmentDestination(.camera)
-                        },
-                        onPhotosAndVideos: {
-                            presentAttachmentDestination(.photosAndVideos)
-                        },
-                        onFiles: {
-                            presentAttachmentDestination(.files)
-                        },
-                        onContact: {
-                            presentAttachmentDestination(.contact)
-                        },
-                        onMenuVisibilityChanged: { shown in
-                            attachmentMenuVisibilityDidChange(shown)
+                    VStack(spacing: 0) {
+                        if usesFlexibleLayout {
+                            Color.clear
+                                .contentShape(.rect)
+                                .onTapGesture {
+                                    composerIsFocused = false
+                                    composerIsExpanded = false
+                                }
+                                .accessibilityHidden(true)
                         }
+
+                        ConversationAttachmentMenuButton(
+                            onCamera: {
+                                presentAttachmentDestination(.camera)
+                            },
+                            onPhotosAndVideos: {
+                                presentAttachmentDestination(.photosAndVideos)
+                            },
+                            onFiles: {
+                                presentAttachmentDestination(.files)
+                            },
+                            onContact: {
+                                presentAttachmentDestination(.contact)
+                            },
+                            onMenuVisibilityChanged: { shown in
+                                attachmentMenuVisibilityDidChange(shown)
+                            }
+                        )
+                        .frame(width: 44, height: 44)
+                        .contentShape(.circle)
+                        .glassEffect(.regular.interactive(), in: .circle)
+                    }
+                    .frame(width: 44)
+                    .frame(
+                        maxHeight: usesFlexibleLayout ? .infinity : nil,
+                        alignment: .bottom
                     )
-                    .frame(width: 44, height: 44)
-                    .contentShape(.circle)
-                    .glassEffect(.regular.interactive(), in: .circle)
                 }
 
                 VStack(spacing: 0) {
@@ -1029,9 +1281,13 @@ struct ConversationView: View {
                         replyComposerQuote(replyID)
                     }
 
-                    composerInputRow
+                    composerInputRow(usesFlexibleLayout: usesFlexibleLayout)
                 }
-                .frame(maxWidth: .infinity)
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: usesFlexibleLayout ? .infinity : nil,
+                    alignment: .bottom
+                )
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
                 .overlay {
                     if isComposerInteractionBlocked {
@@ -1043,13 +1299,21 @@ struct ConversationView: View {
                 }
                 .accessibilityHidden(isComposerInteractionBlocked)
             }
+            .frame(
+                maxHeight: usesFlexibleLayout ? .infinity : nil,
+                alignment: .bottom
+            )
             .padding(.horizontal)
             .padding(.vertical, 6)
         }
+        .frame(
+            maxHeight: usesFlexibleLayout ? .infinity : nil,
+            alignment: .bottom
+        )
     }
 
     @ViewBuilder
-    private var composerInputRow: some View {
+    private func composerInputRow(usesFlexibleLayout: Bool) -> some View {
         HStack(alignment: .bottom, spacing: 4) {
             if isRecording {
                 recordingStatus
@@ -1059,11 +1323,14 @@ struct ConversationView: View {
                     duration: voiceReview.duration
                 )
             } else {
-                ZStack(alignment: .leading) {
+                ZStack(
+                    alignment: usesFlexibleLayout ? .topLeading : .leading
+                ) {
                     if composerText.isEmpty {
                         Text("Message")
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 4)
+                            .padding(.top, usesFlexibleLayout ? 10 : 0)
                             .allowsHitTesting(false)
                     }
 
@@ -1074,20 +1341,49 @@ struct ConversationView: View {
                         isEnabled: !isComposerInteractionBlocked,
                         sendsWithReturn: settings.returnKeyBehavior == .send,
                         maximumVisibleLines: composerMaximumVisibleLines,
+                        usesAvailableHeight: usesFlexibleLayout,
                         onFocusChange: { composerIsFocused = $0 },
                         onSubmit: send
+                    )
+                    .accessibilityActions {
+                        Button(
+                            composerIsExpanded
+                                ? "Collapse Message"
+                                : "Expand Message"
+                        ) {
+                            composerIsExpanded.toggle()
+                        }
+
+                        if composerIsExpanded, composerIsFocused {
+                            Button("Hide Keyboard") {
+                                composerIsFocused = false
+                            }
+                        }
+                    }
+                    .frame(
+                        maxHeight: usesFlexibleLayout ? .infinity : nil,
+                        alignment: .bottom
                     )
                     .onGeometryChange(for: CGFloat.self) { proxy in
                         proxy.size.height
                     } action: { height in
+                        guard !usesFlexibleLayout else { return }
                         composerTextHeight = height
                     }
                 }
+                .frame(
+                    maxHeight: usesFlexibleLayout ? .infinity : nil,
+                    alignment: .bottom
+                )
 
                 trailingComposerControl
             }
         }
-        .frame(minHeight: 44)
+        .frame(
+            minHeight: 44,
+            maxHeight: usesFlexibleLayout ? .infinity : nil,
+            alignment: .bottom
+        )
         .padding(.leading, isReviewingVoice ? 0 : 14)
     }
 
@@ -1817,11 +2113,13 @@ struct ConversationView: View {
         updateChat { $0.appendMessage(authorID: profile.id, text: text, attachments: attachments) }
         composerText = ""
         suppressedLinkPreviewURL = nil
+        composerIsExpanded = false
     }
 
     private func beginVoiceMessage() {
         guard voiceState == .idle else { return }
         playback.stopAll()
+        composerIsExpanded = false
         composerIsFocused = false
         recordingSeconds = 0
         recordingWaveformSamples = []
@@ -2291,94 +2589,80 @@ struct ConversationView: View {
     }
 }
 
-private struct ConversationKeyboardDismissInstaller: UIViewRepresentable {
-    let onDismiss: () -> Void
+@MainActor
+private struct ConversationKeyboardLayoutReader: UIViewRepresentable {
+    let onAvailableHeightChange: (CGFloat) -> Void
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onDismiss: onDismiss)
-    }
-
-    func makeUIView(context: Context) -> WindowObserverView {
-        let view = WindowObserverView()
-        view.isUserInteractionEnabled = false
-        let coordinator = context.coordinator
-        view.onWindowChange = { window in
-            coordinator.install(in: window)
-        }
+    func makeUIView(context: Context) -> ReportingView {
+        let view = ReportingView()
+        view.onAvailableHeightChange = onAvailableHeightChange
         return view
     }
 
-    func updateUIView(_ uiView: WindowObserverView, context: Context) {
-        context.coordinator.onDismiss = onDismiss
-        context.coordinator.install(in: uiView.window)
+    func updateUIView(_ uiView: ReportingView, context: Context) {
+        uiView.onAvailableHeightChange = onAvailableHeightChange
+        uiView.setNeedsLayout()
     }
 
-    static func dismantleUIView(
-        _ uiView: WindowObserverView,
-        coordinator: Coordinator
-    ) {
-        uiView.onWindowChange = nil
-        coordinator.uninstall()
-    }
+    final class ReportingView: UIView {
+        var onAvailableHeightChange: ((CGFloat) -> Void)?
+        private var lastAvailableHeight: CGFloat?
+        private let keyboardProbe = UIView()
 
-    final class WindowObserverView: UIView {
-        var onWindowChange: ((UIWindow?) -> Void)?
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            isUserInteractionEnabled = false
+            backgroundColor = .clear
+            keyboardProbe.translatesAutoresizingMaskIntoConstraints = false
+            keyboardProbe.isUserInteractionEnabled = false
+            keyboardProbe.isHidden = true
+            addSubview(keyboardProbe)
+            NSLayoutConstraint.activate([
+                keyboardProbe.topAnchor.constraint(
+                    equalTo: keyboardLayoutGuide.topAnchor
+                ),
+                keyboardProbe.leadingAnchor.constraint(equalTo: leadingAnchor),
+                keyboardProbe.widthAnchor.constraint(equalToConstant: 0),
+                keyboardProbe.heightAnchor.constraint(equalToConstant: 0),
+            ])
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            onWindowChange?(window)
-        }
-    }
-
-    @MainActor
-    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        var onDismiss: () -> Void
-        weak var installedWindow: UIWindow?
-
-        private lazy var recognizer: UITapGestureRecognizer = {
-            let recognizer = UITapGestureRecognizer(
-                target: self,
-                action: #selector(handleTap)
-            )
-            recognizer.cancelsTouchesInView = false
-            recognizer.delegate = self
-            return recognizer
-        }()
-
-        init(onDismiss: @escaping () -> Void) {
-            self.onDismiss = onDismiss
+            setNeedsLayout()
         }
 
-        func install(in window: UIWindow?) {
-            guard installedWindow !== window else { return }
-            uninstall()
-            window?.addGestureRecognizer(recognizer)
-            installedWindow = window
+        override func safeAreaInsetsDidChange() {
+            super.safeAreaInsetsDidChange()
+            setNeedsLayout()
         }
 
-        func uninstall() {
-            installedWindow?.removeGestureRecognizer(recognizer)
-            installedWindow = nil
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            reportAvailableHeight()
         }
 
-        @objc private func handleTap() {
-            onDismiss()
-        }
+        private func reportAvailableHeight() {
+            guard window != nil, bounds.height > 0 else { return }
 
-        func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
-            shouldReceive touch: UITouch
-        ) -> Bool {
-            var touchedView = touch.view
-            while let view = touchedView {
-                if view is UITextField
-                    || view is UITextView
-                    || view is AttachmentMenuButton {
-                    return false
-                }
-                touchedView = view.superview
+            let keyboardTop = keyboardLayoutGuide.layoutFrame.minY
+            let bottomBoundary = keyboardTop.isFinite && keyboardTop > 0
+                ? min(bounds.height, keyboardTop)
+                : bounds.height - safeAreaInsets.bottom
+            let availableHeight = max(0, bottomBoundary - safeAreaInsets.top)
+            guard lastAvailableHeight.map({ abs($0 - availableHeight) > 0.5 })
+                    ?? true
+            else { return }
+
+            lastAvailableHeight = availableHeight
+            let onChange = onAvailableHeightChange
+            DispatchQueue.main.async {
+                onChange?(availableHeight)
             }
-            return true
         }
     }
 }

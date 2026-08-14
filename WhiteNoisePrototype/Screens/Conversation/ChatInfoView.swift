@@ -638,7 +638,7 @@ private struct ChatInfoSharedContentView: View {
         }
         .navigationTitle(category.rawValue)
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(item: $mediaSelection, onDismiss: openPendingMessage) { selection in
+        .sheet(item: $mediaSelection, onDismiss: openPendingMessage) { selection in
             PrototypeMediaViewer(
                 profile: $profile,
                 sourceChatID: chatID,
@@ -814,7 +814,6 @@ struct PrototypeMediaViewer: View {
     @State private var isShowingSaveError = false
     @State private var isChromeVisible = true
     @State private var isCurrentImageZoomed = false
-    @State private var dismissalOffset: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
@@ -834,30 +833,41 @@ struct PrototypeMediaViewer: View {
 
     var body: some View {
         NavigationStack {
-            TabView(selection: $selectedIndex) {
-                ForEach(Array(selection.items.enumerated()), id: \.element.id) { index, item in
-                    PrototypeSingleMediaView(
-                        attachment: item.attachment,
-                        isSelected: index == selectedIndex,
-                        onZoomStateChange: { isZoomed in
-                            guard index == selectedIndex else { return }
-                            isCurrentImageZoomed = isZoomed
-                        }
-                    )
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: PrototypeMediaPagerLayout.pageSpacing) {
+                    ForEach(
+                        Array(selection.items.enumerated()),
+                        id: \.element.id
+                    ) { index, item in
+                        PrototypeSingleMediaView(
+                            attachment: item.attachment,
+                            isSelected: index == selectedIndex,
+                            onZoomStateChange: { isZoomed in
+                                guard index == selectedIndex else { return }
+                                isCurrentImageZoomed = isZoomed
+                            }
+                        )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .containerRelativeFrame(.horizontal)
                         .accessibilityElement(children: .contain)
-                        .accessibilityLabel(accessibilityLabel(for: item, at: index))
-                        .tag(index)
+                        .accessibilityLabel(
+                            accessibilityLabel(for: item, at: index)
+                        )
+                        .id(index)
+                    }
                 }
+                .scrollTargetLayout()
             }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .background(.black)
-                .offset(y: max(0, dismissalOffset))
+                .scrollIndicators(.hidden)
+                .scrollTargetBehavior(
+                    .viewAligned(limitBehavior: .alwaysByOne, anchor: .center)
+                )
+                .scrollPosition(id: selectedScrollIndex, anchor: .center)
+                .scrollEdgeEffectHidden(true, for: .top)
+                .background(Color(uiColor: .systemBackground))
                 .simultaneousGesture(chromeToggleGesture)
-                .simultaneousGesture(dismissalGesture)
                 .onChange(of: selectedIndex) { _, _ in
                     isCurrentImageZoomed = false
-                    dismissalOffset = 0
                 }
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -883,7 +893,7 @@ struct PrototypeMediaViewer: View {
                                 )
                             )
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.secondary)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -954,10 +964,10 @@ struct PrototypeMediaViewer: View {
                     }
                 }
         }
-        .background(.black)
-        .preferredColorScheme(.dark)
+        .background(Color(uiColor: .systemBackground).ignoresSafeArea())
+        .presentationDetents([.large])
+        .interactiveDismissDisabled(isCurrentImageZoomed)
         .toolbar(isChromeVisible ? .visible : .hidden, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
         .task(id: item.id) {
             preparedMedia = nil
@@ -993,6 +1003,17 @@ struct PrototypeMediaViewer: View {
         selection.items[min(max(selectedIndex, 0), max(selection.items.count - 1, 0))]
     }
 
+    private var selectedScrollIndex: Binding<Int?> {
+        Binding(
+            get: { selectedIndex },
+            set: { index in
+                if let index {
+                    selectedIndex = index
+                }
+            }
+        )
+    }
+
     private var senderName: String {
         if item.senderID == profile.id { return "You" }
         return profile.people.first { $0.id == item.senderID }?.name ?? "Unknown"
@@ -1004,27 +1025,6 @@ struct PrototypeMediaViewer: View {
                 isChromeVisible.toggle()
             }
         }
-    }
-
-    private var dismissalGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                guard !isCurrentImageZoomed,
-                      value.translation.height > 0,
-                      abs(value.translation.height) > abs(value.translation.width)
-                else { return }
-                dismissalOffset = value.translation.height
-            }
-            .onEnded { value in
-                guard dismissalOffset > 0 else { return }
-                if value.translation.height > 120 {
-                    dismiss()
-                } else {
-                    withAnimation(reduceMotion ? nil : .snappy) {
-                        dismissalOffset = 0
-                    }
-                }
-            }
     }
 
     private func accessibilityLabel(for item: PrototypeMediaItem, at index: Int) -> String {

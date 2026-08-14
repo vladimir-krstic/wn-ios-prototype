@@ -80,6 +80,29 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   Signal-informed focused presentation owns quick and full-picker reactions,
   Reply, Forward, Copy, Select, Info, and Delete while standard controls own
   every command and subsequent screen.
+- Every nondeleted message that can currently be replied to also accepts a
+  semantic leading-to-trailing horizontal swipe. Vertical-dominant movement
+  remains timeline scrolling, and right-to-left layout mirrors the reply
+  direction. The message follows the finger while a reply indicator is
+  revealed from beneath its leading edge at one-eighth of that movement. At a
+  55-point threshold the indicator changes to its active treatment and gives
+  one light impact; moving back below the threshold cancels that ready state,
+  while movement beyond it gains one-sixth elastic resistance. Releasing in
+  the ready state returns the message over 0.2 seconds, installs the existing
+  reply quote, and focuses **Message**. Any other release only returns the
+  message. Selection, invitations, unavailable composers, deleted messages,
+  and the focused message-action presentation do not offer the gesture.
+- Signal's current iOS message component and conversation pan recognizer are
+  bounded comparison evidence for that threshold, direction lock, feedback,
+  elastic reveal, and reset. White Noise recreates the behavior with an
+  original SwiftUI `DragGesture`; it does not copy or port Signal source. The
+  user-approved visual difference is the filled SF Symbol
+  `arrowshape.turn.up.left.fill` rather than Signal's outlined reply asset. It
+  retains the semantic secondary-gray foreground before and after activation,
+  following the user-supplied Apple Messages reference; threshold scale and
+  haptic feedback communicate readiness without turning the arrow black. Reply
+  remains available through the named accessibility action and the press-and-
+  hold action presentation, so the gesture is never the only route.
 - Reaction chips use opaque adaptive system surfaces in both appearances;
   current-profile participation uses an opaque `systemGray4` surface rather
   than a translucent overlay. Each visible pill is shadowless and uses a
@@ -122,7 +145,7 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   another third-party runtime dependency.
 - Signal provides bounded comparison evidence for message-content composition:
   reply quotes, reactions attached to their message, media galleries, link
-  previews, mentions, file rows, audio-message controls, and full-screen media
+  previews, mentions, file rows, audio-message controls, and full-height media
   browsing. Those behaviors are reimplemented against the prototype's own
   deterministic models. Signal's AGPL-licensed source is not copied or ported.
   The adopted media conclusions come from its current album and media-page
@@ -237,24 +260,29 @@ retaining the accepted Fiatjaf and White Noise Support stories.
 
 ### Unified media viewer
 
-- Conversation and Chat Info present the same full-screen viewer and the same
-  chronological media index. The index preserves message order followed by
-  attachment order, excludes deleted messages, and excludes unavailable media
-  from paging while leaving those items visible in source bubbles and Shared
-  Media.
-- The viewer uses a black full-screen surface, horizontal paging through every
-  available photo/video in the chat, image pinch/double-tap zoom, native video
-  playback, sender and localized time in top chrome, Share and Forward in the
-  bottom toolbar, and Save plus Go to Message in More. Source-message captions
-  are not repeated over media.
+- Conversation and Chat Info present the same native large-detent sheet and
+  the same chronological media index. The index preserves message order
+  followed by attachment order, excludes deleted messages, and excludes
+  unavailable media from paging while leaving those items visible in source
+  bubbles and Shared Media.
+- The viewer uses the same adaptive system-background surface as the composer
+  media preview, appearing white in Light appearance. Horizontal paging keeps
+  every settled page at the full viewport width and uses the composer
+  preview's same 32-point gutter only between page targets while swiping.
+  Photos and videos retain image pinch/double-tap zoom, native video playback,
+  sender and localized time in top chrome, Share and Forward in the bottom
+  toolbar, and Save plus Go to Message in More. Source-message captions are
+  not repeated over media.
 - The initially selected video autoplays. Paging pauses the prior video and
   resets image zoom; dismissal stops playback. Tapping media toggles chrome.
-  A downward gesture dismisses only from minimum image zoom and outside a page
-  transition or video scrub. Ordinary dismissal preserves the conversation's
-  exact scroll position; Go to Message dismisses and scrolls to the source.
+  SwiftUI owns the sheet's opening, whole-container drag-down interaction, and
+  dismissal transition; the media page never receives a separate vertical
+  dismissal offset. Interactive dismissal is unavailable while an image is
+  zoomed. Ordinary dismissal preserves the conversation's exact scroll
+  position; Go to Message dismisses and scrolls to the source.
 - VoiceOver announces sender, media type, position, timestamp, duration, and
   availability, and provides explicit controls for gesture-only behaviors.
-  Reduced Motion uses the native simple dismissal.
+  Reduced Motion remains governed by the native sheet transition.
 
 - The shared multiline field uses **Message**. Draft text and the pending reply
   remain with their chat through navigation; queued attachments remain ordered
@@ -399,6 +427,14 @@ custom composer. Presenting the camera in a native large sheet instead of
 Apple's default full-screen camera treatment is an explicit user-approved
 presentation choice; the standard sheet still owns all geometry and dismissal
 behavior.
+Apple also does not provide a message-level swipe-to-reply control for a custom
+conversation timeline. The user-approved Signal-informed `DragGesture` is a
+bounded custom exception. Direct manipulation remains visible during the drag;
+Reduce Motion removes the threshold scale animation, and the existing Reply
+command and accessibility action provide equivalent explicit activation.
+The unified media viewer's 32-point interpage gutter is an explicit
+user-approved custom spacing value shared with the composer media preview; it
+does not inset a settled page.
 
 ## Voice asset provenance
 
@@ -431,6 +467,8 @@ download, remote lookup, or attribution request.
 - [Focus](https://developer.apple.com/documentation/swiftui/focus)
 - [LongPressGesture](https://developer.apple.com/documentation/swiftui/longpressgesture)
 - [onLongPressGesture](https://developer.apple.com/documentation/swiftui/view/onlongpressgesture(minimumduration:maximumdistance:perform:onpressingchanged:))
+- [DragGesture](https://developer.apple.com/documentation/swiftui/draggesture)
+- [simultaneousGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/simultaneousgesture(_:including:))
 - [lineLimit](https://developer.apple.com/documentation/swiftui/view/linelimit(_:reservesspace:))
 - [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview)
 - [defaultScrollAnchor](https://developer.apple.com/documentation/swiftui/view/defaultscrollanchor(_:for:))
@@ -449,8 +487,10 @@ download, remote lookup, or attribution request.
 - [ControlSize](https://developer.apple.com/documentation/swiftui/controlsize)
 - [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
 - [sheet](https://developer.apple.com/documentation/swiftui/view/sheet(ispresented:ondismiss:content:))
+- [sheet(item:onDismiss:content:)](https://developer.apple.com/documentation/swiftui/view/sheet(item:ondismiss:content:))
 - [presentationDetents](https://developer.apple.com/documentation/swiftui/view/presentationdetents(_:))
 - [presentationDragIndicator](https://developer.apple.com/documentation/swiftui/view/presentationdragindicator(_:))
+- [interactiveDismissDisabled](https://developer.apple.com/documentation/swiftui/view/interactivedismissdisabled(_:))
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter)
 - [AVCam: Building a camera app](https://developer.apple.com/documentation/avfoundation/avcam-building-a-camera-app)
@@ -475,6 +515,8 @@ download, remote lookup, or attribution request.
 - [Signal date-header component](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/Components/CVComponentDateHeader.swift)
 - [Signal sticky conversation layout](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/ConversationViewLayout.swift)
 - [Signal date formatting](https://github.com/signalapp/Signal-iOS/blob/main/SignalServiceKit/Util/DateUtil.swift)
+- [Signal message swipe action](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/Components/CVComponentMessage.swift)
+- [Signal conversation gesture recognition](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/ConversationViewController%2BGestureRecognizers.swift)
 - [Signal: Troubleshooting sending messages](https://support.signal.org/hc/en-us/articles/360009303072-Troubleshooting-sending-messages)
 - [Signal Desktop English localization](https://github.com/signalapp/Signal-Desktop/blob/main/_locales/en/messages.json)
 
@@ -522,6 +564,13 @@ that interaction split while using the user-approved visible copy above.
   recent weekday, Yesterday, and Today.
 - Sending, drafts, replies, reactions, deletion, retry, search, attachments,
   voice playback, and row previews remain coherent through navigation.
+- Media opened from Conversation or Shared Media appears in the same native
+  large sheet with the composer media preview's adaptive system background.
+  Each settled media page reaches both horizontal viewport edges, while
+  swiping reveals the same 32-point gutter before the next page. Pulling down
+  moves and dismisses the complete sheet as one system-owned surface; the
+  image, toolbar, and bottom controls never separate during dismissal, and a
+  zoomed image cannot dismiss interactively.
 - The resting and one-line typing states have identical composer width and
   height; single-line text is vertically centered; Send replaces waveform
   inside the field; multiline entry preserves the resting corner radius, grows
@@ -537,6 +586,15 @@ that interaction split while using the user-approved visible copy above.
   for options**, left-aligned to the outgoing message text inset, and touching
   and holding the bubble or status exposes **Retry Send** first in the focused
   message-action presentation.
+- Swiping any currently replyable nondeleted message from its semantic leading
+  side tracks the message without blocking vertical scrolling. The filled
+  secondary-gray reply arrow reveals beneath the message, visibly and
+  haptically becomes ready at 55 points, and retains only one sixth of movement
+  beyond that point. Releasing there installs the same pending reply and
+  focused composer as the Reply command.
+  Releasing below the threshold changes no reply state. Right-to-left layout
+  mirrors the gesture, Reduce Motion removes threshold scaling, and explicit
+  Reply actions remain available without the gesture.
 - The attachment control matches the resting field height. Send has a
   six-point visual inset at the top, bottom, and trailing edge. Voice-review
   Play mirrors it at the top, leading, and bottom edge.

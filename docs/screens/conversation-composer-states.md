@@ -51,6 +51,57 @@ selection states remain part of the shared composer flow.
   selection, focus, Return-key behavior, Dynamic Type, and growth up to ten
   visible lines. SwiftUI's ordinary `TextField` remains the default elsewhere,
   but it cannot style a selected range inside editable text.
+- The text composer has exactly two resting heights: compact and expanded, with
+  no persistent expansion handle. The complete composer surface accepts an
+  upward pull to expand and a downward pull to collapse in both keyboard states,
+  including when the draft is empty or one line. While the pull is held, the
+  composer follows the finger continuously between the compact and expanded
+  endpoints. Releasing selects an endpoint from the current position and
+  projected movement, then SwiftUI's native `interactiveSpring` completes the
+  remaining travel with the same interruptible, velocity-aware character used
+  for system direct manipulation. Finger tracking and spring settling drive one
+  continuous numeric expansion progress; changing the semantic resting endpoint
+  never swaps the geometry's base height or clamps away the remaining animated
+  distance. Drag translation is measured in the stable global coordinate space,
+  not in the composer's changing local bounds, so resizing the surface cannot
+  feed back into the finger measurement. The persistent composer does not become
+  a modal `sheet`, because
+  sheet presentation would add modal hierarchy, chrome, and background behavior
+  that do not match an always-available message field.
+- Only the compact composer's measured footprint participates in transcript
+  layout. Ordinary compact growth while typing new lines continues to reserve
+  more room and move the transcript as it does today. Direct manipulation and
+  the expanded resting state instead layer that same composer upward over the
+  transcript, so message bubbles remain stationary during the pull and can
+  scroll beneath the expanded surface. This follows SwiftUI's overlay layout
+  model: the compact reservation remains the dominant layout view while the
+  expanded composer is foreground content. The real composer, not a visual
+  overflow from the compact bar, owns its complete foreground rectangle for hit
+  testing. A touch that begins anywhere inside the visible composer therefore
+  manipulates the composer or one of its controls and never scrolls, selects, or
+  activates the covered transcript. The compact editor-height observation that
+  keeps the newest message visible runs only while the composer is resting in
+  compact layout; direct manipulation and settling never issue transcript scroll
+  requests from the editor's changing presentation height. Continuous expansion
+  state belongs to the bounded foreground composer container rather than the
+  conversation screen, so drag samples invalidate only the composer subtree and
+  never rebuild the timeline, toolbar, or presentation modifiers.
+- Expansion and keyboard focus are independent. With the software keyboard
+  visible, the expanded surface fills the available region from 24 points
+  below the navigation bar to the keyboard. Hiding the keyboard keeps the
+  composer expanded and lets it extend to the bottom safe area; focusing the
+  same text view restores the keyboard while keeping the top edge fixed.
+  Collapsing never changes keyboard focus. The expanded `UITextView` scrolls
+  vertically within the remaining surface and supports interactive keyboard
+  dismissal without replacing the editor or losing its selection.
+- Tapping the transcript outside the composer dismisses the keyboard without
+  consuming the underlying message interaction. Composer controls, including
+  the attachment menu, editor, and Send action, never count as an outside tap
+  and therefore do not dismiss the keyboard implicitly. When expanded, the
+  empty leading lane above the attachment control is also outside the editor:
+  tapping it dismisses the keyboard and returns the composer to its compact
+  state, while pulling there still manipulates the composer and tapping the
+  attachment control still opens its menu.
 - The attachment menu continues to open the public camera flow,
   `PhotosPicker`, file importer, and contact picker.
 - Selected attachments appear in one horizontally scrolling, ordered,
@@ -93,11 +144,13 @@ selection states remain part of the shared composer flow.
   neither system contributes a redundant top surface or separator. The
   explicit close control on each composer preview remains the direct removal
   route outside the viewer.
-- The complete focused composer retains the vertical budget of ten body-text
+- The compact focused composer retains the vertical budget of ten body-text
   lines. When a thumbnail shelf is present, its roughly four-line height is
-  subtracted from that budget, leaving the caption up to six visible lines before
-  it scrolls. The shelf itself has an explicit content height so its horizontal
-  `ScrollView` cannot expand into unused transcript space.
+  subtracted from that budget, leaving the caption up to six visible lines
+  before it scrolls. In the expanded composer, the same fixed shelf remains at
+  the top and the editable caption receives the remaining flexible height. The
+  shelf itself has an explicit content height so its horizontal `ScrollView`
+  cannot expand into unused transcript or editor space.
 - The first eligible `https` URL in a text-only draft produces one deterministic
   compact rich-link preview. Apple’s `LPLinkView` remains the reference for
   metadata semantics, but its public API does not expose the user-approved
@@ -172,6 +225,10 @@ Comparison sources:
 - Captionless and captioned attachment drafts.
 - Compact media shelf with the keyboard both open and closed, plus the modal
   full-screen media viewer.
+- Compact and expanded text composers with the keyboard both open and closed.
+- Expansion committed by an upward composer drag, cancelled by an insufficient
+  drag, and collapsed by a downward composer drag, for empty, one-line, and
+  multiline drafts.
 - Viewer selection unchanged, one or more items staged for exclusion, cancelled
   staged changes, and confirmed staged changes including exclusion of every
   visual item.
@@ -203,13 +260,25 @@ Comparison sources:
   included state.
 - Mention emphasis remains supplemental: the complete `@Name` text is still
   exposed by the native editable-text accessibility element.
+- The composer exposes custom VoiceOver actions named **Expand Message** or
+  **Collapse Message** according to its current endpoint. When expanded and
+  focused, it also exposes **Hide Keyboard**, so the drag is not the only route
+  to either state even though no handle is visible.
 - Link and attachment meaning never relies on color, and standard controls own
   focus, keyboard, and Dynamic Type behavior.
 
 ## Relevant Apple sources
 
 - [safeAreaBar](https://developer.apple.com/documentation/swiftui/view/safeareabar(edge:alignment:spacing:content:))
+- [overlay(alignment:content:)](https://developer.apple.com/documentation/swiftui/view/overlay(alignment:content:))
+- [contentShape(_:eoFill:)](https://developer.apple.com/documentation/swiftui/view/contentshape(_:eofill:))
+- [DragGesture](https://developer.apple.com/documentation/swiftui/draggesture)
+- [interactiveSpring](https://developer.apple.com/documentation/swiftui/animation/interactivespring)
+- [withAnimation(_:completionCriteria:_:completion:)](https://developer.apple.com/documentation/swiftui/withanimation(_:completioncriteria:_:completion:))
+- [simultaneousGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/simultaneousgesture(_:including:))
+- [scrollDismissesKeyboard(_:)](https://developer.apple.com/documentation/swiftui/view/scrolldismisseskeyboard(_:))
 - [UITextView](https://developer.apple.com/documentation/uikit/uitextview)
+- [Adjusting layout with the keyboard layout guide](https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide)
 - [NSAttributedString.TextHighlightStyle](https://developer.apple.com/documentation/foundation/nsattributedstring/texthighlightstyle)
 - [textHighlightAttributes](https://developer.apple.com/documentation/uikit/uitextview/texthighlightattributes)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
@@ -227,6 +296,7 @@ Comparison sources:
 - [LPLinkView](https://developer.apple.com/documentation/linkpresentation/lplinkview)
 - [Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)
 - [Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)
+- [Motion](https://developer.apple.com/design/human-interface-guidelines/motion)
 
 ## Observable acceptance criteria
 
@@ -266,8 +336,41 @@ Comparison sources:
   Its title and actions remain native navigation-bar items without a visible
   bar background or top scroll-edge divider over the otherwise continuous
   screen.
-- Focused media drafts never exceed the ordinary ten-line composer budget: the
-  thumbnail shelf consumes about four lines and the caption can use up to six.
+- Compact focused media drafts never exceed the ordinary ten-line composer
+  budget: the thumbnail shelf consumes about four lines and the caption can use
+  up to six. Expanding keeps the shelf fixed and gives the caption the remaining
+  surface height.
+- No expansion handle is visible. The complete composer surface recognizes the
+  same directional pull for empty, one-line, and multiline drafts at both
+  endpoints and with the keyboard open or closed, tracks the finger continuously
+  while held, and clamps at both endpoints. Releasing chooses the resting
+  endpoint using projected movement and completes the remaining travel with the
+  native interactive spring. Equivalent custom accessibility actions remain
+  available. Releasing at any intermediate height continues from that exact
+  presentation height with no endpoint-state jump, flash, or one-frame clamp.
+  Holding the finger stationary while the composer changes height cannot move
+  the reported drag position or make the surface oscillate.
+- Compact line growth continues to increase the transcript's reserved bottom
+  region. Beginning an expansion pull freezes that compact reservation; the
+  composer grows upward as an overlay and neither the pull nor its settling
+  animation reflows or translates the message bubbles. The expanded composer
+  remains in front while the transcript scrolls underneath it. Every visible
+  point inside that foreground composer blocks hit testing of covered message
+  bubbles; starting a downward pull there cannot scroll the transcript. Pulling
+  or settling also cannot trigger the compact line-growth `scrollTo` path on any
+  animation frame or invalidate the conversation timeline for presentation-only
+  composer geometry.
+- Tapping or scrolling the transcript dismisses the keyboard while preserving
+  the underlying message interaction. Interacting with any composer control does
+  not trigger outside-tap dismissal or change the expansion target mid-animation.
+  In the expanded state, tapping the otherwise empty leading lane above the
+  attachment button dismisses the keyboard and collapses the composer without
+  exposing the transcript below or interfering with a pull that begins there.
+- Expanded with the keyboard visible leaves 24 points below the navigation bar
+  and ends above the keyboard. Dismissing the keyboard keeps the top edge fixed
+  and extends the same composer to the bottom safe area; focusing the text view
+  reverses that change without losing the insertion point or text scroll
+  position. Collapsing does not change keyboard focus.
 - GIF previews show a complete **GIF** stamp in the composer shelf.
 - All close controls use the approved smaller flat appearance and retain the
   same corner inset, press feedback, 44-point hit region, and removal-only

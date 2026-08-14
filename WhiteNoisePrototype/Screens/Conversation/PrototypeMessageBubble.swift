@@ -3,6 +3,7 @@ import SwiftUI
 struct PrototypeMessageBubble: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.incomingPrototypeMessageColor) private var incomingColor
+    @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.outgoingPrototypeMessageColor) private var outgoingColor
     let message: PrototypeMessage
     let outgoing: Bool
@@ -24,9 +25,28 @@ struct PrototypeMessageBubble: View {
     let onOpenFile: (URL) -> Void
     let isContextInteractionEnabled: Bool
     let onShowActions: () -> Void
+    let isSwipeToReplyEnabled: Bool
+    let onSwipeToReply: () -> Void
     let onContextContentFrameChange: (CGRect) -> Void
 
     @State private var isContextPressing = false
+    @State private var replySwipeAxis = ReplySwipeAxis.undetermined
+    @State private var replySwipeFeedbackTrigger = 0
+    @State private var replySwipeIsReady = false
+    @State private var replySwipeOffset: CGFloat = 0
+
+    private enum ReplySwipeAxis: Equatable {
+        case undetermined, horizontal, vertical
+    }
+
+    private enum ReplySwipeMetrics {
+        static let activationOffset: CGFloat = 55
+        static let indicatorRestingInset: CGFloat = 8
+        static let indicatorSize: CGFloat = 34
+        static let indicatorMovementDivisor: CGFloat = 8
+        static let overdragResistance: CGFloat = 6
+        static let resetDuration: TimeInterval = 0.2
+    }
 
     @ViewBuilder
     var body: some View {
@@ -69,6 +89,7 @@ struct PrototypeMessageBubble: View {
                         .leading,
                         PrototypeMessageBubbleMetrics.textHorizontalInset
                     )
+                    .offset(x: replySwipeOffset)
                 }
 
                 decoratedBubble
@@ -80,6 +101,14 @@ struct PrototypeMessageBubble: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityIdentifier("message.\(message.id)")
+        .simultaneousGesture(swipeToReplyGesture, including: .all)
+        .sensoryFeedback(
+            .impact(weight: .light, intensity: 1),
+            trigger: replySwipeFeedbackTrigger
+        )
+        .onChange(of: isSwipeToReplyEnabled) { _, isEnabled in
+            if !isEnabled { resetReplySwipe(animated: false) }
+        }
     }
 
     private var decoratedBubble: some View {
@@ -89,6 +118,18 @@ struct PrototypeMessageBubble: View {
                     shape.stroke(Color.accentColor, lineWidth: 3)
                 }
             }
+            .offset(x: replySwipeOffset)
+            .background(alignment: replyIndicatorAlignment) {
+                replySwipeIndicator
+                    .offset(
+                        x: replyIndicatorRestingOffset
+                            + (replySwipeOffset
+                                / ReplySwipeMetrics.indicatorMovementDivisor)
+                    )
+                    .opacity(
+                        isSwipeToReplyEnabled && abs(replySwipeOffset) > 0 ? 1 : 0
+                    )
+            }
             .overlay(alignment: .bottomLeading) {
                 if isGroup, !outgoing, showsAvatar {
                     PrototypeChatAvatarView(
@@ -96,7 +137,7 @@ struct PrototypeMessageBubble: View {
                         size: 30,
                         publicKey: author?.publicKey
                     )
-                    .offset(x: -37)
+                    .offset(x: -37 + replySwipeOffset)
                 }
             }
             .overlay(alignment: .bottom) {
@@ -106,7 +147,10 @@ struct PrototypeMessageBubble: View {
                             .horizontal,
                             PrototypeMessageBubbleMetrics.reactionEdgeInset
                         )
-                        .offset(y: reactionVerticalOffset)
+                        .offset(
+                            x: replySwipeOffset,
+                            y: reactionVerticalOffset
+                        )
                 }
             }
             .overlay(alignment: visibleTimestampAlignment) {
@@ -117,6 +161,7 @@ struct PrototypeMessageBubble: View {
                             PrototypeMessageBubbleMetrics.textHorizontalInset
                         )
                         .offset(
+                            x: replySwipeOffset,
                             y: PrototypeMessageBubbleMetrics.timestampVerticalOffset
                         )
                 } else if showsFailedDeliveryStatus {
@@ -127,7 +172,7 @@ struct PrototypeMessageBubble: View {
                             perform: showActionsIfEnabled,
                             onPressingChanged: updateContextPress
                         )
-                        .offset(y: 18)
+                        .offset(x: replySwipeOffset, y: 18)
                 }
             }
             .padding(
@@ -139,6 +184,106 @@ struct PrototypeMessageBubble: View {
             } action: { frame in
                 onContextContentFrameChange(frame)
             }
+    }
+
+    private var replySwipeIndicator: some View {
+        Image(systemName: "arrowshape.turn.up.left.fill")
+            .font(.system(size: 24))
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(.secondary)
+            .frame(
+                width: ReplySwipeMetrics.indicatorSize,
+                height: ReplySwipeMetrics.indicatorSize
+            )
+            .scaleEffect(reduceMotion || !replySwipeIsReady ? 1 : 1.16)
+            .animation(
+                reduceMotion
+                    ? nil
+                    : .spring(response: 0.2, dampingFraction: 0.7),
+                value: replySwipeIsReady
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private var replyIndicatorAlignment: Alignment {
+        layoutDirection == .rightToLeft ? .trailing : .leading
+    }
+
+    private var replyIndicatorRestingOffset: CGFloat {
+        layoutDirection == .rightToLeft
+            ? -ReplySwipeMetrics.indicatorRestingInset
+            : ReplySwipeMetrics.indicatorRestingInset
+    }
+
+    private var swipeToReplyGesture: some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .local)
+            .onChanged(updateReplySwipe)
+            .onEnded(finishReplySwipe)
+    }
+
+    private func updateReplySwipe(_ value: DragGesture.Value) {
+        guard isSwipeToReplyEnabled else { return }
+
+        if replySwipeAxis == .undetermined {
+            replySwipeAxis = abs(value.translation.width) > abs(value.translation.height)
+                ? .horizontal
+                : .vertical
+        }
+        guard replySwipeAxis == .horizontal else { return }
+
+        let semanticOffset = semanticReplyOffset(value.translation.width)
+        let positiveOffset = max(0, semanticOffset)
+        let wasReady = replySwipeIsReady
+        replySwipeIsReady = positiveOffset >= ReplySwipeMetrics.activationOffset
+
+        if replySwipeIsReady, !wasReady {
+            replySwipeFeedbackTrigger += 1
+        }
+
+        let resistedOffset: CGFloat
+        if positiveOffset > ReplySwipeMetrics.activationOffset {
+            resistedOffset = ReplySwipeMetrics.activationOffset
+                + ((positiveOffset - ReplySwipeMetrics.activationOffset)
+                    / ReplySwipeMetrics.overdragResistance)
+        } else {
+            resistedOffset = positiveOffset
+        }
+
+        replySwipeOffset = layoutDirection == .rightToLeft
+            ? -resistedOffset
+            : resistedOffset
+    }
+
+    private func finishReplySwipe(_ value: DragGesture.Value) {
+        let shouldReply = isSwipeToReplyEnabled
+            && replySwipeAxis == .horizontal
+            && replySwipeIsReady
+            && semanticReplyOffset(value.translation.width)
+                >= ReplySwipeMetrics.activationOffset
+
+        resetReplySwipe(animated: true)
+        if shouldReply { onSwipeToReply() }
+    }
+
+    private func semanticReplyOffset(_ physicalOffset: CGFloat) -> CGFloat {
+        layoutDirection == .rightToLeft ? -physicalOffset : physicalOffset
+    }
+
+    private func resetReplySwipe(animated: Bool) {
+        replySwipeAxis = .undetermined
+
+        let changes = {
+            replySwipeOffset = 0
+            replySwipeIsReady = false
+        }
+        if animated, !reduceMotion {
+            withAnimation(.easeOut(duration: ReplySwipeMetrics.resetDuration)) {
+                changes()
+            }
+        } else {
+            changes()
+        }
     }
 
     @ViewBuilder

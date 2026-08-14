@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+enum PrototypeMediaPagerLayout {
+    static let pageSpacing: CGFloat = 32
+}
+
 struct PrototypeComposerMediaSelection: Identifiable {
     let attachments: [PrototypeAttachment]
     let initialItemID: String
@@ -30,7 +34,6 @@ struct PrototypeComposerMediaViewer: View {
     @State private var includedItemIDs: Set<String>
 
     private enum Layout {
-        static let pageSpacing: CGFloat = 32
         static let inclusionControlSize: CGFloat = 22
         static let inclusionControlHitSize: CGFloat = 44
         static let inclusionControlEdgePadding: CGFloat = 0
@@ -127,7 +130,7 @@ struct PrototypeComposerMediaViewer: View {
 
     private var mediaPager: some View {
         ScrollView(.horizontal) {
-            LazyHStack(spacing: Layout.pageSpacing) {
+            LazyHStack(spacing: PrototypeMediaPagerLayout.pageSpacing) {
                 ForEach(
                     Array(selection.attachments.enumerated()),
                     id: \.element.id

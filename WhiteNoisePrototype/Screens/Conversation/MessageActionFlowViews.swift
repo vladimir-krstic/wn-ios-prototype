@@ -1159,6 +1159,8 @@ struct PrototypeMessageDetailsView: View {
             onOpenFile: { _ in },
             isContextInteractionEnabled: false,
             onShowActions: {},
+            isSwipeToReplyEnabled: false,
+            onSwipeToReply: {},
             onContextContentFrameChange: { _ in }
         )
         .allowsHitTesting(false)

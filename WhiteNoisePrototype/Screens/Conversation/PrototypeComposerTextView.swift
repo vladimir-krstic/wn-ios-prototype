@@ -10,6 +10,7 @@ struct PrototypeComposerTextView: UIViewRepresentable {
     let isEnabled: Bool
     let sendsWithReturn: Bool
     let maximumVisibleLines: Int
+    let usesAvailableHeight: Bool
     let onFocusChange: (Bool) -> Void
     let onSubmit: () -> Void
 
@@ -36,6 +37,8 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         textView.textContainer.lineFragmentPadding = 0
         textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        textView.setContentHuggingPriority(.defaultLow, for: .vertical)
         textView.accessibilityLabel = "Message"
         textView.accessibilityIdentifier = "conversation.composer"
         applyText(to: textView)
@@ -48,6 +51,8 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         textView.isEditable = isEnabled
         textView.isSelectable = isEnabled
         textView.returnKeyType = sendsWithReturn ? .send : .default
+        textView.keyboardDismissMode = usesAvailableHeight ? .interactive : .none
+        textView.showsVerticalScrollIndicator = usesAvailableHeight
         textView.textHighlightAttributes = [
             .foregroundColor: UIColor.label,
             .backgroundColor: UIColor.secondarySystemFill,
@@ -61,6 +66,15 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         if context.coordinator.maximumVisibleLines != maximumVisibleLines {
             context.coordinator.maximumVisibleLines = maximumVisibleLines
             textView.invalidateIntrinsicContentSize()
+        }
+
+        if context.coordinator.usesAvailableHeight != usesAvailableHeight {
+            context.coordinator.usesAvailableHeight = usesAvailableHeight
+            textView.invalidateIntrinsicContentSize()
+            DispatchQueue.main.async { [weak textView] in
+                guard let textView else { return }
+                textView.scrollRangeToVisible(textView.selectedRange)
+            }
         }
 
         if isFocused != textView.isFirstResponder {
@@ -89,6 +103,14 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         )
         let lineHeight = textView.font?.lineHeight
             ?? UIFont.preferredFont(forTextStyle: .body).lineHeight
+        if usesAvailableHeight,
+           let height = proposal.height,
+           height.isFinite,
+           height > 0 {
+            textView.isScrollEnabled = true
+            return CGSize(width: width, height: max(44, height))
+        }
+
         let maximumHeight = (lineHeight * CGFloat(max(1, maximumVisibleLines)))
             + textView.textContainerInset.top
             + textView.textContainerInset.bottom
@@ -171,6 +193,7 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         var parent: PrototypeComposerTextView
         var styleSignature: Int?
         var maximumVisibleLines: Int?
+        var usesAvailableHeight: Bool?
 
         init(parent: PrototypeComposerTextView) {
             self.parent = parent
