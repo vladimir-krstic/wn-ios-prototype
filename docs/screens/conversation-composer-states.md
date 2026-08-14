@@ -56,35 +56,43 @@ selection states remain part of the shared composer flow.
 - Selected attachments appear in one horizontally scrolling, ordered,
   removable shelf. Photos, video, files, GIFs, and contacts retain recognizable
   SF Symbol or content previews; multiple photos stay separately removable.
-  Complete visual-media drafts use two sizes within the same composer: a
-  compact content-height shelf while the keyboard is active and a larger
-  view-aligned carousel while the keyboard is closed. The closed composer uses
-  approximately the vertical budget of the keyboard plus the ordinary composer,
-  keeping the transition between editing and inspecting media spatially stable.
-  Compact thumbnails intentionally fill-crop into edge-to-edge squares with no
-  inner backing or letterboxing. Expanded pages instead adopt each media item's
-  stored aspect ratio, making the photo, video thumbnail, or GIF itself the
-  rounded card with no gray wrapper. In expanded mode only, the gallery sits on
-  one black canvas inset six points from the 22-point composer surface; its
-  16-point corner radius stays concentric with the composer. The horizontal
-  pages use eight-point inter-item spacing. Each item receives its final card
-  size and view-aligned target slot before scrolling begins. A middle card
-  reserves 20 points on both sides: eight points for separation followed by a
-  12-point adjacent-media peek. A six-point terminal inset remains at the far
-  leading and trailing canvas edges. The first card reserves neighbor room only
-  on its trailing side, the last only on its leading side, and a single card
-  reserves neither nonexistent neighbor while retaining both terminal insets.
-  The target slots encode those leading, center, and trailing resting positions
-  directly, so one native slide ends at its final position without a second
-  corrective animation. Removing an edge item immediately recomputes the new
-  first or last card with the newly available space. Narrower aspect-fitted
-  media can naturally leave more canvas visible, but no layout room is held for
-  an absent neighbor. Tapping a compact photo,
-  video, or GIF records that attachment
-  as the selected page, dismisses the keyboard, and reveals the larger carousel
-  resting on that same item; it never removes the item or opens a separate
-  media experience. The expanded caption remains editable and grows to no more
-  than three visible lines.
+  Visual-media previews keep one compact fixed height whether the keyboard is
+  open or closed; each preview's decoded source aspect ratio determines its
+  width, with stored dimensions used only when the source size is unavailable.
+  The photo, video thumbnail, or GIF fills its own rounded preview with no gray
+  wrapper, and the shelf scrolls horizontally when its content exceeds the
+  composer. The scrolling shelf clips only its two top corners to the same
+  rounded boundary as the composer; its bottom edge remains straight against
+  the separator, and partially scrolled media never draws outside the glass
+  surface. A slightly emphasized semantic system separator with comfortable
+  side insets separates a visual-media shelf from the editable caption below
+  it. Tapping a visual preview dismisses the keyboard and opens a
+  native full-screen modal viewer on that exact item. The viewer uses a paged
+  horizontal `ScrollView` with view-aligned targets, reserves the complete
+  region above the thumbnail navigator for the selected page, fits the complete
+  selected media inside that region, and keeps a horizontally scrolling
+  thumbnail navigator below it. A rested page uses the full viewport width with
+  no persistent leading or trailing inset; a 32-point gutter appears only
+  between page targets while swiping. The viewer title is **Preview**. The
+  navigator has generous leading and trailing margins, compact inter-thumbnail
+  spacing, and centers a short collection. Current-page emphasis uses a subtle
+  animated enlargement without an outline, plus one extra normal spacing unit
+  on each horizontal side so the neighboring gaps are doubled. A check on the
+  displayed media stages whether that item remains in the draft. This custom overlay matches
+  the user-approved Messages reference with a compact 22-point black-accent
+  circular surface, white border and checkmark, subtle contrast shadow, and a
+  44-point hit target; its visible circle sits approximately 10 points from the
+  media's bottom and trailing edges. A standard leading `xmark`
+  cancels every staged change and closes the viewer; a native trailing
+  black-accent Liquid Glass confirmation check applies the staged selection,
+  removes excluded items from the composer, and closes the viewer. No composer
+  attachment changes before confirmation. There is no Markup, Edit, or send
+  action in the viewer. Because the viewer's fixed content does not scroll
+  beneath its navigation controls, the navigation-bar background stays hidden
+  and the pager explicitly suppresses its automatic top scroll-edge effect, so
+  neither system contributes a redundant top surface or separator. The
+  explicit close control on each composer preview remains the direct removal
+  route outside the viewer.
 - The complete focused composer retains the vertical budget of ten body-text
   lines. When a thumbnail shelf is present, its roughly four-line height is
   subtracted from that budget, leaving the caption up to six visible lines before
@@ -102,15 +110,26 @@ selection states remain part of the shared composer flow.
   attachment. Sending a suppressed link sends only its text.
 - A reply quote remains directly above the input, inside the composer surface,
   and has a native close button. SwiftUI has no public quoted-reply component,
-  so the accepted custom exception is a compact adaptive-gray rounded panel
-  with a deliberately bounded semantic leading capsule; system text and the
-  native button still own type and interaction.
-- Every removable composer element uses the same circular close control: one
-  `xmark`, one black-tinted interactive Liquid Glass surface, one visual size,
-  one comfortable visual inset from its rounded top-trailing corner, and a
-  separate 44-point hit region. Reduce Transparency retains a high-contrast
-  surface. The close region alone removes content. The rest of a link, file,
-  contact, quote, photo, video, or GIF never behaves as an implicit remove action.
+  so the accepted custom exception is an adaptive-gray rounded panel that
+  mirrors the sent-bubble quote hierarchy: author above an excerpt of up to two
+  lines, natural content height, and a leading semantic capsule that grows only
+  with the quote. System text and the native button still own type and
+  interaction.
+- Every removable composer element uses a smaller 20-point flat `xmark`
+  circle, no Liquid Glass, a comfortable visual inset, and a separate 44-point
+  hit region. Utility surfaces use the quiet secondary-system treatment. Photo,
+  video, and GIF previews use the user-approved Messages-inspired media
+  exception: a stronger dark-neutral scrim, white glyph, and subtle contrasting
+  edge so the control remains visible over arbitrary imagery without becoming
+  glass. File and
+  contact cards grow with their content from 104 to at most 160 points while
+  keeping 12 points of internal padding at both horizontal edges. This
+  preserves a clear trailing lane for the control target without moving or
+  shrinking centered content. Contact names tail-truncate at the maximum
+  width. Long filenames preserve their extension and the final three
+  pre-extension characters while truncating the earlier stem. The close region
+  alone removes content. The rest of a link, file, contact, quote, photo,
+  video, or GIF never behaves as an implicit remove action.
 - Complete group mentions use the same semantic gray rounded inline emphasis
   as mentions in sent message bubbles. The editable field applies UIKit's
   public `textHighlightStyle` through TextKit 2, with adaptive system fill and
@@ -120,7 +139,7 @@ selection states remain part of the shared composer flow.
 - The Send button appears for text, rich link, or any queued attachment. The
   waveform remains the empty-composer trailing action.
 
-## Signal comparison adopted for this screen
+## Product comparisons adopted for this screen
 
 The user requested a bounded Signal reference pass. Adopt only these durable
 interaction conclusions:
@@ -128,27 +147,34 @@ interaction conclusions:
 - A generated link preview is optional and individually removable before send.
 - A quoted reply is shown in the compose area and can be cancelled there.
 - Media can be drafted with an optional caption and multiple selected items.
-- Signal's large media draft establishes only the value of inspecting selected
-  media at a useful size. White Noise keeps that inspection inside its existing
-  composer, makes it a horizontally scrolling carousel, and preserves the
-  normal text/send row rather than adopting Signal's separate editing chrome.
+- Signal establishes the value of inspecting selected media at a useful size,
+  but Apple Messages provides the accepted separation between a compact draft
+  shelf and a dedicated full-screen inspection mode. White Noise adopts
+  Messages' staged include/exclude selection and explicit completion, while
+  omitting Markup and Edit.
 
-White Noise does not copy Signal’s visual metrics, colors, custom toolbar, or
-private implementation. Apple components and the local adaptive monochrome
-conversation treatment remain authoritative.
+White Noise does not copy either comparison app's visual metrics, colors,
+editing tools, or private implementation. Apple components and the local
+adaptive monochrome conversation treatment remain authoritative.
 
 Comparison sources:
 
 - [Signal Link Previews](https://support.signal.org/hc/en-us/articles/360022474332-Link-Previews)
 - [Signal Reply to a specific message](https://support.signal.org/hc/en-us/articles/6851465208986-Reply-to-a-specific-message)
 - [Signal Broadcast Media](https://support.signal.org/hc/en-us/articles/360044640011-Broadcast-Media)
+- User-supplied Apple Messages composer screenshots and screen recording,
+  reviewed 2026-08-14.
 
 ## Important states
 
 - Empty and nonempty text, single-line and multiline.
 - Raw `https` URL with a preview and the same URL with preview suppressed.
 - Captionless and captioned attachment drafts.
-- Compact focused-media shelf and expanded keyboard-closed media carousel.
+- Compact media shelf with the keyboard both open and closed, plus the modal
+  full-screen media viewer.
+- Viewer selection unchanged, one or more items staged for exclusion, cancelled
+  staged changes, and confirmed staged changes including exclusion of every
+  visual item.
 - Single photo, multiple photos, mixed photo/video, file, GIF, and contact.
 - Reply quote plus text and group mention text.
 - Compact reply layout at every available transcript height; its leading accent
@@ -169,6 +195,12 @@ Comparison sources:
 - Every visible close control keeps its 44-point hit region even though its
   translucent circular surface is visually smaller. VoiceOver names the exact
   item removed.
+- The media viewer's cancellation action is labeled **Cancel Media Changes**
+  and its confirmation action is labeled **Apply Media Selection**. The
+  displayed item's selection control announces whether that item is included
+  and explains that changes apply only after confirmation. Each page and
+  thumbnail announces its position in the draft, current-page state, and
+  included state.
 - Mention emphasis remains supplemental: the complete `@Name` text is still
   exposed by the native editable-text accessibility element.
 - Link and attachment meaning never relies on color, and standard controls own
@@ -182,8 +214,13 @@ Comparison sources:
 - [textHighlightAttributes](https://developer.apple.com/documentation/uikit/uitextview/texthighlightattributes)
 - [PhotosPicker](https://developer.apple.com/documentation/photosui/photospicker)
 - [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview)
+- [Modality](https://developer.apple.com/design/human-interface-guidelines/modality)
+- [fullScreenCover(item:onDismiss:content:)](https://developer.apple.com/documentation/swiftui/view/fullscreencover%28item%3Aondismiss%3Acontent%3A%29)
+- [containerRelativeFrame(_:alignment:)](https://developer.apple.com/documentation/swiftui/view/containerrelativeframe(_:alignment:))
 - [ViewAlignedScrollTargetBehavior](https://developer.apple.com/documentation/swiftui/viewalignedscrolltargetbehavior)
 - [scrollPosition(id:anchor:)](https://developer.apple.com/documentation/SwiftUI/View/scrollPosition%28id%3Aanchor%3A%29)
+- [ToolbarItemPlacement.confirmationAction](https://developer.apple.com/documentation/swiftui/toolbaritemplacement/confirmationaction)
+- [ToolbarItemPlacement.cancellationAction](https://developer.apple.com/documentation/swiftui/toolbaritemplacement/cancellationaction)
 - [aspectRatio](https://developer.apple.com/documentation/swiftui/view/aspectratio(_:contentmode:)-6j7xz)
 - [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)
 - [fileImporter](https://developer.apple.com/documentation/swiftui/view/fileimporter(ispresented:allowedcontenttypes:allowmultipleselection:oncompletion:))
@@ -200,35 +237,52 @@ Comparison sources:
   text.
 - The attachment examples show the right number and type of removable items
   before sending.
-- With the keyboard closed, photo, photo-album, mixed-media, and GIF drafts use
-  a tall scrollable carousel inside the composer, approximately replacing the
-  keyboard’s vertical footprint. A single black gallery canvas is inset six
-  points inside the expanded composer with concentric corners; it is absent from
-  the compact shelf. Expanded media itself supplies the rounded card at its
-  stored aspect ratio, without an individual gray wrapper. A selected middle
-  card is centered with equal side space; adjacent items are separated by eight
-  points and peek equally on both sides. The first item uses the absent leading
-  neighbor's room and aligns to the leading canvas edge; the last does the
-  symmetric trailing treatment; both retain a six-point terminal canvas inset.
-  A single item reserves no horizontal room for neighbor peeks and keeps that
-  inset at both ends. Each slide has one native resting animation, and removing an
-  edge item recomputes the new edge card at its larger size. Focusing the
-  caption returns media to a content-height
-  compact shelf whose thumbnails fill their square bounds edge to edge; tapping
-  any compact visual-media thumbnail closes the keyboard and restores the
-  carousel resting on that exact attachment.
+- Photo, photo-album, mixed-media, and GIF drafts use the same compact,
+  horizontally scrolling shelf with the keyboard open or closed. Visual
+  previews share one height, derive their widths from their decoded source
+  aspect ratios with stored dimensions as fallback, fill their rounded bounds,
+  and retain their individual remove
+  controls. Partially scrolled previews remain inside the composer's rounded
+  top corners without rounding or cutting away the shelf's bottom edge. A
+  slightly stronger, comfortably inset divider visibly separates the
+  shelf from caption text. Tapping any visual preview opens a full-screen viewer
+  titled **Preview** on that exact item. The selected
+  media fills the available page region above the bottom thumbnails without
+  disappearing or being displaced. A settled item reaches both horizontal
+  viewport edges without internal side padding caused by stale metadata;
+  swiping reveals a 32-point gutter before the next full-width page. Tapping a
+  bottom thumbnail selects its page, current-page emphasis animates without an
+  outline, and the selected thumbnail receives double the normal horizontal
+  gap on both sides while other thumbnails use tighter inter-item spacing.
+  The thumbnail row retains comfortable leading and trailing margins and
+  centers when all items fit. Toggling the displayed item's check stages an
+  include/exclude change without immediately changing the composer. The leading
+  X closes and discards those changes. The trailing confirmation check applies
+  them, removes only excluded visual items, and leaves text plus other
+  attachments unchanged. The per-item control uses the approved black-accent
+  selection treatment and stays optically aligned near the image's
+  bottom-trailing edge while retaining its 44-point target. The viewer fits
+  complete media and contains no Markup, Edit, or send action.
+  Its title and actions remain native navigation-bar items without a visible
+  bar background or top scroll-edge divider over the otherwise continuous
+  screen.
 - Focused media drafts never exceed the ordinary ten-line composer budget: the
   thumbnail shelf consumes about four lines and the caption can use up to six.
-- Expanded media captions never exceed three visible lines before scrolling.
-- GIF previews show a complete **GIF** stamp in compact and expanded layouts.
-- Link, attachment, contact, file, GIF, and reply close controls share the same
-  size, corner inset, translucent surface, press feedback, and removal-only hit
-  behavior.
+- GIF previews show a complete **GIF** stamp in the composer shelf.
+- All close controls use the approved smaller flat appearance and retain the
+  same corner inset, press feedback, 44-point hit region, and removal-only
+  behavior. Visual media uses the high-contrast dark-neutral overlay variant;
+  utility surfaces use the quieter secondary-system variant. Adaptive file and
+  contact cards reserve enough
+  trailing width that their close target never overlaps the icon, avatar,
+  filename, or contact name, and their content retains solid left and right
+  padding at every supported width.
 - Every draft artifact is visibly contained by the single composer surface;
   previews, attachment shelves, and reply quotes never float above a separate
   text capsule.
-- The reply quote remains content-height and its cancel action stays aligned
-  with the quote instead of expanding the bottom safe-area bar.
+- The reply quote follows the sent-bubble quote hierarchy, allows a two-line
+  excerpt without compression, remains content-height, and keeps its cancel
+  action aligned with the quote instead of expanding the bottom safe-area bar.
 - **@Maya Chen** in the mention example uses the same adaptive gray rounded
   emphasis as the sent-message mention treatment while remaining editable.
 - Sending preserves text, attachments, generated link preview, or reply target

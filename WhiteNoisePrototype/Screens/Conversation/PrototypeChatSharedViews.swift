@@ -518,7 +518,7 @@ private struct PrototypeZoomScrollView: UIViewRepresentable {
         scrollView.minimumZoomScale = 1
         scrollView.maximumZoomScale = 5
         scrollView.bouncesZoom = true
-        scrollView.backgroundColor = .black
+        scrollView.backgroundColor = .clear
 
         let imageView = context.coordinator.imageView
         imageView.translatesAutoresizingMaskIntoConstraints = false
