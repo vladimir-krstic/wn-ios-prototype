@@ -4,12 +4,27 @@
 
 **Group Info** presents the photo, name, description, member count, quick
 notification and Search actions, shared-content categories, group management,
-and Leave Group. Member rows push **Group Member**.
+and Leave Group. Member rows push **User Profile**.
 
-- Group Member shows the member's compact secondary Verified Nostr Address
-  directly beneath the name, without a separate section or container. The
-  inline value has `checkmark.seal.fill` only for a verified address and
-  announces the state without relying on the symbol.
+- Opening another member uses the complete authoritative **User Profile**
+  presentation: avatar, name, bio when present, compact Verified Nostr Address,
+  copyable public key, shared groups, contact state, and block state. It does
+  not maintain a smaller duplicate Group Member profile design. The inline
+  navigation title states **User Profile (Admin)** or **User Profile (Member)**
+  for the selected person's current group role.
+- Only in this group-origin profile context, the standard relationship controls
+  use the **Profile Actions** section title. Profiles opened elsewhere keep the
+  existing untitled presentation.
+- When the active profile is an admin and the selected person is another active
+  member, a separate final group-actions section follows the complete profile.
+  Its title is **Group Actions**. It contains symbol-labeled **Make Admin** or
+  **Remove Admin** and destructive **Remove from Group**. Remove from Group uses
+  a red outlined minus-circle symbol distinct from Block. Ordinary members and
+  inactive group memberships never see these controls.
+- Make Admin, Remove Admin, and Remove from Group each use a standard centered
+  native alert with **Cancel**, one explicit confirmation action, and concise
+  consequence text. They do not use an anchored confirmation dialog or custom
+  popover. Removing a member dismisses User Profile after the mutation.
 
 - **Mute** or **Unmute**, **Disappearing Messages**, and **Search** appear as
   one centered quick-action group directly below the group identity. They use
@@ -68,9 +83,9 @@ available and adding a relay restores sending.
 ## Native components and accessibility
 
 Use `Form`, `Section`, `NavigationLink`, `TextField`, `PhotosPicker`,
-`LazyVGrid`, `ShareLink`, `fileExporter`, `Button`, native disabled states,
-alerts, and confirmation dialogs. Admin/Member is visible and spoken.
-Destructive actions are never gesture-only.
+`LazyVGrid`, `ShareLink`, `fileExporter`, `Button`, native disabled states, and
+alerts. Admin/Member is visible and spoken. Destructive actions are never
+gesture-only.
 
 ## Governing sources
 
@@ -84,7 +99,7 @@ Destructive actions are never gesture-only.
 - [ShareLink](https://developer.apple.com/documentation/swiftui/sharelink)
 - [fileExporter](https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:))
 - [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts)
-- [Confirmation dialogs](https://developer.apple.com/documentation/swiftui/view/confirmationdialog)
+- [alert(_:isPresented:actions:message:)](https://developer.apple.com/documentation/swiftui/view/alert(_:ispresented:actions:message:))
 
 The current White Noise app supplied bounded behavioral comparison evidence for
 search, group editing, adding/removing people, role changes, archiving, leaving,
@@ -97,5 +112,11 @@ and last-admin protection. This brief is the durable local authority.
 - Every mutation updates members, permissions, metadata, list projection, and
   the timeline atomically.
 - Chat routing remains independent from profile routing after creation.
-- Group Member presents Verified Nostr Address for the active profile and other
+- User Profile presents Verified Nostr Address for the active profile and other
   members, with verified and unverified fixture states distinguishable.
+- Another member's destination matches User Profile before any group-specific
+  controls. Admins alone see the final role/removal section, and every command
+  confirms in a centered alert rather than an anchored dialog.
+- The title identifies the selected person's Admin or Member role. Profile and
+  group action sections are labeled, and each group command has a distinct
+  semantic symbol without depending on the symbol alone.

@@ -73,6 +73,7 @@ struct PersonRow: View {
 struct PersonProfileView: View {
     @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
+    @Environment(\.dismiss) private var dismiss
     let personID: String
     var contextGroupID: String?
     let onMessagePerson: (String) -> Void
@@ -80,6 +81,15 @@ struct PersonProfileView: View {
 
     @State private var isShowingAddToGroup = false
     @State private var isShowingBlockConfirmation = false
+    @State private var pendingGroupAction: GroupMemberAction?
+
+    private enum GroupMemberAction: String, Identifiable {
+        case promote
+        case demote
+        case remove
+
+        var id: Self { self }
+    }
 
     var body: some View {
         List {
@@ -168,6 +178,10 @@ struct PersonProfileView: View {
                     )
                     .foregroundStyle(person.isBlocked ? Color.primary : Color.red)
                 }
+            } header: {
+                if contextGroupMember != nil {
+                    Text("Profile Actions")
+                }
             }
 
             if showsMessageAction {
@@ -201,9 +215,39 @@ struct PersonProfileView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
             }
+
+            if canManageContextGroupMember,
+               let contextGroupMember {
+                Section("Group Actions") {
+                    Button {
+                        pendingGroupAction = contextGroupMember.role == .admin
+                            ? .demote
+                            : .promote
+                    } label: {
+                        Label(
+                            contextGroupMember.role == .admin
+                                ? "Remove Admin"
+                                : "Make Admin",
+                            systemImage: contextGroupMember.role == .admin
+                                ? "person.crop.circle.badge.minus"
+                                : "person.crop.circle.badge.checkmark"
+                        )
+                    }
+
+                    Button(role: .destructive) {
+                        pendingGroupAction = .remove
+                    } label: {
+                        Label(
+                            "Remove from Group",
+                            systemImage: "minus.circle"
+                        )
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
         }
         .listSectionSpacing(person.about.isEmpty ? 24 : 8)
-        .navigationTitle("User Profile")
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .alert(
             "Block \(person.name)?",
@@ -213,6 +257,21 @@ struct PersonProfileView: View {
             Button("Block", role: .destructive) { setBlocked(true) }
         } message: {
             Text("You’ll keep the chat history, but you won’t be able to send messages until you unblock them.")
+        }
+        .alert(
+            groupActionTitle,
+            isPresented: groupActionIsPresented
+        ) {
+            Button("Cancel", role: .cancel) {
+                pendingGroupAction = nil
+            }
+            Button(
+                groupActionButtonTitle,
+                role: pendingGroupAction == .remove ? .destructive : nil,
+                action: performGroupAction
+            )
+        } message: {
+            Text(groupActionMessage)
         }
         .sheet(isPresented: $isShowingAddToGroup) {
             NavigationStack {
@@ -239,9 +298,104 @@ struct PersonProfileView: View {
     private var sharedGroups: [PrototypeChat] {
         profile.groupsShared(with: personID)
     }
+    private var contextGroupIndex: Int? {
+        guard let contextGroupID else { return nil }
+        return profile.chats.firstIndex { $0.id == contextGroupID }
+    }
+    private var contextGroup: PrototypeChat? {
+        guard let contextGroupIndex else { return nil }
+        return profile.chats[contextGroupIndex]
+    }
+    private var contextGroupMember: PrototypeGroupMember? {
+        contextGroup?.members.first { $0.personID == personID }
+    }
+    private var navigationTitle: String {
+        guard let contextGroupMember else { return "User Profile" }
+        let role = contextGroupMember.role == .admin ? "Admin" : "Member"
+        return "User Profile (\(role))"
+    }
+    private var canManageContextGroupMember: Bool {
+        guard let contextGroup else { return false }
+        return personID != profile.id
+            && contextGroup.listState.membershipState == .active
+            && contextGroup.isCurrentProfileAdmin(profile.id)
+            && contextGroupMember != nil
+    }
+    private var groupActionIsPresented: Binding<Bool> {
+        Binding {
+            pendingGroupAction != nil
+        } set: { isPresented in
+            if !isPresented {
+                pendingGroupAction = nil
+            }
+        }
+    }
+    private var groupActionTitle: String {
+        switch pendingGroupAction {
+        case .promote:
+            "Make \(person.name) an Admin?"
+        case .demote:
+            "Remove \(person.name) as an Admin?"
+        case .remove:
+            "Remove \(person.name) from \(contextGroup?.title(people: profile.people) ?? "Group")?"
+        case nil:
+            ""
+        }
+    }
+    private var groupActionButtonTitle: String {
+        switch pendingGroupAction {
+        case .promote: "Make Admin"
+        case .demote: "Remove Admin"
+        case .remove: "Remove from Group"
+        case nil: ""
+        }
+    }
+    private var groupActionMessage: String {
+        switch pendingGroupAction {
+        case .promote:
+            "They’ll be able to manage group details and members."
+        case .demote:
+            "They’ll remain a member of this group."
+        case .remove:
+            "They’ll be removed from this group and won’t receive new messages."
+        case nil:
+            ""
+        }
+    }
 
     private func toggleContact() { profile.people[personIndex].isFollowing.toggle() }
     private func setBlocked(_ blocked: Bool) { profile.people[personIndex].isBlocked = blocked }
+    private func performGroupAction() {
+        guard let contextGroupIndex else {
+            pendingGroupAction = nil
+            return
+        }
+
+        switch pendingGroupAction {
+        case .promote:
+            _ = profile.chats[contextGroupIndex].promoteMember(
+                personID: personID,
+                actorID: profile.id
+            )
+        case .demote:
+            _ = profile.chats[contextGroupIndex].demoteMember(
+                personID: personID,
+                actorID: profile.id
+            )
+        case .remove:
+            _ = profile.chats[contextGroupIndex].removeMember(
+                personID: personID,
+                actorID: profile.id
+            )
+            pendingGroupAction = nil
+            dismiss()
+            return
+        case nil:
+            break
+        }
+
+        pendingGroupAction = nil
+    }
 
 }
 

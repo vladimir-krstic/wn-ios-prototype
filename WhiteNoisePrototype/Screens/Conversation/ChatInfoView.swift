@@ -2120,175 +2120,94 @@ struct GroupMemberView: View {
     @Binding var settings: PrototypeSettingsState
     let chatID: String
     let personID: String
-    @Environment(\.dismiss) private var dismiss
-    @State private var pendingAction: Action?
-    @State private var isShowingAddToGroup = false
-    @State private var directChatID: String?
-
-    private enum Action: String, Identifiable {
-        case promote, demote, remove
-        var id: Self { self }
-    }
 
     var body: some View {
-        Group {
-            if let member {
-                memberList(member)
-            } else {
-                ContentUnavailableView("Member Unavailable", systemImage: "person.crop.circle.badge.questionmark")
-            }
-        }
-        .navigationTitle("Group Member")
-        .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog(actionTitle, isPresented: actionIsPresented, titleVisibility: .visible) {
-            Button(actionButtonTitle, role: pendingAction == .remove ? .destructive : nil, action: performAction)
-            Button("Cancel", role: .cancel) { pendingAction = nil }
-        }
-        .sheet(isPresented: $isShowingAddToGroup) {
-            NavigationStack { AddPersonToGroupView(profile: $profile, personID: personID) }
-        }
-        .navigationDestination(isPresented: directChatIsPresented) {
-            if let directChatID {
-                ConversationView(profile: $profile, settings: $settings, chatID: directChatID)
-            }
+        if member == nil {
+            ContentUnavailableView(
+                "Member Unavailable",
+                systemImage: "person.crop.circle.badge.questionmark"
+            )
+            .navigationTitle("User Profile")
+            .navigationBarTitleDisplayMode(.inline)
+        } else if personID == profile.id {
+            currentProfileView
+        } else if profile.people.contains(where: { $0.id == personID }) {
+            PersonProfileView(
+                profile: $profile,
+                settings: $settings,
+                personID: personID,
+                contextGroupID: chatID,
+                onMessagePerson: { _ in },
+                showsMessageAction: false
+            )
+        } else {
+            ContentUnavailableView(
+                "Profile Unavailable",
+                systemImage: "person.crop.circle.badge.questionmark"
+            )
+            .navigationTitle("User Profile")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
-    private func memberList(_ member: PrototypeGroupMember) -> some View {
+    private var currentProfileView: some View {
         List {
             Section {
-                VStack(spacing: 10) {
-                    memberAvatar
-
-                    VStack(spacing: 3) {
-                        Text(displayName).font(.title2.bold())
-                        InlineVerifiedNostrAddressValue(
-                            address: memberNostrAddress,
-                            isVerified: isMemberNostrAddressVerified
-                        )
-                    }
-
-                    Text(member.role == .admin ? "Admin" : "Member").foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity).listRowBackground(Color.clear)
-            }
-
-            if personID != profile.id {
-                Section {
-                    if canOpenDirectChat {
-                        Button("Message", systemImage: "message", action: openDirectChat)
-                    } else {
-                        NavigationLink {
-                            RelaysPrototypeView(configuration: $profile.relayConfiguration)
-                        } label: {
-                            Label("Check Profile Relays", systemImage: "exclamationmark.triangle")
-                        }
-                    }
-                    Button(person.isFollowing ? "Unfollow" : "Follow") {
-                        profile.people[personIndex].isFollowing.toggle()
-                    }
-                    Button("Add to Another Group", systemImage: "person.2.badge.plus") { isShowingAddToGroup = true }
+                ProfileIdentityHeader(
+                    name: profile.name,
+                    publicKey: profile.publicKey,
+                    nostrAddress: profile.nostrAddress,
+                    isNostrAddressVerified: profile.isNostrAddressVerified,
+                    bottomPadding: 0,
+                    showsIdentityValues: profile.about.isEmpty
+                ) { size in
+                    ProfileAvatarView(profile: profile, size: size)
                 }
             }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
 
-            if canManageOtherMember {
+            if !profile.about.isEmpty {
                 Section {
-                    Button(member.role == .admin ? "Remove Admin" : "Make Admin") {
-                        pendingAction = member.role == .admin ? .demote : .promote
-                    }
-                    Button("Remove from Group", role: .destructive) { pendingAction = .remove }
+                    Text(profile.about)
+                        .font(.subheadline)
+                        .italic()
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
+                .listRowBackground(
+                    Color(uiColor: .quaternarySystemFill).opacity(0.5)
+                )
+
+                Section {
+                    ProfileIdentityValues(
+                        publicKey: profile.publicKey,
+                        nostrAddress: profile.nostrAddress,
+                        isNostrAddressVerified: profile.isNostrAddressVerified
+                    )
+                    .padding(.bottom, 16)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
             }
         }
+        .listSectionSpacing(profile.about.isEmpty ? 24 : 8)
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var chatIndex: Int { profile.chats.firstIndex { $0.id == chatID }! }
+    private var navigationTitle: String {
+        guard let member else { return "User Profile" }
+        let role = member.role == .admin ? "Admin" : "Member"
+        return "User Profile (\(role))"
+    }
+
     private var member: PrototypeGroupMember? {
-        profile.chats[chatIndex].members.first { $0.personID == personID }
-    }
-    private var personIndex: Int { profile.people.firstIndex { $0.id == personID }! }
-    private var person: PrototypePerson { profile.people[personIndex] }
-    private var displayName: String { personID == profile.id ? profile.name : person.name }
-    private var memberNostrAddress: String {
-        personID == profile.id ? profile.nostrAddress : person.nostrAddress
-    }
-    private var isMemberNostrAddressVerified: Bool {
-        personID == profile.id
-            ? profile.isNostrAddressVerified
-            : person.isNostrAddressVerified
-    }
-    private var existingDirectChatID: String? {
-        profile.chats.first { chat in
-            if case let .direct(id) = chat.kind { return id == personID }
-            return false
-        }?.id
-    }
-    private var canOpenDirectChat: Bool {
-        existingDirectChatID != nil
-            || !profile.relayConfiguration.availableChatMessageRelayURLs.isEmpty
-    }
-    private var canManageOtherMember: Bool {
-        personID != profile.id && profile.chats[chatIndex].isCurrentProfileAdmin(profile.id)
-            && profile.chats[chatIndex].listState.membershipState == .active
-    }
-    @ViewBuilder private var memberAvatar: some View {
-        if personID == profile.id { ProfileAvatarView(profile: profile, size: 88) }
-        else {
-            PrototypeChatAvatarView(
-                avatar: person.avatar,
-                size: 88,
-                publicKey: person.publicKey
-            )
+        guard let chat = profile.chats.first(where: { $0.id == chatID }) else {
+            return nil
         }
-    }
-    private var actionIsPresented: Binding<Bool> {
-        Binding { pendingAction != nil } set: { if !$0 { pendingAction = nil } }
-    }
-    private var directChatIsPresented: Binding<Bool> {
-        Binding { directChatID != nil } set: { if !$0 { directChatID = nil } }
-    }
-    private var actionTitle: String {
-        switch pendingAction {
-        case .promote: "Make \(displayName) an Admin?"
-        case .demote: "Remove \(displayName) as an Admin?"
-        case .remove: "Remove \(displayName)?"
-        case nil: ""
-        }
-    }
-    private var actionButtonTitle: String {
-        switch pendingAction {
-        case .promote: "Make Admin"
-        case .demote: "Remove Admin"
-        case .remove: "Remove from Group"
-        case nil: ""
-        }
-    }
-    private func performAction() {
-        switch pendingAction {
-        case .promote:
-            _ = profile.chats[chatIndex].promoteMember(
-                personID: personID,
-                actorID: profile.id
-            )
-        case .demote:
-            _ = profile.chats[chatIndex].demoteMember(
-                personID: personID,
-                actorID: profile.id
-            )
-        case .remove:
-            _ = profile.chats[chatIndex].removeMember(
-                personID: personID,
-                actorID: profile.id
-            )
-            pendingAction = nil
-            dismiss()
-            return
-        case nil:
-            break
-        }
-        pendingAction = nil
-    }
-    private func openDirectChat() {
-        directChatID = profile.openOrCreateDirectChat(personID: personID)
+        return chat.members.first { $0.personID == personID }
     }
 }

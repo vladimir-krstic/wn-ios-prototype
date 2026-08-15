@@ -26,7 +26,9 @@ the common relationship and conversation actions clear.
   list-section spacing keeps it visually attached to the name and the identity
   values below. A person without a bio has no bio section.
 - The person's compact secondary Verified Nostr Address follows the bio card
-  and shows `checkmark.seal.fill` only when verified. The npub capsule follows
+  and uses the same maximum 38-character middle abbreviation as one-on-one
+  Chat Info, avoiding the list section's rounded clipping edge. It shows
+  `checkmark.seal.fill` only when verified. The unchanged npub capsule follows
   eight points below as the final compact identity value. A 16-point trailing
   inset after the npub combines with section spacing to preserve 24 points
   before profile actions. When no bio exists, the address and npub remain in
@@ -134,8 +136,10 @@ similar duplicate implementations.
   standard internal row padding, has eight-point external spacing above and
   below, and is absent when no bio exists.
 - Verified Nostr Address and the public-key capsule appear beneath the bio, with
-  the trailing seal only for verified values and 24 points before profile
-  actions. Without a bio they remain inside the identity header below the name.
+  the address matching one-on-one Chat Info's compact abbreviation, the
+  trailing seal only for verified values, and 24 points before profile actions.
+  Without a bio they remain inside the identity header below the name. The npub
+  capsule's styling, truncation, position, and behavior remain unchanged.
 - The profile represents one or more shared groups with one compact
   avatar-stack row; the row is absent when there are no shared groups. The
   complete list and secondary Add to Another Group action live on its

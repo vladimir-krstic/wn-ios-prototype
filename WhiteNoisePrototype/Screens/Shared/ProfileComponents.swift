@@ -194,7 +194,7 @@ struct InlineVerifiedNostrAddressValue: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Text(address)
+            Text(compactAddress)
                 .lineLimit(1)
                 .truncationMode(.middle)
 
@@ -208,5 +208,17 @@ struct InlineVerifiedNostrAddressValue: View {
         .accessibilityValue(
             "\(address), \(isVerified ? "Verified" : "Not verified")"
         )
+    }
+
+    private var compactAddress: String {
+        let maximumVisibleCharacterCount = 38
+        let leadingCharacterCount = 18
+        let trailingCharacterCount = 19
+
+        guard address.count > maximumVisibleCharacterCount else {
+            return address
+        }
+
+        return "\(address.prefix(leadingCharacterCount))…\(address.suffix(trailingCharacterCount))"
     }
 }

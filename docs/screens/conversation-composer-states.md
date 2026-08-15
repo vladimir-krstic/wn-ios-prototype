@@ -89,7 +89,11 @@ selection states remain part of the shared composer flow.
   pull throughout its visible bounds, including over the bridged `UITextView`
   and nested controls. There is no second editor-pan expansion driver. A pull
   therefore has one source of translation and endpoint settling in both
-  directions. Taps still reach the editor and controls.
+  directions. The expansion pan direction-locks before recognition:
+  horizontal-dominant movement fails it so the attachment shelf's native
+  horizontal `ScrollView` remains the gesture owner, while vertical-dominant
+  movement retains expand-and-collapse ownership. Taps still reach the editor
+  and controls.
   Inline and pinned date pills remain structurally present but are visually and
   accessibly hidden from the first expansion movement until collapse settles.
   The covered transcript is also removed from the accessibility tree for that
@@ -286,7 +290,10 @@ Comparison sources:
 - [overlay(alignment:content:)](https://developer.apple.com/documentation/swiftui/view/overlay(alignment:content:))
 - [contentShape(_:eoFill:)](https://developer.apple.com/documentation/swiftui/view/contentshape(_:eofill:))
 - [DragGesture](https://developer.apple.com/documentation/swiftui/draggesture)
-- [highPriorityGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/highprioritygesture(_:including:))
+- [UIGestureRecognizerRepresentable](https://developer.apple.com/documentation/swiftui/uigesturerecognizerrepresentable)
+- [UIGestureRecognizerDelegate](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate)
+- [UIPanGestureRecognizer](https://developer.apple.com/documentation/uikit/uipangesturerecognizer)
+- [gestureRecognizerShouldBegin(_:)](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate/gesturerecognizershouldbegin(_:))
 - [interactiveSpring](https://developer.apple.com/documentation/swiftui/animation/interactivespring)
 - [withAnimation(_:completionCriteria:_:completion:)](https://developer.apple.com/documentation/swiftui/withanimation(_:completioncriteria:_:completion:))
 - [simultaneousGesture(_:including:)](https://developer.apple.com/documentation/swiftui/view/simultaneousgesture(_:including:))
@@ -325,8 +332,11 @@ Comparison sources:
 - The attachment examples show the right number and type of removable items
   before sending.
 - Photo, photo-album, mixed-media, and GIF drafts use the same compact,
-  horizontally scrolling shelf with the keyboard open or closed. Visual
-  previews share one height, derive their widths from their decoded source
+  horizontally scrolling shelf with the keyboard open or closed.
+  Horizontal-dominant drags move that shelf without changing composer height;
+  vertical-dominant pulls beginning on the shelf retain the normal composer
+  expansion and collapse behavior. Visual previews share one height, derive
+  their widths from their decoded source
   aspect ratios with stored dimensions as fallback, fill their rounded bounds,
   and retain their individual remove
   controls. Partially scrolled previews remain inside the composer's rounded

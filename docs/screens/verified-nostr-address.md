@@ -23,6 +23,12 @@ remain deterministic and in memory.
   card, capsule, or visible field label. The public-key capsule follows it.
   Freeform About text does not interrupt the name/address/key identity sequence;
   an existing direct chat exposes it from Chat Info's focused About action.
+- Every compact read-only presentation uses the same middle abbreviation as
+  one-on-one Chat Info. Values longer than 38 characters keep the first 18 and
+  final 19 characters around one ellipsis, approximately 20 percent shorter
+  than the longest current fixture. This prevents the address from reaching a
+  containing list section's rounded clipping edge. Public-key presentation is
+  unchanged.
 - A verified value has the trailing SF Symbol `checkmark.seal.fill`. This is the
   Apple seal-shaped checkmark requested by the user; an unverified value has no
   trailing symbol.
@@ -50,8 +56,9 @@ remain deterministic and in memory.
   text field announces its complete value and either **Verified** or
   **Not verified**, while the visual seal remains decorative to avoid a
   duplicate announcement.
-- The address truncates through the middle visually without changing the value
-  VoiceOver receives. Dynamic Type and right-to-left layout remain native.
+- The address abbreviates and, when space still requires it, truncates through
+  the middle visually without changing the value VoiceOver receives. Dynamic
+  Type and right-to-left layout remain native.
 
 ## Governing Apple sources
 

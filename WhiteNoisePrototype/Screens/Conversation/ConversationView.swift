@@ -110,7 +110,6 @@ private struct ConversationComposerBarBoundsKey: PreferenceKey {
 
 private enum ConversationExpandableComposerLayout {
     static let expandedTopGap: CGFloat = 24
-    static let minimumDragDistance: CGFloat = 10
     static let projectedTravelThreshold: CGFloat = 48
 }
 
@@ -120,22 +119,104 @@ private struct ConversationComposerExpansionInteraction {
     let finish: (CGFloat) -> Void
 
     @MainActor
-    func gesture() -> some Gesture {
-        DragGesture(
-            minimumDistance:
-                ConversationExpandableComposerLayout.minimumDragDistance,
-            coordinateSpace: .global
-        )
-        .onChanged { value in
-            update(value.translation.height)
+    func gesture() -> ConversationComposerExpansionPanGesture {
+        ConversationComposerExpansionPanGesture(interaction: self)
+    }
+}
+
+private struct ConversationComposerExpansionPanGesture: UIGestureRecognizerRepresentable {
+    let interaction: ConversationComposerExpansionInteraction
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var isEnabled = true
+
+        func gestureRecognizerShouldBegin(
+            _ gestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            guard isEnabled,
+                  let pan = gestureRecognizer as? UIPanGestureRecognizer
+            else { return false }
+
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.y) > abs(velocity.x)
         }
-        .onEnded { value in
-            update(value.translation.height)
-            finish(
-                value.predictedEndTranslation.height
-                    - value.translation.height
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            guard otherGestureRecognizer is UIPanGestureRecognizer,
+                  let gestureView = gestureRecognizer.view,
+                  let otherView = otherGestureRecognizer.view
+            else { return false }
+
+            return otherView === gestureView
+                || otherView.isDescendant(of: gestureView)
+        }
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let recognizer = UIPanGestureRecognizer()
+        recognizer.maximumNumberOfTouches = 1
+        recognizer.cancelsTouchesInView = true
+        configure(recognizer, coordinator: context.coordinator)
+        return recognizer
+    }
+
+    func updateUIGestureRecognizer(
+        _ recognizer: UIPanGestureRecognizer,
+        context: Context
+    ) {
+        configure(recognizer, coordinator: context.coordinator)
+    }
+
+    func handleUIGestureRecognizerAction(
+        _ recognizer: UIPanGestureRecognizer,
+        context: Context
+    ) {
+        let translation = recognizer.translation(in: recognizer.view).y
+
+        switch recognizer.state {
+        case .began, .changed:
+            interaction.update(translation)
+
+        case .ended:
+            interaction.update(translation)
+            interaction.finish(
+                projectedTravel(
+                    for: recognizer.velocity(in: recognizer.view).y
+                )
             )
+
+        case .cancelled, .failed:
+            interaction.finish(0)
+
+        case .possible:
+            break
+
+        @unknown default:
+            interaction.finish(0)
         }
+    }
+
+    private func configure(
+        _ recognizer: UIPanGestureRecognizer,
+        coordinator: Coordinator
+    ) {
+        coordinator.isEnabled = interaction.isEnabled
+        recognizer.delegate = coordinator
+        recognizer.isEnabled = interaction.isEnabled
+    }
+
+    private func projectedTravel(for velocity: CGFloat) -> CGFloat {
+        let decelerationRate = UIScrollView.DecelerationRate.normal.rawValue
+        return (velocity / 1_000)
+            * decelerationRate
+            / (1 - decelerationRate)
     }
 }
 
@@ -1661,10 +1742,7 @@ struct ConversationView: View {
                     alignment: .bottom
                 )
                 .contentShape(.rect)
-                .highPriorityGesture(
-                    expansionInteraction.gesture(),
-                    isEnabled: expansionInteraction.isEnabled
-                )
+                .gesture(expansionInteraction.gesture())
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
                 .background(
                     Color(uiColor: .systemBackground)
