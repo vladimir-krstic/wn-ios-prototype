@@ -25,7 +25,7 @@ struct ProfileAvatarView: View {
                 .resizable()
                 .scaledToFill()
         case let .imageData(data):
-            if let image = UIImage(data: data) {
+            if let image = PrototypePreparedImageCache.image(from: data) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()

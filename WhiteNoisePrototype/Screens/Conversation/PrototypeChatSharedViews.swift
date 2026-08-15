@@ -119,7 +119,7 @@ enum PrototypeAuthorNameColor {
 
 @MainActor
 enum PrototypePreparedImageCache {
-    static let cache = NSCache<NSData, UIImage>()
+    private static let cache = NSCache<NSData, UIImage>()
 
     static func image(from data: Data) -> UIImage? {
         let key = data as NSData

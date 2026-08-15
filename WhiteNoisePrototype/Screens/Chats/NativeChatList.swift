@@ -195,10 +195,11 @@ struct NativeChatList: UIViewRepresentable {
             )
             let currentSnapshot = dataSource.snapshot()
             let currentIDs = currentSnapshot.itemIdentifiers
+            let currentIDSet = Set(currentIDs)
             let nextIDs = parent.chats.map(\.id)
             let changedIDs = nextIDs.filter { id in
                 guard
-                    currentIDs.contains(id),
+                    currentIDSet.contains(id),
                     let displayedChat = displayedChatsByID[id],
                     let nextChat = nextChatsByID[id]
                 else {

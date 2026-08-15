@@ -383,6 +383,12 @@ private struct ConversationExpandableComposerSurface<
     }
 }
 
+@MainActor
+private final class ConversationMessageFrameStore {
+    var sourceFrames: [String: CGRect] = [:]
+    var contentFrames: [String: CGRect] = [:]
+}
+
 struct ConversationView: View {
     private let bottomID = "conversation-bottom"
 
@@ -440,8 +446,7 @@ struct ConversationView: View {
     @State private var quickLookURL: URL?
     @State private var deletionRequest: ConversationDeletionRequest?
     @State private var isDeclineInvitationConfirmationPresented = false
-    @State private var messageFrames: [String: CGRect] = [:]
-    @State private var messageContextContentFrames: [String: CGRect] = [:]
+    @State private var messageFrameStore = ConversationMessageFrameStore()
     @State private var contextMessageID: String?
     @State private var emojiPickerMessageID: String?
     @State private var selectedMessageIDs: Set<String> = []
@@ -524,6 +529,8 @@ struct ConversationView: View {
 
     private var conversation: some View {
         let days = timelineDays
+        let currentSearchMessageID = conversationSearchCurrentMessageID
+        let searchBackgroundOpacity = currentSearchMessageID == nil ? 1.0 : 0.28
 
         return ScrollViewReader { proxy in
             conversationBottomSurface(
@@ -541,7 +548,7 @@ struct ConversationView: View {
                             .opacity(
                                 hidesDatePills
                                     ? 0
-                                    : conversationSearchBackgroundOpacity
+                                    : searchBackgroundOpacity
                             )
                             .accessibilityHidden(hidesDatePills)
 
@@ -550,7 +557,8 @@ struct ConversationView: View {
                                     .padding(.top, timelineTopPadding(at: indexedEntry.index))
                                     .opacity(
                                         conversationSearchOpacity(
-                                            for: indexedEntry.entry
+                                            for: indexedEntry.entry,
+                                            currentMessageID: currentSearchMessageID
                                         )
                                     )
                                     .id(indexedEntry.entry.id)
@@ -585,7 +593,7 @@ struct ConversationView: View {
                        let activeTimelineDate,
                        !visibleTimelineDateHeaders.contains(activeTimelineDate) {
                         ConversationPinnedDateHeader(date: activeTimelineDate)
-                            .opacity(conversationSearchBackgroundOpacity)
+                            .opacity(searchBackgroundOpacity)
                     }
                 }
             }
@@ -1159,14 +1167,11 @@ struct ConversationView: View {
         return conversationSearchTrimmedQuery
     }
 
-    private var conversationSearchBackgroundOpacity: Double {
-        conversationSearchCurrentMessageID == nil ? 1 : 0.28
-    }
-
     private func conversationSearchOpacity(
-        for entry: PrototypeTimelineEntry
+        for entry: PrototypeTimelineEntry,
+        currentMessageID: String?
     ) -> Double {
-        guard let currentMessageID = conversationSearchCurrentMessageID else {
+        guard let currentMessageID else {
             return 1
         }
         return entry.id == currentMessageID ? 1 : 0.28
@@ -1276,7 +1281,7 @@ struct ConversationView: View {
                     .onGeometryChange(for: CGRect.self) { proxy in
                         proxy.frame(in: .named("conversationSurface"))
                     } action: { frame in
-                        messageFrames[message.id] = frame
+                        messageFrameStore.sourceFrames[message.id] = frame
                     }
             }
             .modifier(
@@ -1427,7 +1432,7 @@ struct ConversationView: View {
             onSwipeToReply: { beginReply(to: message.id) },
             onContextContentFrameChange: { frame in
                 guard reportsContextContentFrame else { return }
-                messageContextContentFrames[message.id] = frame
+                messageFrameStore.contentFrames[message.id] = frame
             }
         )
     }
@@ -1435,8 +1440,8 @@ struct ConversationView: View {
     @ViewBuilder
     private var messageContextOverlay: some View {
         if let message = contextMessage,
-           let sourceFrame = messageFrames[message.id],
-           let contentFrame = messageContextContentFrames[message.id],
+           let sourceFrame = messageFrameStore.sourceFrames[message.id],
+           let contentFrame = messageFrameStore.contentFrames[message.id],
            let index = chat.timeline.firstIndex(where: { $0.id == message.id }) {
             PrototypeMessageContextPresentation(
                 message: message,
@@ -2270,9 +2275,9 @@ struct ConversationView: View {
 
     private var composerTextBinding: Binding<String> {
         Binding { composerText } set: { value in
-            if !isComposerInteractionBlocked {
-                composerText = value
-            }
+            // The blocking overlay owns touches while a native menu transitions.
+            // Keep already accepted UIKit input instead of silently dropping it.
+            composerText = value
         }
     }
 
@@ -2695,8 +2700,8 @@ struct ConversationView: View {
     private func showMessageActions(_ messageID: String) {
         guard !isSelectingMessages,
               contextMessageID == nil,
-              messageFrames[messageID] != nil,
-              messageContextContentFrames[messageID] != nil,
+              messageFrameStore.sourceFrames[messageID] != nil,
+              messageFrameStore.contentFrames[messageID] != nil,
               let message = chat.messages.first(where: { $0.id == messageID }),
               !message.isDeleted
         else { return }
