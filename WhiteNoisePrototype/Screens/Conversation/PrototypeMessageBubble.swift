@@ -24,6 +24,8 @@ struct PrototypeMessageBubble: View {
     let onOpenPerson: (String) -> Void
     let onOpenMedia: (PrototypeAttachment) -> Void
     let onOpenFile: (URL) -> Void
+    let visibleVoiceTranscript: String?
+    let readAloudProgress: Double?
     let isContextInteractionEnabled: Bool
     let onShowActions: () -> Void
     let isSwipeToReplyEnabled: Bool
@@ -411,14 +413,70 @@ struct PrototypeMessageBubble: View {
                         onOpenPerson: onOpenPerson
                     )
                 }
+                if let visibleVoiceTranscript {
+                    localVoiceTranscript(visibleVoiceTranscript)
+                }
                 if !message.text.isEmpty {
                     messageText
+                }
+                if let readAloudProgress {
+                    readingAloudProgress(readAloudProgress)
                 }
             }
         }
     }
 
+    private func localVoiceTranscript(_ transcript: String) -> some View {
+        voiceTranscript {
+            Text(transcript)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func readingAloudProgress(_ progress: Double) -> some View {
+        let value = min(max(progress, 0), 1)
+        return HStack(spacing: 6) {
+            Image(systemName: "speaker.wave.2.fill")
+                .font(.caption2)
+
+            ProgressView(value: value)
+                .progressViewStyle(.linear)
+                .tint(messageColor.foregroundColor.opacity(0.75))
+        }
+        .padding(
+            .horizontal,
+            hasRichContent ? richTextHorizontalInsetAdjustment : 0
+        )
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Reading Aloud")
+        .accessibilityValue("\(Int((value * 100).rounded())) percent")
+    }
+
+    @ViewBuilder
     private var messageText: some View {
+        if voiceAttachment == nil {
+            renderedMessageText
+                .padding(
+                    .horizontal,
+                    hasRichContent ? richTextHorizontalInsetAdjustment : 0
+                )
+                .padding(
+                    .bottom,
+                    hasRichContent ? richTextVerticalInsetAdjustment : 0
+                )
+                .frame(
+                    maxWidth: hasRichContent ? .infinity : nil,
+                    alignment: .leading
+                )
+        } else {
+            voiceTranscript {
+                renderedMessageText
+            }
+        }
+    }
+
+    private var renderedMessageText: some View {
         styledMessageText
             .textSelection(.enabled)
             .textRenderer(
@@ -426,15 +484,22 @@ struct PrototypeMessageBubble: View {
                     backgroundColor: mentionSurfaceColor
                 )
             )
-            .padding(
-                .horizontal,
-                hasRichContent ? richTextHorizontalInsetAdjustment : 0
-            )
-            .padding(
-                .bottom,
-                hasRichContent ? richTextVerticalInsetAdjustment : 0
-            )
-            .frame(maxWidth: hasRichContent ? .infinity : nil, alignment: .leading)
+    }
+
+    private func voiceTranscript<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Transcribed")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            content()
+        }
+        .padding(.top, PrototypeMessageBubbleMetrics.contentSpacing)
+        .padding(.horizontal, richTextHorizontalInsetAdjustment)
+        .padding(.bottom, richTextVerticalInsetAdjustment)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var richTextHorizontalInsetAdjustment: CGFloat {
@@ -774,16 +839,26 @@ struct PrototypeMessageBubble: View {
     }
     private var accessibilitySummary: String {
         let sender = outgoing ? profileName : (author?.name ?? "Unknown")
+        let authoredText = voiceAttachment == nil
+            ? plainText(message.text)
+            : accessibilityTranscript(message.text)
+        let localTranscript = visibleVoiceTranscript.map(accessibilityTranscript) ?? ""
         let content = message.isDeleted
             ? deletedText
-            : ([plainText(message.text)] + message.attachments.map(\.accessibilityLabel))
+            : ([authoredText, localTranscript]
+                + message.attachments.map(\.accessibilityLabel))
                 .filter { !$0.isEmpty }.joined(separator: ", ")
         let reactions = message.reactions.isEmpty ? "" : ", reactions: " + message.reactions.map(\.emoji).joined(separator: ", ")
         let reply = message.replyToMessageID == nil
             ? ""
             : ", reply to \(replyAuthorName): \(replyPreview)"
         let failed = message.deliveryState == .failed ? ", not sent" : ""
-        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)"
+        let reading = readAloudProgress == nil ? "" : ", reading aloud"
+        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)\(reading)"
+    }
+    private func accessibilityTranscript(_ text: String) -> String {
+        let transcript = plainText(text)
+        return transcript.isEmpty ? "" : "Transcribed: \(transcript)"
     }
     private var voiceAttachment: (id: String, duration: TimeInterval)? {
         for attachment in message.attachments {
@@ -1184,6 +1259,19 @@ private struct PrototypeMessageContextLongPressGesture: UIGestureRecognizerRepre
             shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
         ) -> Bool {
             otherGestureRecognizer is UIPanGestureRecognizer
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            guard !(otherGestureRecognizer is UIPanGestureRecognizer),
+                  let gestureView = gestureRecognizer.view,
+                  let otherView = otherGestureRecognizer.view
+            else { return false }
+
+            return otherView === gestureView
+                || otherView.isDescendant(of: gestureView)
         }
     }
 

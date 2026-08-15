@@ -5,6 +5,12 @@ enum PrototypeMessageContextAction: String, Identifiable {
     case retry
     case reply
     case forward
+    case readAloud
+    case stopReading
+    case transcribeVoice
+    case showTranscript
+    case hideTranscript
+    case copyTranscript
     case copy
     case select
     case info
@@ -17,6 +23,12 @@ enum PrototypeMessageContextAction: String, Identifiable {
         case .retry: "Retry Send"
         case .reply: "Reply"
         case .forward: "Forward"
+        case .readAloud: "Read Aloud"
+        case .stopReading: "Stop Reading"
+        case .transcribeVoice: "Transcribe"
+        case .showTranscript: "Show Transcript"
+        case .hideTranscript: "Hide Transcript"
+        case .copyTranscript: "Copy Transcript"
         case .copy: "Copy"
         case .select: "Select"
         case .info: "Info"
@@ -29,6 +41,12 @@ enum PrototypeMessageContextAction: String, Identifiable {
         case .retry: "arrow.clockwise"
         case .reply: "arrowshape.turn.up.left"
         case .forward: "arrowshape.turn.up.right"
+        case .readAloud: "speaker.wave.2"
+        case .stopReading: "stop.fill"
+        case .transcribeVoice: "text.bubble"
+        case .showTranscript: "text.bubble"
+        case .hideTranscript: "text.bubble.fill"
+        case .copyTranscript: "doc.on.doc"
         case .copy: "doc.on.doc"
         case .select: "checkmark.circle"
         case .info: "info.circle"
@@ -49,6 +67,9 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
     let contentFrame: CGRect
     let currentProfileID: String
     let quickReactionEmoji: [String]
+    let availableVoiceTranscript: String?
+    let isVoiceTranscriptVisible: Bool
+    let isReadingAloud: Bool
     let preview: Preview
     let onDismiss: () -> Void
     let onAction: (PrototypeMessageContextAction) -> Void
@@ -70,6 +91,9 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
         contentFrame: CGRect,
         currentProfileID: String,
         quickReactionEmoji: [String],
+        availableVoiceTranscript: String?,
+        isVoiceTranscriptVisible: Bool,
+        isReadingAloud: Bool,
         @ViewBuilder preview: () -> Preview,
         onDismiss: @escaping () -> Void,
         onAction: @escaping (PrototypeMessageContextAction) -> Void,
@@ -82,6 +106,9 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
         self.contentFrame = contentFrame
         self.currentProfileID = currentProfileID
         self.quickReactionEmoji = quickReactionEmoji
+        self.availableVoiceTranscript = availableVoiceTranscript
+        self.isVoiceTranscriptVisible = isVoiceTranscriptVisible
+        self.isReadingAloud = isReadingAloud
         self.preview = preview()
         self.onDismiss = onDismiss
         self.onAction = onAction
@@ -175,9 +202,29 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
             actions.append(.retry)
         }
         actions.append(contentsOf: [.reply, .forward])
-        if !message.text.isEmpty { actions.append(.copy) }
+        if !outgoing, hasVoiceMessage, message.text.isEmpty {
+            if availableVoiceTranscript == nil {
+                actions.append(.transcribeVoice)
+            } else if isVoiceTranscriptVisible {
+                actions.append(contentsOf: [.hideTranscript, .copyTranscript])
+            } else {
+                actions.append(.showTranscript)
+            }
+        } else if !outgoing, !message.text.isEmpty {
+            actions.append(isReadingAloud ? .stopReading : .readAloud)
+            actions.append(hasVoiceMessage ? .copyTranscript : .copy)
+        } else if !message.text.isEmpty {
+            actions.append(hasVoiceMessage ? .copyTranscript : .copy)
+        }
         actions.append(contentsOf: [.select, .info, .delete])
         return actions
+    }
+
+    private var hasVoiceMessage: Bool {
+        message.attachments.contains { attachment in
+            if case .voice = attachment { return true }
+            return false
+        }
     }
 
     private var localReaction: String? {
@@ -251,26 +298,23 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
     }
 
     private var actionMenu: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(contextActions) { action in
-                    Button(role: action.role) {
-                        dismiss { onAction(action) }
-                    } label: {
-                        Label(action.title, systemImage: action.symbol)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(minHeight: Layout.actionHeight)
-                            .padding(.horizontal, 24)
-                            .foregroundStyle(action == .delete ? Color.red : Color.primary)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+        VStack(spacing: 0) {
+            ForEach(contextActions) { action in
+                Button(role: action.role) {
+                    dismiss { onAction(action) }
+                } label: {
+                    Label(action.title, systemImage: action.symbol)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: Layout.actionHeight)
+                        .padding(.horizontal, 24)
+                        .foregroundStyle(action == .delete ? Color.red : Color.primary)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
-            .padding(.vertical, 10)
         }
-        .scrollIndicators(.hidden)
+        .padding(.vertical, 10)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 32))
     }
 
@@ -356,8 +400,7 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
     private func layout(in size: CGSize) -> Layout {
         let verticalMargin: CGFloat = 12
         let gap: CGFloat = 12
-        let idealMenuHeight = CGFloat(contextActions.count) * Layout.actionHeight + 20
-        let menuHeight = min(idealMenuHeight, max(220, size.height * 0.44))
+        let menuHeight = CGFloat(contextActions.count) * Layout.actionHeight + 20
         let availablePreviewHeight = max(
             100,
             size.height
@@ -1114,7 +1157,6 @@ struct PrototypeMessageDetailsView: View {
         List {
             Section {
                 messagePreview
-                    .listRowInsets(EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0))
 
                 LabeledContent(message.authorID == profile.id ? "Sent" : "Received") {
                     Text(message.sentAt.formatted(date: .abbreviated, time: .shortened))
@@ -1157,6 +1199,8 @@ struct PrototypeMessageDetailsView: View {
             onOpenPerson: { _ in },
             onOpenMedia: { _ in },
             onOpenFile: { _ in },
+            visibleVoiceTranscript: nil,
+            readAloudProgress: nil,
             isContextInteractionEnabled: false,
             onShowActions: {},
             isSwipeToReplyEnabled: false,

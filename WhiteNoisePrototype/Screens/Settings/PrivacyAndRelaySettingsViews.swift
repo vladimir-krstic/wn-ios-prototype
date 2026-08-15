@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 
 struct PrivacySecurityPrototypeView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var settings: PrototypeSettingsState
     @State private var isShowingEraseAllAppData = false
 
@@ -15,6 +16,7 @@ struct PrivacySecurityPrototypeView: View {
                     "Hide Screen in App Switcher",
                     isOn: $settings.hideScreenInAppSwitcher
                 )
+                .tint(appSecurityToggleTint)
             } header: {
                 Text("App Security")
             } footer: {
@@ -28,6 +30,7 @@ struct PrivacySecurityPrototypeView: View {
                     "Require Face ID",
                     isOn: $settings.screenLockEnabled
                 )
+                .tint(appSecurityToggleTint)
                 .disabled(
                     !settings.deviceAuthenticationAvailability.canAuthenticate
                 )
@@ -79,6 +82,12 @@ struct PrivacySecurityPrototypeView: View {
                 onErase: onEraseAllAppData
             )
         }
+    }
+
+    private var appSecurityToggleTint: Color {
+        colorScheme == .dark
+            ? Color(uiColor: .systemGray)
+            : .black
     }
 }
 

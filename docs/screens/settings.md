@@ -240,7 +240,11 @@ not require the source pages during normal work.
 - Privacy & Security uses two separate native Form sections so each independent
   preference has its own explanation. **App Security** appears above the first
   section as the shared heading for **Hide Screen in App Switcher** and
-  **Require Face ID**. No icons or custom control styling are added.
+  **Require Face ID**. No icons or custom Toggle style are added. The native
+  switches use black for their on track in Light appearance and adaptive
+  `systemGray` in Dark appearance, preserving a distinct white thumb while
+  keeping the screen grayscale. The system continues to own the off, disabled,
+  motion, and accessibility treatments.
 - **Hide Screen in App Switcher** replaces sensitive content before UIKit
   captures the app-switcher snapshot. Its footer reads **Hides your
   conversations and profile details in the app switcher.** It does not claim
@@ -265,7 +269,10 @@ not require the source pages during normal work.
 - Governing Apple sources: [Local Authentication](https://developer.apple.com/documentation/localauthentication),
   [device-owner authentication](https://developer.apple.com/documentation/localauthentication/lapolicy/deviceownerauthentication),
   [canEvaluatePolicy](https://developer.apple.com/documentation/localauthentication/lacontext/canevaluatepolicy(_:error:)),
-  and [Preparing your UI to run in the background](https://developer.apple.com/documentation/uikit/preparing-your-ui-to-run-in-the-background).
+  [Preparing your UI to run in the background](https://developer.apple.com/documentation/uikit/preparing-your-ui-to-run-in-the-background),
+  [Toggle](https://developer.apple.com/documentation/swiftui/toggle),
+  [tint(_:)](https://developer.apple.com/documentation/swiftui/view/tint(_:)),
+  and [systemGray](https://developer.apple.com/documentation/uikit/uicolor/systemgray).
 
 ### Data Usage
 
@@ -754,5 +761,9 @@ need to open them to implement or evaluate Settings.
 - Relay Details uses the native consequence-aware removal confirmation. The
   main list has no Edit mode or swipe deletion.
 - Appearance updates the implemented product surfaces immediately. Message colors and Return-key behavior remain fixed internal defaults rather than visible Appearance preferences. Notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
+- Privacy & Security switches remain black when on in Light appearance. In
+  Dark appearance, an on switch has an adaptive medium-gray track with a
+  clearly distinct white thumb; off and disabled switches retain their native
+  treatments, and the screen introduces no hue.
 - Destructive and secret-related actions use distinct native confirmations and exact safety language.
 - The complete app builds with Xcode 27 beta and contains no third-party runtime dependency or network/persistence implementation.

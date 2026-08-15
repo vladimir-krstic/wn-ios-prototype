@@ -21,11 +21,12 @@ one bounded flow.
   transcript scrolling wait for a custom timer.
 - Interactive bubble content keeps two distinct outcomes. A short tap performs
   the content action, including opening a quoted message, media viewer, link,
-  file, person, or playback control. The message hold explicitly recognizes
-  alongside pan recognizers so the transcript's native vertical pan can begin
-  directly over a bubble. Movement cancels the pending hold, while a successful
-  stationary hold cancels the child tap and opens the owning message's action
-  presentation from every point inside the bubble.
+  file, person, or playback control. The message hold makes descendant content
+  gestures wait for it to fail while explicitly recognizing alongside pan
+  recognizers, so the transcript's native vertical pan can begin directly over
+  a bubble. Movement cancels the pending hold, while a successful stationary
+  hold cancels the child tap and opens the owning message's action presentation
+  from every point inside the bubble.
 - The source message lifts above a regular-material conversation backdrop. Its
   reaction strip sits above it and its action surface sits below it, aligned to
   the message direction. The group shifts within safe margins when the source
@@ -134,17 +135,14 @@ one bounded flow.
   selectable message, and incoming content makes room for that column. Tapping
   anywhere on a message toggles it. Selected state uses a checkmark plus the
   system accent and never depends on color alone.
-- The normal Back action is replaced by **Delete All** at leading and **Close**
-  at trailing. **Close** exits selection without changing messages.
+- The normal Back action is replaced by **Close** at trailing. Selection mode
+  has no top-leading delete action. **Close** exits selection without changing
+  messages.
 - The composer is replaced by a native bottom safe-area bar containing
   **Delete Selected Messages**, **N Selected**, and **Forward Selected
   Messages**. Delete and Forward are disabled at zero selections. Forward is
   also disabled when a selected item is deleted or when more than 32 messages
   are selected.
-- **Delete All** asks **Delete all messages in the chat?** and offers
-  destructive **Delete All Messages** plus **Cancel**. It removes message
-  entries from this device while retaining chat membership and chronological
-  chat events.
 
 ## Forwarding
 
@@ -160,7 +158,8 @@ one bounded flow.
 
 - **Message Details** is a pushed native `List`. Its first section shows the
   message in the shared bubble presentation, followed by direction-appropriate
-  **Sent** or **Received** time.
+  **Sent** or **Received** time. The bubble uses the same native horizontal row
+  inset as that status row, so their leading content edges align.
 - Incoming messages include **Sent from** with the sender. Outgoing messages
   group recipients under **Sending**, **Sent**, or **Not Delivered** according
   to the message's deterministic delivery state. Group recipients appear as
@@ -264,8 +263,8 @@ one bounded flow.
 - Reply, Forward, Copy, Select, Info, Retry Send, Delete for Me, and Delete for
   Everyone produce their documented in-memory results.
 - Selection can add and remove multiple bubbles; its top and bottom controls,
-  counts, disabled states, transitions, Delete All, forwarding, and deletion
-  stay coherent through completion or cancellation.
+  counts, disabled states, transitions, forwarding, and selected-message
+  deletion stay coherent through completion or cancellation.
 - Message Details accurately reflects incoming/outgoing direction, sender,
   localized times, delivery state, recipients, and shared message content.
 - All conversation types use the same flow, no product surface exposes

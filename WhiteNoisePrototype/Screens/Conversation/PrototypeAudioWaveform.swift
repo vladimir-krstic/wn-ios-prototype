@@ -4,6 +4,8 @@ struct PrototypeAudioWaveform: View {
     let samples: [Double]
     let progress: Double
     var attenuatesQuietSamples = false
+    var unplayedOpacity = 0.38
+    var barColor: Color? = nil
 
     private let barWidth: CGFloat = 2
     private let barSpacing: CGFloat = 2
@@ -24,13 +26,19 @@ struct PrototypeAudioWaveform: View {
 
             HStack(alignment: .center, spacing: barSpacing) {
                 ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                    Capsule()
+                    Group {
+                        if let barColor {
+                            Capsule().fill(barColor)
+                        } else {
+                            Capsule()
+                        }
+                    }
                         .frame(
                             width: barWidth,
                             height: max(3, geometry.size.height * CGFloat(value))
                         )
                         .opacity(
-                            (index < playedBarCount ? 1 : 0.38)
+                            (index < playedBarCount ? 1 : unplayedOpacity)
                                 * quietSampleOpacity(for: value)
                         )
                 }

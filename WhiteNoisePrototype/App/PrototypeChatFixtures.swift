@@ -929,6 +929,8 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "VOICE-02", authorID: profileID, sentAt: start.addingTimeInterval(240), attachments: [.voice(id: "VOICE-02-audio", resourceName: PrototypeVoiceSample.resourceName, duration: 18)])),
             .message(PrototypeMessage(id: "VOICE-03-caption", authorID: profileID, sentAt: start.addingTimeInterval(360), text: "VOICE-03 → next bubble: Voice duration over one minute")),
             .message(PrototypeMessage(id: "VOICE-03", authorID: otherID, sentAt: start.addingTimeInterval(420), attachments: [.voice(id: "VOICE-03-audio", resourceName: PrototypeVoiceSample.resourceName, duration: 82)])),
+            .message(PrototypeMessage(id: "VOICE-04-caption", authorID: otherID, sentAt: start.addingTimeInterval(540), text: "VOICE-04 → next bubble: Outgoing voice and text message")),
+            .message(PrototypeMessage(id: "VOICE-04", authorID: profileID, sentAt: start.addingTimeInterval(600), text: PrototypeVoiceSample.transcript, attachments: [.voice(id: "VOICE-04-audio", resourceName: PrototypeVoiceSample.resourceName, duration: 12)])),
         ]
     }
 

@@ -122,6 +122,62 @@ struct ConversationAttachmentMenuButton: UIViewRepresentable {
 @MainActor
 final class AttachmentMenuButton: UIButton {
     var onMenuVisibilityChanged: (Bool) -> Void = { _ in }
+    var keepsSourceVisibleDuringMenuPresentation = false {
+        didSet {
+            if keepsSourceVisibleDuringMenuPresentation {
+                installContextMenuPreviewAnchorIfNeeded()
+            }
+        }
+    }
+
+    private weak var contextMenuPreviewAnchor: UIView?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        contextMenuPreviewAnchor?.center = CGPoint(
+            x: bounds.midX,
+            y: bounds.midY
+        )
+    }
+
+    private func installContextMenuPreviewAnchorIfNeeded() {
+        guard contextMenuPreviewAnchor == nil else { return }
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+        view.backgroundColor = .clear
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = false
+        addSubview(view)
+        contextMenuPreviewAnchor = view
+        setNeedsLayout()
+    }
+
+    override func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForHighlightingMenuWithConfiguration configuration: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+        guard keepsSourceVisibleDuringMenuPresentation else {
+            return super.contextMenuInteraction(
+                interaction,
+                previewForHighlightingMenuWithConfiguration: configuration
+            )
+        }
+        return sourcePreservingMenuPreview()
+    }
+
+    override func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForDismissingMenuWithConfiguration configuration: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+        guard keepsSourceVisibleDuringMenuPresentation else {
+            return super.contextMenuInteraction(
+                interaction,
+                previewForDismissingMenuWithConfiguration: configuration
+            )
+        }
+        // No target means UIKit dismisses the menu without pivot-morphing it
+        // into a composer view that SwiftUI may update during selection.
+        return nil
+    }
 
     override func contextMenuInteraction(
         _ interaction: UIContextMenuInteraction,
@@ -153,5 +209,25 @@ final class AttachmentMenuButton: UIButton {
         animator.addCompletion { [weak self] in
             self?.onMenuVisibilityChanged(false)
         }
+    }
+
+    private func sourcePreservingMenuPreview() -> UITargetedPreview? {
+        guard let anchor = contextMenuPreviewAnchor,
+              anchor.window != nil,
+              bounds.width.isFinite,
+              bounds.height.isFinite,
+              bounds.width > 0,
+              bounds.height > 0 else {
+            return nil
+        }
+
+        anchor.center = CGPoint(x: bounds.midX, y: bounds.midY)
+
+        let parameters = UIPreviewParameters()
+        parameters.backgroundColor = .clear
+        let finitePath = UIBezierPath(rect: anchor.bounds)
+        parameters.visiblePath = finitePath
+        parameters.shadowPath = finitePath
+        return UITargetedPreview(view: anchor, parameters: parameters)
     }
 }

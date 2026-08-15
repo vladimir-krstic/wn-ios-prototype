@@ -463,3 +463,50 @@ working style remains authoritative.
   bundled locally generated recording and no microphone API. Contact and GIF
   remain deterministic showcase renderers. Shared-location and sticker
   messages are not supported and do not appear in fixtures or catalog coverage.
+
+## WN-PROTOTYPE-0024 — Record once and choose the speech-message format
+
+- Date: 2026-08-15
+- Status: Approved
+
+- The resting composer keeps its existing press-and-hold waveform with no new
+  permanent speech control. Stopping a recording keeps the voice review and
+  centers the optional **Transcribe** action there with secondary emphasis.
+- After transcription, one native Menu offers **Voice**, **Text**, and **Both**,
+  followed by one Send action. Its compact label shows the selected format and
+  one downward chevron. Both is the default. Text is an editable ordinary
+  message. Both is one message with a voice attachment and ordinary message
+  text, never duplicate timeline entries or a nested transcript surface. The
+  review waveform uses a fully opaque semantic primary foreground for stronger
+  contrast. While the Menu is visible and dismissing, the composer beneath it
+  remains inert so selecting its lowest row cannot activate an underlying
+  control. Its selected value and chevron use the semantic secondary label
+  color, and its native button fills an available 44-point rectangular row.
+  Text and Both reuse the conversation's pull-to-expand gesture across the
+  complete composer, including that row. A normal movement threshold separates
+  a stationary Menu tap from a deliberate pull. Voice remains compact. The
+  resting empty composer does not attach that competing pull gesture while its
+  hold-to-record control is visible. Expanded review content is top-aligned in
+  format, voice, then text order. The 44-point format button
+  never stretches vertically, and opening its Menu blocks taps without
+  collapsing or hiding the expanded composer behind it. The Menu uses an
+  invisible targeted-preview
+  anchor so neither compact nor expanded composer is lifted, hidden, or
+  morphed during native presentation and dismissal; only its selected content
+  changes.
+- Received text offers **Read Aloud** in message actions. Received voice offers
+  **Transcribe** when no transcript exists and **Show Transcript** or **Hide
+  Transcript** afterward. Any visible transcript paired with a voice attachment
+  uses a small secondary **Transcribed** provenance label above plain message
+  typography. Recipient-created transcripts keep additional separation from
+  the voice row, remain local, and are not forwarded. Authored voice transcripts
+  use **Copy Transcript** instead of generic **Copy**. Compact transcript review
+  grows from its actual text without reserving empty rows below it and matches
+  the ordinary composer's bottom text inset. Choosing Voice clears expansion;
+  returning to Text or Both starts compact until the user pulls again.
+- The custom message action presentation never scrolls internally; it sizes to
+  show every relevant command at once. Read Aloud shows determinate native
+  progress beneath the message text while speech is active.
+- The prototype keeps recording and transcription deterministic and in memory.
+  It adds no microphone, Speech framework, network, persistence, or backend
+  dependency. Native system speech synthesis may read received text aloud.

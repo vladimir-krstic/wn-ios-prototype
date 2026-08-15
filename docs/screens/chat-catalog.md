@@ -273,7 +273,7 @@ intentional product fallback are outside catalog scope.
 | [ ] | `MSG-ACT-11` | `FILE-01`–`FILE-06` | Available file opens native preview; unavailable file does not | Implemented; review pending |
 | [ ] | `MSG-ACT-12` | `LINK-01`–`LINK-03` | Valid destination opens; invalid destination exposes no open action | Implemented; review pending |
 | [ ] | `MSG-ACT-13` | `RICH-05` | Contact opens the referenced profile | Implemented; review pending |
-| [ ] | `MSG-ACT-14` | Any nondeleted message | Select enters multi-message selection with Delete All, count, Delete, Forward, and Close controls | Implemented; review pending |
+| [ ] | `MSG-ACT-14` | Any nondeleted message | Select enters multi-message selection with count, selected-message Delete, Forward, and Close controls | Implemented; review pending |
 | [ ] | `MSG-ACT-15` | Any nondeleted message | Info pushes Message Details with direction, time, sender, delivery state, and recipients | Implemented; review pending |
 | [ ] | `MSG-ACT-14` | `VOICE-01`–`VOICE-03` | Play/pause, progress, waveform, and elapsed/remaining time stay synchronized | Implemented; review pending |
 | [ ] | `CHAT-ACT-01` | `LIST-02`, `LIST-03` | Read/Unread updates count and marked-unread state | Implemented; review pending |

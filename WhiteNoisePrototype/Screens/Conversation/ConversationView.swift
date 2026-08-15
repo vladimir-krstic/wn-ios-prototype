@@ -87,7 +87,7 @@ private struct ConversationComposerBarBoundsKey: PreferenceKey {
 
 private enum ConversationExpandableComposerLayout {
     static let expandedTopGap: CGFloat = 24
-    static let minimumDragDistance: CGFloat = 3
+    static let minimumDragDistance: CGFloat = 10
     static let projectedTravelThreshold: CGFloat = 48
 }
 
@@ -95,6 +95,24 @@ private struct ConversationComposerExpansionInteraction {
     let isEnabled: Bool
     let update: (CGFloat) -> Void
     let finish: (CGFloat) -> Void
+
+    func gesture() -> some Gesture {
+        DragGesture(
+            minimumDistance:
+                ConversationExpandableComposerLayout.minimumDragDistance,
+            coordinateSpace: .global
+        )
+        .onChanged { value in
+            update(value.translation.height)
+        }
+        .onEnded { value in
+            update(value.translation.height)
+            finish(
+                value.predictedEndTranslation.height
+                    - value.translation.height
+            )
+        }
+    }
 }
 
 private struct ConversationExpandableComposerSurface<
@@ -365,7 +383,7 @@ struct ConversationView: View {
         }
     }
 
-    private let playback = PrototypePlaybackCoordinator.shared
+    @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .caption2) private var conversationHeaderTimerIconSize: CGFloat = 9
@@ -387,7 +405,6 @@ struct ConversationView: View {
     @State private var pendingMediaMessageID: String?
     @State private var quickLookURL: URL?
     @State private var deletionRequest: ConversationDeletionRequest?
-    @State private var isDeleteAllConfirmationPresented = false
     @State private var isDeclineInvitationConfirmationPresented = false
     @State private var messageFrames: [String: CGRect] = [:]
     @State private var messageContextContentFrames: [String: CGRect] = [:]
@@ -399,6 +416,8 @@ struct ConversationView: View {
     @State private var isForwardingMessages = false
     @State private var messageDetailsID: String?
     @State private var copyFeedbackTrigger = 0
+    @State private var localVoiceTranscripts: [String: String] = [:]
+    @State private var visibleVoiceTranscriptIDs: Set<String> = []
     @State private var reactionFeedbackTrigger = 0
     @State private var highlightedMessageID: String?
     @State private var requestedScroll: TimelineScrollRequest?
@@ -411,10 +430,16 @@ struct ConversationView: View {
     @State private var voiceState = PrototypeVoiceRecordingState.idle
     @State private var recordingSeconds = 0
     @State private var recordingWaveformSamples: [Double] = []
+    @State private var voiceReviewTranscript: String?
+    @State private var voiceReviewFormat = PrototypeVoiceMessageFormat.voice
+    @State private var isTranscribingVoiceReview = false
+    @State private var voiceTranscriptionTask: Task<Void, Never>?
     @State private var isVoiceButtonPressing = false
     @State private var isComposerInteractionBlocked = false
     @State private var isAttachmentMenuPresented = false
     @State private var attachmentMenuDismissalTask: Task<Void, Never>?
+    @State private var isVoiceFormatMenuPresented = false
+    @State private var voiceFormatMenuDismissalTask: Task<Void, Never>?
     @State private var fileImportTask: Task<Void, Never>?
     @State private var attachmentPresentationTask: Task<Void, Never>?
     @State private var composerTextHeight: CGFloat = 0
@@ -659,14 +684,6 @@ struct ConversationView: View {
         } message: {
             Text(deletionDialogMessage)
         }
-        .confirmationDialog(
-            "Delete all messages in the chat?",
-            isPresented: $isDeleteAllConfirmationPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Delete All Messages", role: .destructive) { deleteAllMessagesForMe() }
-            Button("Cancel", role: .cancel) { }
-        }
         .sheet(isPresented: $isForwardingMessages, onDismiss: {
             forwardingMessageIDs = []
         }) {
@@ -785,11 +802,14 @@ struct ConversationView: View {
             fileImportTask?.cancel()
             attachmentPresentationTask?.cancel()
             attachmentMenuDismissalTask?.cancel()
+            voiceFormatMenuDismissalTask?.cancel()
             voiceState.reset()
             recordingSeconds = 0
             recordingWaveformSamples = []
+            resetVoiceReviewTranscription()
             isComposerInteractionBlocked = false
             isAttachmentMenuPresented = false
+            isVoiceFormatMenuPresented = false
             contextMessageID = nil
             emojiPickerMessageID = nil
             dismissSelection()
@@ -841,9 +861,7 @@ struct ConversationView: View {
                     ConversationExpandableComposerSurface(
                         availableHeight: availableHeight,
                         isExpanded: $composerIsExpanded,
-                        isExpansionEnabled: !isRecording
-                            && !isReviewingVoice
-                            && !isComposerInteractionBlocked,
+                        isExpansionEnabled: isComposerExpansionEnabled,
                         shouldPushTranscript: isTimelineBottomVisible,
                         onOutsideTap: dismissComposerFromOutside
                     ) { hidesDatePills in
@@ -883,36 +901,8 @@ struct ConversationView: View {
         composerIsExpanded = false
     }
 
-    private func composerExpansionGesture(
-        _ interaction: ConversationComposerExpansionInteraction
-    ) -> some Gesture {
-        DragGesture(
-            minimumDistance:
-                ConversationExpandableComposerLayout.minimumDragDistance,
-            coordinateSpace: .global
-        )
-            .onChanged { value in
-                interaction.update(value.translation.height)
-            }
-            .onEnded { value in
-                interaction.update(value.translation.height)
-                interaction.finish(
-                    value.predictedEndTranslation.height
-                        - value.translation.height
-                )
-            }
-    }
-
     @ToolbarContentBuilder
     private var conversationToolbar: some ToolbarContent {
-        if isSelectingMessages {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Delete All") {
-                    isDeleteAllConfirmationPresented = true
-                }
-            }
-        }
-
         ToolbarItem(placement: .principal) {
             if isSelectingMessages {
                 Text(chat.title(people: profile.people))
@@ -1084,10 +1074,44 @@ struct ConversationView: View {
                     Button("Show Actions") { showMessageActions(message.id) }
                     Button("Reply") { beginReply(to: message.id) }
                     Button("Forward") { beginForward(messageIDs: [message.id]) }
-                    if !message.text.isEmpty {
+                    if messageHasVoice(message), !message.text.isEmpty {
+                        Button("Copy Transcript") {
+                            copyVoiceTranscript(message)
+                        }
+                    } else if !message.text.isEmpty {
                         Button("Copy") {
                             UIPasteboard.general.string = message.text
                             copyFeedbackTrigger += 1
+                        }
+                    }
+                    if message.authorID != profile.id {
+                        if messageHasVoice(message), message.text.isEmpty {
+                            if resolvedVoiceTranscript(for: message) == nil {
+                                Button("Transcribe") {
+                                    transcribeReceivedVoiceMessage(message)
+                                }
+                            } else {
+                                Button(
+                                    visibleVoiceTranscriptIDs.contains(message.id)
+                                        ? "Hide Transcript"
+                                        : "Show Transcript"
+                                ) {
+                                    toggleVoiceTranscript(message.id)
+                                }
+                                if visibleVoiceTranscriptIDs.contains(message.id) {
+                                    Button("Copy Transcript") {
+                                        copyVoiceTranscript(message)
+                                    }
+                                }
+                            }
+                        } else if !message.text.isEmpty {
+                            Button(
+                                playback.activeSpokenMessageID == message.id
+                                    ? "Stop Reading"
+                                    : "Read Aloud"
+                            ) {
+                                toggleReadAloud(message)
+                            }
                         }
                     }
                     Button("Select") { beginSelection(at: message.id) }
@@ -1145,6 +1169,10 @@ struct ConversationView: View {
                 )
             },
             onOpenFile: { quickLookURL = $0 },
+            visibleVoiceTranscript: visibleVoiceTranscript(for: message),
+            readAloudProgress: playback.activeSpokenMessageID == message.id
+                ? playback.spokenProgress
+                : nil,
             isContextInteractionEnabled: !isSelectingMessages
                 && contextMessageID == nil
                 && chat.listState.membershipState != .invited,
@@ -1175,6 +1203,9 @@ struct ConversationView: View {
                 contentFrame: contentFrame,
                 currentProfileID: profile.id,
                 quickReactionEmoji: profile.quickReactionEmoji,
+                availableVoiceTranscript: resolvedVoiceTranscript(for: message),
+                isVoiceTranscriptVisible: visibleVoiceTranscriptIDs.contains(message.id),
+                isReadingAloud: playback.activeSpokenMessageID == message.id,
                 preview: {
                     messageBubble(
                         message,
@@ -1375,10 +1406,7 @@ struct ConversationView: View {
                         replyComposerQuote(replyID)
                     }
 
-                    composerInputRow(
-                        usesFlexibleLayout: usesFlexibleLayout,
-                        expansionInteraction: expansionInteraction
-                    )
+                    composerInputRow(usesFlexibleLayout: usesFlexibleLayout)
                 }
                 .frame(
                     maxWidth: .infinity,
@@ -1387,7 +1415,7 @@ struct ConversationView: View {
                 )
                 .contentShape(.rect)
                 .highPriorityGesture(
-                    composerExpansionGesture(expansionInteraction),
+                    expansionInteraction.gesture(),
                     isEnabled: expansionInteraction.isEnabled
                 )
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))
@@ -1396,15 +1424,6 @@ struct ConversationView: View {
                         .opacity(transcriptBackingOpacity),
                     in: .rect(cornerRadius: 22)
                 )
-                .overlay {
-                    if isComposerInteractionBlocked {
-                        Color.clear
-                            .contentShape(.rect)
-                            .onTapGesture { }
-                            .accessibilityHidden(true)
-                    }
-                }
-                .accessibilityHidden(isComposerInteractionBlocked)
             }
             .frame(
                 maxHeight: usesFlexibleLayout ? .infinity : nil,
@@ -1412,6 +1431,15 @@ struct ConversationView: View {
             )
             .padding(.horizontal)
             .padding(.vertical, 6)
+            .overlay {
+                if isComposerInteractionBlocked {
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture { }
+                        .accessibilityHidden(true)
+                }
+            }
+            .accessibilityHidden(isComposerInteractionBlocked)
         }
         .frame(
             maxHeight: usesFlexibleLayout ? .infinity : nil,
@@ -1420,17 +1448,15 @@ struct ConversationView: View {
     }
 
     @ViewBuilder
-    private func composerInputRow(
-        usesFlexibleLayout: Bool,
-        expansionInteraction: ConversationComposerExpansionInteraction
-    ) -> some View {
+    private func composerInputRow(usesFlexibleLayout: Bool) -> some View {
         HStack(alignment: .bottom, spacing: 4) {
             if isRecording {
                 recordingStatus
             } else if let voiceReview {
                 voiceReviewStatus(
                     id: voiceReview.id,
-                    duration: voiceReview.duration
+                    duration: voiceReview.duration,
+                    usesFlexibleLayout: usesFlexibleLayout
                 )
             } else {
                 ZStack(
@@ -1536,8 +1562,8 @@ struct ConversationView: View {
             .scaleEffect(isVoiceButtonPressing ? 0.92 : 1)
             .opacity(isVoiceButtonPressing ? 0.65 : 1)
             .onLongPressGesture(
-                minimumDuration: 0.5,
-                maximumDistance: 10,
+                minimumDuration: 0.4,
+                maximumDistance: 32,
                 perform: beginVoiceMessage,
                 onPressingChanged: { isVoiceButtonPressing = $0 }
             )
@@ -1601,11 +1627,34 @@ struct ConversationView: View {
 
     private func voiceReviewStatus(
         id: String,
-        duration: TimeInterval
+        duration: TimeInterval,
+        usesFlexibleLayout: Bool
     ) -> some View {
-        PrototypeVoiceReviewStatus(id: id, duration: duration) {
-            confirmVoiceMessage(id: id, duration: duration)
-        }
+        PrototypeVoiceReviewStatus(
+            id: id,
+            duration: duration,
+            transcript: $voiceReviewTranscript,
+            format: Binding(
+                get: { voiceReviewFormat },
+                set: { selectedFormat in
+                    voiceReviewFormat = selectedFormat
+                    if selectedFormat == .voice {
+                        composerIsExpanded = false
+                    }
+                }
+            ),
+            usesFlexibleLayout: usesFlexibleLayout,
+            isComposerExpanded: composerIsExpanded,
+            isTranscribing: isTranscribingVoiceReview,
+            onTranscribe: transcribeVoiceReview,
+            onFormatMenuVisibilityChanged: voiceFormatMenuVisibilityDidChange,
+            onToggleExpansion: {
+                composerIsExpanded.toggle()
+            },
+            onSend: {
+                confirmVoiceMessage(id: id, duration: duration)
+            }
+        )
     }
 
     private var queuedAttachmentStrip: some View {
@@ -1959,6 +2008,16 @@ struct ConversationView: View {
             || !queuedAttachments.isEmpty
     }
 
+    private var isComposerExpansionEnabled: Bool {
+        guard !isRecording else { return false }
+        if isReviewingVoice {
+            return voiceReviewTranscript != nil && voiceReviewFormat.includesText
+        }
+        // The empty composer shows the hold-to-record control. Keeping the pull
+        // gesture inactive there prevents it from outranking the long press.
+        return canSend
+    }
+
     private var composerLinkPreview: PrototypeComposerLinkPreview? {
         guard queuedAttachments.isEmpty,
               !isRecording,
@@ -2027,14 +2086,34 @@ struct ConversationView: View {
         }
     }
 
+    private func voiceFormatMenuVisibilityDidChange(_ shown: Bool) {
+        isVoiceFormatMenuPresented = shown
+        voiceFormatMenuDismissalTask?.cancel()
+        voiceFormatMenuDismissalTask = nil
+        if shown {
+            isComposerInteractionBlocked = true
+        } else {
+            // Keep the composer inert through the selected row's touch-up and
+            // the native menu's dismissal animation.
+            voiceFormatMenuDismissalTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+                voiceFormatMenuDismissalTask = nil
+                restoreComposerInteractionIfPossible()
+            }
+        }
+    }
+
     private func restoreComposerInteractionIfPossible() {
         guard !isCameraPresented,
               !isPhotoPickerPresented,
               !isFileImporterPresented,
               !isContactPickerPresented,
               !isAttachmentMenuPresented,
+              !isVoiceFormatMenuPresented,
               attachmentPresentationTask == nil,
-              attachmentMenuDismissalTask == nil
+              attachmentMenuDismissalTask == nil,
+              voiceFormatMenuDismissalTask == nil
         else { return }
         isComposerInteractionBlocked = false
     }
@@ -2254,25 +2333,46 @@ struct ConversationView: View {
         voiceState.reset()
         recordingSeconds = 0
         recordingWaveformSamples = []
+        resetVoiceReviewTranscription()
     }
 
     private func confirmVoiceMessage(id: String, duration: TimeInterval) {
         guard voiceReview?.id == id else { return }
+        let transcript = voiceReviewTranscript?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard voiceReviewFormat == .voice || transcript?.isEmpty == false else { return }
+
         playback.stopAll()
-        sendVoiceMessage(
-            id: id,
-            duration: duration,
-            waveform: recordingWaveformSamples
-        )
+        switch voiceReviewFormat {
+        case .voice:
+            sendVoiceMessage(
+                id: id,
+                duration: duration,
+                waveform: recordingWaveformSamples
+            )
+        case .text:
+            updateChat {
+                $0.appendMessage(authorID: profile.id, text: transcript ?? "")
+            }
+        case .both:
+            sendVoiceMessage(
+                id: id,
+                duration: duration,
+                waveform: recordingWaveformSamples,
+                text: transcript ?? ""
+            )
+        }
         voiceState.reset()
         recordingSeconds = 0
         recordingWaveformSamples = []
+        resetVoiceReviewTranscription()
     }
 
     private func sendVoiceMessage(
         id voiceID: String,
         duration: TimeInterval,
-        waveform: [Double]
+        waveform: [Double],
+        text: String = ""
     ) {
         playback.registerWaveform(
             waveform.isEmpty ? PrototypeWaveformSamples.samples(seed: voiceID) : waveform,
@@ -2281,6 +2381,7 @@ struct ConversationView: View {
         updateChat {
             $0.appendMessage(
                 authorID: profile.id,
+                text: text,
                 attachments: [
                     .voice(
                         id: voiceID,
@@ -2292,6 +2393,32 @@ struct ConversationView: View {
         }
     }
 
+    private func transcribeVoiceReview() {
+        guard voiceReview != nil,
+              voiceReviewTranscript == nil,
+              !isTranscribingVoiceReview
+        else { return }
+
+        isTranscribingVoiceReview = true
+        voiceTranscriptionTask?.cancel()
+        voiceTranscriptionTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled, voiceReview != nil else { return }
+            voiceReviewTranscript = PrototypeVoiceSample.transcript
+            voiceReviewFormat = .both
+            isTranscribingVoiceReview = false
+            voiceTranscriptionTask = nil
+        }
+    }
+
+    private func resetVoiceReviewTranscription() {
+        voiceTranscriptionTask?.cancel()
+        voiceTranscriptionTask = nil
+        voiceReviewTranscript = nil
+        voiceReviewFormat = .voice
+        isTranscribingVoiceReview = false
+    }
+
     private func showMessageActions(_ messageID: String) {
         guard !isSelectingMessages,
               contextMessageID == nil,
@@ -2300,7 +2427,9 @@ struct ConversationView: View {
               let message = chat.messages.first(where: { $0.id == messageID }),
               !message.isDeleted
         else { return }
-        playback.stopAll()
+        if playback.activeSpokenMessageID != messageID {
+            playback.stopAll()
+        }
         composerIsFocused = false
         contextMessageID = messageID
     }
@@ -2316,6 +2445,21 @@ struct ConversationView: View {
             beginReply(to: message.id)
         case .forward:
             beginForward(messageIDs: [message.id])
+        case .readAloud:
+            playback.readAloud(
+                messageID: message.id,
+                text: spokenText(for: message.text)
+            )
+        case .stopReading:
+            playback.stopReading()
+        case .transcribeVoice:
+            transcribeReceivedVoiceMessage(message)
+        case .showTranscript:
+            visibleVoiceTranscriptIDs.insert(message.id)
+        case .hideTranscript:
+            visibleVoiceTranscriptIDs.remove(message.id)
+        case .copyTranscript:
+            copyVoiceTranscript(message)
         case .copy:
             UIPasteboard.general.string = message.text
             copyFeedbackTrigger += 1
@@ -2326,6 +2470,64 @@ struct ConversationView: View {
         case .delete:
             requestDeletion(of: [message.id])
         }
+    }
+
+    private func messageHasVoice(_ message: PrototypeMessage) -> Bool {
+        message.attachments.contains { attachment in
+            if case .voice = attachment { return true }
+            return false
+        }
+    }
+
+    private func resolvedVoiceTranscript(for message: PrototypeMessage) -> String? {
+        localVoiceTranscripts[message.id]
+    }
+
+    private func visibleVoiceTranscript(for message: PrototypeMessage) -> String? {
+        guard visibleVoiceTranscriptIDs.contains(message.id) else { return nil }
+        return resolvedVoiceTranscript(for: message)
+    }
+
+    private func transcribeReceivedVoiceMessage(_ message: PrototypeMessage) {
+        guard messageHasVoice(message) else { return }
+        localVoiceTranscripts[message.id] = PrototypeVoiceSample.transcript
+        visibleVoiceTranscriptIDs.insert(message.id)
+    }
+
+    private func toggleVoiceTranscript(_ messageID: String) {
+        if visibleVoiceTranscriptIDs.contains(messageID) {
+            visibleVoiceTranscriptIDs.remove(messageID)
+        } else {
+            visibleVoiceTranscriptIDs.insert(messageID)
+        }
+    }
+
+    private func copyVoiceTranscript(_ message: PrototypeMessage) {
+        let transcript = message.text.isEmpty
+            ? resolvedVoiceTranscript(for: message)
+            : message.text
+        guard let transcript, !transcript.isEmpty else { return }
+        UIPasteboard.general.string = transcript
+        copyFeedbackTrigger += 1
+    }
+
+    private func toggleReadAloud(_ message: PrototypeMessage) {
+        if playback.activeSpokenMessageID == message.id {
+            playback.stopReading()
+        } else {
+            playback.readAloud(
+                messageID: message.id,
+                text: spokenText(for: message.text)
+            )
+        }
+    }
+
+    private func spokenText(for text: String) -> String {
+        let attributed = (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+        return String(attributed.characters)
     }
 
     private func beginReply(to messageID: String) {
@@ -2431,11 +2633,6 @@ struct ConversationView: View {
             )
         }
         self.deletionRequest = nil
-        dismissSelection()
-    }
-
-    private func deleteAllMessagesForMe() {
-        updateChat { $0.removeAllMessagesForCurrentProfile() }
         dismissSelection()
     }
 
@@ -2780,9 +2977,18 @@ private struct ConversationKeyboardLayoutReader: UIViewRepresentable {
 private struct PrototypeVoiceReviewStatus: View {
     let id: String
     let duration: TimeInterval
+    @Binding var transcript: String?
+    @Binding var format: PrototypeVoiceMessageFormat
+    let usesFlexibleLayout: Bool
+    let isComposerExpanded: Bool
+    let isTranscribing: Bool
+    let onTranscribe: () -> Void
+    let onFormatMenuVisibilityChanged: (Bool) -> Void
+    let onToggleExpansion: () -> Void
     let onSend: () -> Void
 
     @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
+    @Environment(\.colorScheme) private var colorScheme
 
     private var isActive: Bool { playback.activeVoiceID == id }
     private var isPlaying: Bool { isActive && !playback.isPaused }
@@ -2794,7 +3000,94 @@ private struct PrototypeVoiceReviewStatus: View {
         isActive ? max(0, duration - playback.elapsed) : duration
     }
 
+    private var canSend: Bool {
+        format == .voice
+            || !transcriptText.wrappedValue
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
+    }
+
+    private var transcriptText: Binding<String> {
+        Binding(
+            get: { transcript ?? "" },
+            set: { transcript = $0 }
+        )
+    }
+
     var body: some View {
+        VStack(spacing: 0) {
+            if transcript != nil {
+                ConversationVoiceFormatMenuButton(
+                    selection: $format,
+                    onMenuVisibilityChanged: onFormatMenuVisibilityChanged
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: ConversationVoiceFormatMenuButton.controlHeight)
+                .contentShape(.rect)
+                .accessibilityLabel("Message Format")
+                .accessibilityValue(format.title)
+                .accessibilityIdentifier("conversation.voice.review.format")
+            }
+
+            HStack(alignment: .bottom, spacing: 4) {
+                VStack(spacing: 8) {
+                    if format.includesVoice {
+                        voicePlaybackRow
+                    }
+
+                    if transcript != nil, format.includesText {
+                        TextField(
+                            "Message",
+                            text: transcriptText,
+                            axis: .vertical
+                        )
+                        .lineLimit(1...(usesFlexibleLayout ? 64 : 8))
+                        .textFieldStyle(.plain)
+                        .frame(
+                            maxHeight: usesFlexibleLayout ? .infinity : nil,
+                            alignment: .topLeading
+                        )
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 10)
+                        .accessibilityLabel("Message Text")
+                        .accessibilityIdentifier("conversation.voice.review.text")
+                        .accessibilityActions {
+                            Button(
+                                isComposerExpanded
+                                    ? "Collapse Message"
+                                    : "Expand Message"
+                            ) {
+                                onToggleExpansion()
+                            }
+                        }
+                    }
+
+                    if transcript == nil {
+                        transcriptionAction
+                    }
+                }
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: usesFlexibleLayout ? .infinity : nil,
+                    alignment: usesFlexibleLayout ? .top : .bottom
+                )
+
+                sendButton
+            }
+            .frame(
+                maxHeight: usesFlexibleLayout ? .infinity : nil,
+                alignment: usesFlexibleLayout ? .top : .bottom
+            )
+        }
+        .frame(
+            minHeight: 44,
+            maxHeight: usesFlexibleLayout ? .infinity : nil,
+            alignment: usesFlexibleLayout ? .top : .bottom
+        )
+        .accessibilityElement(children: .contain)
+    }
+
+    private var voicePlaybackRow: some View {
         HStack(spacing: 4) {
             Button {
                 playback.toggleVoice(id: id, duration: duration)
@@ -2812,9 +3105,10 @@ private struct PrototypeVoiceReviewStatus: View {
 
             PrototypeAudioWaveform(
                 samples: playback.waveform(for: id),
-                progress: progress
+                progress: progress,
+                unplayedOpacity: 1,
+                barColor: reviewWaveformColor
             )
-            .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity)
             .frame(height: 28)
 
@@ -2822,24 +3116,200 @@ private struct PrototypeVoiceReviewStatus: View {
                 .font(.body.monospacedDigit())
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-
-            Button(action: onSend) {
-                ZStack {
-                    Circle().fill(Color.accentColor)
-                    Image(systemName: "arrow.up")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white)
-                }
-                .frame(width: 32, height: 32)
-                .frame(width: 44, height: 44)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Send Voice Message")
-            .accessibilityIdentifier("conversation.voice.review.send")
         }
         .frame(minHeight: 44)
-        .accessibilityElement(children: .contain)
+    }
+
+    private var reviewWaveformColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
+    @ViewBuilder
+    private var transcriptionAction: some View {
+        if isTranscribing {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Transcribing…")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .accessibilityIdentifier("conversation.voice.review.transcribing")
+        } else {
+            Button(action: onTranscribe) {
+                Label("Transcribe", systemImage: "text.bubble")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Transcribe Recording")
+            .accessibilityIdentifier("conversation.voice.review.transcribe")
+        }
+    }
+
+    private var sendButton: some View {
+        Button(action: onSend) {
+            ZStack {
+                Circle().fill(Color.accentColor)
+                Image(systemName: "arrow.up")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.white)
+            }
+            .frame(width: 32, height: 32)
+            .frame(width: 44, height: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(!canSend)
+        .accessibilityLabel(format.sendAccessibilityLabel)
+        .accessibilityIdentifier("conversation.voice.review.send")
+    }
+}
+
+private enum PrototypeVoiceMessageFormat: String, CaseIterable, Identifiable {
+    case voice
+    case text
+    case both
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .voice: "Voice"
+        case .text: "Text"
+        case .both: "Both"
+        }
+    }
+
+    var includesVoice: Bool { self != .text }
+    var includesText: Bool { self != .voice }
+
+    var sendAccessibilityLabel: String {
+        switch self {
+        case .voice: "Send Voice Message"
+        case .text: "Send Text Message"
+        case .both: "Send Voice and Text Message"
+        }
+    }
+}
+
+@MainActor
+private struct ConversationVoiceFormatMenuButton: UIViewRepresentable {
+    static let controlHeight: CGFloat = 44
+
+    @Binding var selection: PrototypeVoiceMessageFormat
+    let onMenuVisibilityChanged: (Bool) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            selection: $selection,
+            onMenuVisibilityChanged: onMenuVisibilityChanged
+        )
+    }
+
+    func makeUIView(context: Context) -> AttachmentMenuButton {
+        let button = AttachmentMenuButton(type: .custom)
+        button.contentHorizontalAlignment = .center
+        button.showsMenuAsPrimaryAction = true
+        button.keepsSourceVisibleDuringMenuPresentation = true
+        button.preferredMenuElementOrder = .fixed
+        button.onMenuVisibilityChanged = { [weak coordinator = context.coordinator] shown in
+            coordinator?.menuVisibilityDidChange(shown)
+        }
+        button.isAccessibilityElement = true
+        configure(button, coordinator: context.coordinator)
+        return button
+    }
+
+    func updateUIView(_ button: AttachmentMenuButton, context: Context) {
+        context.coordinator.update(
+            selection: $selection,
+            onMenuVisibilityChanged: onMenuVisibilityChanged
+        )
+        configure(button, coordinator: context.coordinator)
+    }
+
+    private func configure(
+        _ button: AttachmentMenuButton,
+        coordinator: Coordinator
+    ) {
+        var configuration = UIButton.Configuration.plain()
+        configuration.title = selection.title
+        configuration.image = UIImage(systemName: "chevron.down")
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = 4
+        configuration.baseForegroundColor = .secondaryLabel
+        configuration.contentInsets = .zero
+        configuration.preferredSymbolConfigurationForImage =
+            UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+        configuration.titleTextAttributesTransformer =
+            UIConfigurationTextAttributesTransformer { incoming in
+                var outgoing = incoming
+                outgoing.font = .preferredFont(forTextStyle: .body)
+                return outgoing
+            }
+        button.configuration = configuration
+        if !coordinator.isMenuVisible {
+            button.menu = coordinator.makeMenu(selected: selection)
+        }
+        button.accessibilityLabel = "Message Format"
+        button.accessibilityValue = selection.title
+        button.accessibilityHint = "Opens message format options."
+        button.accessibilityIdentifier = "conversation.voice.review.format"
+    }
+
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        uiView: AttachmentMenuButton,
+        context: Context
+    ) -> CGSize? {
+        CGSize(
+            width: proposal.width ?? uiView.intrinsicContentSize.width,
+            height: max(Self.controlHeight, uiView.intrinsicContentSize.height)
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        private var selection: Binding<PrototypeVoiceMessageFormat>
+        private(set) var onMenuVisibilityChanged: (Bool) -> Void
+        private(set) var isMenuVisible = false
+
+        init(
+            selection: Binding<PrototypeVoiceMessageFormat>,
+            onMenuVisibilityChanged: @escaping (Bool) -> Void
+        ) {
+            self.selection = selection
+            self.onMenuVisibilityChanged = onMenuVisibilityChanged
+        }
+
+        func update(
+            selection: Binding<PrototypeVoiceMessageFormat>,
+            onMenuVisibilityChanged: @escaping (Bool) -> Void
+        ) {
+            self.selection = selection
+            self.onMenuVisibilityChanged = onMenuVisibilityChanged
+        }
+
+        func menuVisibilityDidChange(_ shown: Bool) {
+            isMenuVisible = shown
+            onMenuVisibilityChanged(shown)
+        }
+
+        func makeMenu(selected: PrototypeVoiceMessageFormat) -> UIMenu {
+            UIMenu(
+                children: PrototypeVoiceMessageFormat.allCases.map { option in
+                    UIAction(
+                        title: option.title,
+                        state: option == selected ? .on : .off
+                    ) { [weak self] _ in
+                        self?.selection.wrappedValue = option
+                    }
+                }
+            )
+        }
     }
 }
 
