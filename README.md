@@ -8,9 +8,13 @@ product one screen or bounded flow at a time.
 The prototype currently includes:
 
 - Welcome, Sign In, private-key QR scanning, and Sign Up.
-- Populated, empty, unread, archived, and left-chat list states.
-- A polished Fiatjaf direct conversation with text, media, reactions, replies,
-  attachments, and voice-message affordance.
+- Populated, empty, unread, archived, and left-chat list states, including pin
+  reordering, search, profile switching, and direct- or group-chat creation.
+- Direct, group, support, invitation, and developer-catalog conversations with
+  text, media, reactions, replies, attachments, message actions, search,
+  disappearing-message indicators, and deterministic voice-message behavior.
+- Chat and group information, member and person profiles, shared-media paging,
+  relay selection, and verified-address presentation.
 - Settings, profile editing and switching, Profile Keys, appearance,
   notifications, privacy, storage, relays, support, donations, Developer Tools,
   sign out, and profile removal.
@@ -100,6 +104,25 @@ xcrun simctl status_bar booted clear
    Codex explains why it is needed.
 6. Iterate until the user accepts the screen, then move to the next batch.
 
-Tests are added only for meaningful nonvisual behavior or a confirmed
-regression. The current UI test protects chat pin-reordering behavior. Claude
-and Fable are never invoked automatically.
+## Tests
+
+The unit suite covers fixture integrity and performance, chat operations,
+profiles, relays, Developer Tools, support-chat behavior, sign-out flows, and
+avatar handling. The UI suite exercises representative authentication,
+profile-exit, chat, composer, message-action, relay, pin-reordering, launch,
+and navigation-performance paths.
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+xcodebuild \
+  -project WhiteNoisePrototype.xcodeproj \
+  -scheme WhiteNoisePrototype \
+  -destination 'platform=iOS Simulator,name=iPhone Air,OS=27.0' \
+  -parallel-testing-enabled NO \
+  test
+```
+
+Tests are added only for meaningful nonvisual behavior, confirmed regressions,
+or durable performance protection. The one-time full-project hardening record
+is in [docs/project-hardening.md](docs/project-hardening.md). Claude and Fable
+are never invoked automatically.

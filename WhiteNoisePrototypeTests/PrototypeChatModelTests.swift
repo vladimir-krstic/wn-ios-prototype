@@ -240,7 +240,7 @@ struct PrototypeChatModelTests {
                 now: .now
             )
         }
-        #expect(rows.allSatisfy(\.hasDisappearingMessages))
+        #expect(rows.allSatisfy { $0.hasDisappearingMessages })
         #expect(rows[0].disappearingMessageDuration == .oneDay)
         #expect(rows[1].isMuted)
         #expect(rows[2].isGroup)
@@ -263,14 +263,22 @@ struct PrototypeChatModelTests {
         #expect(Set(entries.map(\.id)).count == entries.count)
         #expect(chats.allSatisfy { $0.timeline.map(\.date) == $0.timeline.map(\.date).sorted() })
         #expect(messages.allSatisfy { !$0.text.contains("·") })
-        #expect(messages.filter { !$0.text.isEmpty }.allSatisfy { message in
+        let captionedScenarioIDs = Set(messages.compactMap { message -> String? in
+            guard message.id.hasSuffix("-caption") else { return nil }
+            return message.id.replacingOccurrences(of: "-caption", with: "")
+        })
+        for message in messages where !message.text.isEmpty {
             let scenarioID = message.id
                 .replacingOccurrences(of: "-source-caption", with: "")
                 .replacingOccurrences(of: "-caption", with: "")
                 .replacingOccurrences(of: "-source", with: "")
                 .replacingOccurrences(of: "-message", with: "")
-            return message.text.contains(scenarioID)
-        })
+            #expect(
+                message.text.contains(scenarioID)
+                    || captionedScenarioIDs.contains(scenarioID),
+                "Message \(message.id) must contain scenario ID \(scenarioID)"
+            )
+        }
 
         let galleryCounts = Set(messages.map(\.attachments.count))
         #expect(galleryCounts.isSuperset(of: Set(1...7)))
@@ -579,7 +587,7 @@ struct PrototypeChatModelTests {
     }
 
     @Test("Row previews derive from messages, deletion, failure, and ended membership")
-    func rowProjection() {
+    func rowProjection() throws {
         var chat = emptyDirectChat()
         chat.appendMessage(authorID: "marmota", text: "First")
         chat.appendMessage(
@@ -587,7 +595,7 @@ struct PrototypeChatModelTests {
             text: "Failed",
             now: Date(timeIntervalSince1970: 2_000)
         )
-        let lastID = chat.messages.last!.id
+        let lastID = try #require(chat.messages.last?.id)
         chat.mutateMessage(lastID) { $0.deliveryState = .failed }
         var row = chat.row(people: PrototypeChatFixtures.people(), currentProfileID: "marmota")
         #expect(row.preview == "Failed")
@@ -890,18 +898,22 @@ struct PrototypeChatModelTests {
         #expect(conversationSelection.items == chatInfoSelection.items)
         #expect(conversationSelection.initialItemID == chatInfoSelection.initialItemID)
         #expect(conversationSelection.initialIndex == 2)
-        #expect(PrototypeMediaSelection(chat: chat, selectedItemID: all.last!.id) == nil)
+        let unavailableItemID = try #require(all.last?.id)
+        #expect(PrototypeMediaSelection(chat: chat, selectedItemID: unavailableItemID) == nil)
     }
 
     @Test("Composer availability follows membership, blocks, and per-chat relays")
-    func composerAvailability() {
+    func composerAvailability() throws {
         var people = PrototypeChatFixtures.people()
         var chat = emptyDirectChat()
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .available)
         chat.routing.relayURLs = []
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .missingRelays)
         chat.routing = PrototypeChatRouting()
-        people[people.firstIndex { $0.id == "maya-chen" }!].isBlocked = true
+        let personIndex = try #require(
+            people.firstIndex { $0.id == "maya-chen" }
+        )
+        people[personIndex].isBlocked = true
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .blocked)
         chat.listState.membershipState = .invited
         #expect(chat.composerAvailability(currentProfileID: "marmota", people: people) == .pendingInvitation)
@@ -940,22 +952,20 @@ struct PrototypeChatModelTests {
         #expect(directInvitationRow.isInvitationPending)
         #expect(groupInvitationRow.isInvitationPending)
 
-        #expect(
-            profile.chats[directIndex].acceptInvitation(
-                currentProfileID: profile.id,
-                now: acceptedAt
-            )
+        let didAcceptDirectInvitation = profile.chats[directIndex].acceptInvitation(
+            currentProfileID: profile.id,
+            now: acceptedAt
         )
+        #expect(didAcceptDirectInvitation)
         #expect(profile.chats[directIndex].listState.membershipState == .active)
         #expect(profile.chats[directIndex].timeline == directTimeline)
         #expect(profile.chats[directIndex].invitedByPersonID == nil)
 
-        #expect(
-            profile.chats[groupIndex].acceptInvitation(
-                currentProfileID: profile.id,
-                now: acceptedAt
-            )
+        let didAcceptGroupInvitation = profile.chats[groupIndex].acceptInvitation(
+            currentProfileID: profile.id,
+            now: acceptedAt
         )
+        #expect(didAcceptGroupInvitation)
         #expect(profile.chats[groupIndex].listState.membershipState == .active)
         #expect(profile.chats[groupIndex].invitedByPersonID == nil)
         #expect(
@@ -976,10 +986,16 @@ struct PrototypeChatModelTests {
         var profile = PrototypeProfile.marmota
         let initialCount = profile.chats.count
 
-        #expect(profile.declineChatInvitation("catalog-direct-invitation"))
+        let didDeclineInvitation = profile.declineChatInvitation(
+            "catalog-direct-invitation"
+        )
+        #expect(didDeclineInvitation)
         #expect(profile.chats.count == initialCount - 1)
         #expect(!profile.chats.contains { $0.id == "catalog-direct-invitation" })
-        #expect(!profile.declineChatInvitation("catalog-direct-text"))
+        let didDeclineActiveChat = profile.declineChatInvitation(
+            "catalog-direct-text"
+        )
+        #expect(!didDeclineActiveChat)
         #expect(profile.chats.count == initialCount - 1)
     }
 

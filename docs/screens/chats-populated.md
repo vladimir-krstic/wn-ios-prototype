@@ -64,7 +64,10 @@ support native swipe actions.
 
 ## Deterministic data and behavior
 
-- The populated profile has exactly 39 conversations: 35 nonarchived and 4 archived.
+- The populated profile has exactly 77 conversations: 72 nonarchived and 5
+  archived. Thirty-eight records form the ordered developer catalog, including
+  one archived case. White Noise Support follows the catalog; retained story
+  chats follow it.
 - Chats contains nonarchived conversations, including retained read-only history after a person leaves or is removed. Archived conversations appear only in the separate Archived scope.
 - Unread contains nonarchived conversations with an unread count or a manual unread reminder.
 - Archived contains archived conversations, including one archived conversation that retains unread state without appearing in Unread.
@@ -87,44 +90,44 @@ support native swipe actions.
 - Representative rows cover ordinary, unread count, muted, disappearing-only,
   muted-and-disappearing, group-disappearing, draft, failed, direct-chat,
   group-chat, and ten distinct attachment-preview treatments.
-- Maya Chen and Weekend Walks are the only initially pinned chats, keeping the
-  complete direct and group showcase conversations immediately reachable.
-  Unpinned activity retains its deterministic relative order beneath them.
+- **Direct - Text & Delivery** is the only initially pinned chat. The remaining
+  catalog rows retain their documented order beneath it, followed by the
+  unpinned retained story chats, including Maya Chen and Weekend Walks.
 - Mina Park remains the deterministic draft example farther down the list and shows **Draft: Let’s pick this up after lunch** in the regular secondary preview style.
 - Book Club starts in the voluntary-left state and shows **You left this
   group.** Quiet Studio Group remains the removed fixture and shows **You were
   removed from this group.** Both appear in Chats and Left as retained
   read-only history.
 - Empty fixtures remain available for the future empty profile and for previews.
-- Fiatjaf uses the approved Figma avatar, appears in older active activity after
-  the uninterrupted marketing hero block, and opens its accepted story through
+- Fiatjaf uses the approved Figma avatar, appears after the legacy marketing
+  conversations, and opens its accepted story through
   the shared conversation defined in `conversation-fiatjaf.md` and
   `conversation-shared.md`.
-- White Noise Support follows Fiatjaf directly, uses the native
+- White Noise Support follows the developer catalog, uses the native
   `questionmark.bubble` identity, and opens the single profile-owned
   conversation defined in `conversation-support.md`.
 
-## App Store Chats hero
+## Initial developer viewport
 
-The normal populated Marmota profile is also the screenshot-ready Chats hero. It is not a screenshot-only profile or scenario.
+The normal populated Marmota profile opens with the developer catalog. It is
+not a separate test-only profile or scenario.
 
 The first visible block is fixed:
 
-1. **Maya Chen** — pinned, unread 1 — Can you send the latest version when you have a moment?
-2. **Weekend Walks** — pinned, unread 12 — **Nora:** Saturday morning works for me.
-3. **Nostr Devs** — Yesterday — **Tim:** Marmot draft merged. Time to test the new flow.
-4. **Radia Perlman** — Sunday — Let the network heal itself; loops (and censors) break.
-5. **Hal Finney** — Now — Running bitcoin… still amazes me how far we’ve come.
-6. **Judith “St. Jude” Milhon** — 2m, unread 2 — Hacking means finding clever ways around dumb rules.
-7. **Marmots** — 9m, unread 99+ — **Jude:** Big plans—or no plans at all!
-8. **Whitfield Diffie** — 1h — **You:** Key exchange since ’76—still my favorite handshake.
-9. **Richard Stallman** — 8h, muted — Free as in freedom, not as in beer. Keep your keys libre.
-10. **Eric Hughes** — Yesterday, unread 12 — Cypherpunks still write code. Ship the patch?
+1. **Direct - Text & Delivery** — pinned and failed — DLV-03: Failed outgoing message
+2. **Direct - Dates & Scrolling** — DATE-15: Long day keeps its date pinned
+3. **Direct - Replies & Deletion** — unread 3 — RPL-04: Missing reply target
+4. **Direct - Reactions & Actions** — manually unread — ACT-05: Share available file URL
+5. **Direct - New Chat & Draft** — draft — STATE-01: Unsent draft
+6. **Composer - Text** — draft — Here’s the updated plan.
+7. **Composer - Multiline** — draft — I pulled together the notes:
+8. **Composer - Link** — draft — https://whitenoise.chat
+9. **Composer - Link Preview** — draft — Worth a look: https://developer.apple.com
+10. **Composer - Photo** — draft — Photo ready to send
 
-The complete direct and group showcase conversations now lead the list, followed
-by the deterministic legacy marketing sequence. Mina Park, Theo Grant, and the
-remaining test conversations stay reachable in older activity and search. The
-Nora Bennett failed-send fixture remains below the initial viewport.
+The remaining developer cases continue in catalog order. White Noise Support,
+the deterministic legacy marketing sequence, Fiatjaf, and the retained story
+conversations remain reachable by scrolling and search.
 
 ## Swipe actions
 
@@ -281,7 +284,7 @@ They are not platform authority and are not required to implement this screen.
 
 ## Acceptance
 
-- The populated account displays 35 nonarchived and 4 archived conversations.
+- The populated account displays 72 nonarchived and 5 archived conversations.
 - Unread, Archived, and Left show correct deterministic subsets and identify their scope inside the Filter Menu label; Chats uses the plain icon-only Filter label.
 - Unread shows a native bottom-leading **Read All** action while unread chats remain; activating it clears every active unread state and reveals **No Unread Chats** without an empty bottom-bar strip.
 - Search filters the selected scope and restores the existing native no-results state when empty.
@@ -307,20 +310,18 @@ They are not platform authority and are not required to implement this screen.
 - Numeric unread, mute, draft, and failed states are visibly distinct.
 - Single-digit Unread and Failed appear optically equal in the shared status region.
 - The visible fixtures include one-digit, two-digit, and capped **99+** unread values.
-- The App Store hero shows five unread treatments: Maya Chen at **1**,
-  Weekend Walks at **12**, Judith at **2**, Eric Hughes at **12**, and Marmots
-  capped at **99+**.
+- The complete fixture set includes one-digit, two-digit, manual, and capped
+  **99+** unread treatments without changing the catalog-first order.
 - Mute appears beside the chat name; the timestamp shares that top row.
 - Fixtures demonstrate time, Yesterday, weekday, and date timestamp variants.
-  The unpinned sequence retains its deterministic relative order; Maya Chen and
-  Weekend Walks remain above it as the only initially pinned chats.
-- The first App Store viewport begins with the direct and group showcase pair,
-  followed by the legacy marketing sequence; failed-send, left-chat, and
-  removed-chat treatments remain outside the initial viewport.
+  The unpinned sequence retains its deterministic relative order; **Direct -
+  Text & Delivery** remains the sole initial pin.
+- The first viewport begins with the ordered developer catalog. Retained story
+  and legacy marketing conversations remain searchable and reachable below it.
 - Every original conversation remains searchable and reachable after adding the ten legacy marketing conversations.
 - The active list contains all ten documented attachment-preview treatments.
 - Both onboarding paths open the populated account.
 - Empty profile previews remain directly inspectable.
-- No bulk editing, account switching, or refresh control is introduced. Fiatjaf
-  and White Noise Support are the implemented conversation destinations in
-  this batch.
+- No bulk-editing or refresh control is introduced. Profile switching remains
+  available through Settings, and every catalog and retained row opens its
+  profile-owned conversation state.

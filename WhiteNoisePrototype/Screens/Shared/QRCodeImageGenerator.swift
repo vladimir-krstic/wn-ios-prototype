@@ -2,6 +2,8 @@ import CoreImage.CIFilterBuiltins
 import UIKit
 
 enum QRCodeImageGenerator {
+    private static let context = CIContext()
+
     static func image(
         for payload: String,
         scale: CGFloat = 12,
@@ -33,8 +35,6 @@ enum QRCodeImageGenerator {
         let scaledImage = sourceImage.transformed(
             by: CGAffineTransform(scaleX: scale, y: scale)
         )
-        let context = CIContext()
-
         guard let image = context.createCGImage(
             scaledImage,
             from: scaledImage.extent

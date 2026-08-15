@@ -364,9 +364,7 @@ struct NativeChatList: UIViewRepresentable {
         }
 
         private func chat(id: String) -> ChatListItem? {
-            parent.chats.first { chat in
-                chat.id == id
-            }
+            displayedChatsByID[id]
         }
 
         private func archiveAction(

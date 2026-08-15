@@ -427,7 +427,12 @@ extension PrototypeAttachment {
 
     var prototypeComposerMediaAspectRatio: CGFloat {
         switch self {
-        case let .photo(_, source, _, _):
+        case let .photo(_, source, _, dimensions):
+            if let ratio = dimensions?.aspectRatio,
+               ratio.isFinite,
+               ratio > 0 {
+                return CGFloat(ratio)
+            }
             let sourceSize: CGSize? = switch source {
             case let .asset(name):
                 UIImage(named: name)?.size

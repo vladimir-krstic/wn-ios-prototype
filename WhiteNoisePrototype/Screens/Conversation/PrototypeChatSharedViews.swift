@@ -211,8 +211,9 @@ enum PrototypeChatEventFormatter {
         func actor(_ id: String) -> String { name(id, capitalized: true) }
         func names(_ ids: [String]) -> String {
             let values = ids.map { name($0) }
-            guard values.count > 1 else { return values.first ?? "" }
-            return values.dropLast().joined(separator: ", ") + " and " + values.last!
+            guard let last = values.last else { return "" }
+            guard values.count > 1 else { return last }
+            return values.dropLast().joined(separator: ", ") + " and " + last
         }
 
         switch kind {
@@ -270,14 +271,6 @@ enum PrototypeDateFormatter {
         return formatter
     }()
 
-    private static let relativeDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .none
-        formatter.doesRelativeDateFormatting = true
-        return formatter
-    }()
-
     static func separator(for date: Date, now: Date = .now) -> String {
         let calendar = Calendar.autoupdatingCurrent
         let displayDate = min(date, now)
@@ -292,10 +285,16 @@ enum PrototypeDateFormatter {
             from: calendar.startOfDay(for: displayDate),
             to: startOfToday
         ).day ?? 0
+        if dayDistance == 0 {
+            return "Today"
+        }
+        if dayDistance == 1 {
+            return "Yesterday"
+        }
         if dayDistance > 1 {
             return recentDateFormatter.string(from: displayDate)
         }
-        return relativeDateFormatter.string(from: displayDate)
+        return "Today"
     }
 
     static func time(for date: Date) -> String {
@@ -419,7 +418,9 @@ private struct PrototypeVideoPage: View {
 
     var body: some View {
         VideoPlayer(player: player)
-            .accessibilityLabel("Video, (prototypeDurationString(duration))")
+            .accessibilityLabel(
+                "Video, \(prototypeDurationString(duration))"
+            )
         .onAppear {
             updatePlayback()
         }

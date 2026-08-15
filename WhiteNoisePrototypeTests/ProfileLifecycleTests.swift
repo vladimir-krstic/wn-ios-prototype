@@ -93,11 +93,11 @@ struct ProfileLifecycleTests {
     }
 
     @Test("Re-onboarding updates editable values without replacing local data")
-    func reactivationUpdatesOnlyEditableProfileValues() {
+    func reactivationUpdatesOnlyEditableProfileValues() throws {
         var stored = PrototypeProfile.marmota
-        let supportIndex = stored.chats.firstIndex {
+        let supportIndex = try #require(stored.chats.firstIndex {
             $0.id == ChatListFixtures.supportChatID
-        }!
+        })
         stored.chats[supportIndex].appendMessage(
             authorID: stored.id,
             text: "Saved locally"

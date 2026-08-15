@@ -28,6 +28,7 @@ struct WelcomeView: View {
                     Text("Sign In")
                 }
                     .buttonStyle(.glass)
+                    .accessibilityIdentifier("welcome.sign-in")
 
                 Button(action: onSignUp) {
                     Text("Sign Up")

@@ -2,6 +2,10 @@ import XCTest
 
 @MainActor
 final class ProfileExitFlowUITests: XCTestCase {
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
     func testSwitchingProfileReturnsToSettings() throws {
         let app = XCUIApplication()
         launchSignedInApp(app)
@@ -174,10 +178,25 @@ final class ProfileExitFlowUITests: XCTestCase {
         let field = app.textFields["wipe-profile.confirmation-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 3))
         field.tap()
-        field.typeText(profileName)
+        for character in profileName {
+            field.typeText(String(character))
+        }
+        let done = app.keyboards.buttons["Done"]
+        if done.waitForExistence(timeout: 2) {
+            done.tap()
+        }
 
         let confirm = app.buttons["wipe-profile.confirm"]
-        XCTAssertTrue(confirm.isEnabled)
+        XCTAssertEqual(
+            XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "isEnabled == true"),
+                    object: confirm
+                )],
+                timeout: 3
+            ),
+            .completed
+        )
         confirm.tap()
     }
 

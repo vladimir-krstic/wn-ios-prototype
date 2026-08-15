@@ -1,6 +1,15 @@
 import AVFoundation
 import Foundation
 
+private struct PrototypeAudioPlayerHandle: @unchecked Sendable {
+    let player: AVAudioPlayer
+}
+
+private let prototypeAudioOperationQueue = DispatchQueue(
+    label: "dev.ipf.whitenoise.prototype-audio",
+    qos: .userInitiated
+)
+
 /// Coordinates deterministic playback without microphone access.
 /// Every voice bubble plays the same locally bundled recording.
 @MainActor
@@ -21,6 +30,7 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject,
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var activeSpeechUtteranceID: ObjectIdentifier?
     private var progressTask: Task<Void, Never>?
+    private var voiceActivationID: UUID?
 
     override private init() {
         super.init()
@@ -30,22 +40,32 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject,
     func toggleVoice(id: String, duration requestedDuration: TimeInterval) {
         if activeVoiceID == id {
             if isPaused {
-                player?.play()
+                guard let player else {
+                    stopAll(deactivateAudioSession: false)
+                    return
+                }
+                resume(player)
                 isPaused = false
                 startProgress()
             } else {
-                player?.pause()
+                if let player {
+                    let handle = PrototypeAudioPlayerHandle(player: player)
+                    prototypeAudioOperationQueue.async {
+                        handle.player.pause()
+                    }
+                }
                 isPaused = true
                 progressTask?.cancel()
             }
             return
         }
 
-        stopAll()
+        stopAll(deactivateAudioSession: false)
         guard let player = try? AVAudioPlayer(data: PrototypeVoiceSample.data) else { return }
+        let activationID = UUID()
+        voiceActivationID = activationID
         self.player = player
         player.delegate = self
-        player.prepareToPlay()
         let playbackDuration = max(0.1, requestedDuration)
         if playbackDuration > player.duration {
             player.numberOfLoops = -1
@@ -54,8 +74,27 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject,
         duration = playbackDuration
         elapsed = 0
         isPaused = false
-        player.play()
-        startProgress()
+
+        let audioSession = AVAudioSession.sharedInstance()
+        audioSession.activate(options: []) { [weak self] activated, _ in
+            Task { @MainActor in
+                guard let self,
+                      self.voiceActivationID == activationID,
+                      self.player === player
+                else {
+                    if activated {
+                        audioSession.deactivate(options: []) { _, _ in }
+                    }
+                    return
+                }
+
+                guard activated else {
+                    self.stopAll(deactivateAudioSession: false)
+                    return
+                }
+                self.start(player, activationID: activationID)
+            }
+        }
     }
 
     func registerWaveform(_ samples: [Double], for id: String) {
@@ -92,6 +131,10 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject,
     }
 
     func stopAll() {
+        stopAll(deactivateAudioSession: true)
+    }
+
+    private func stopAll(deactivateAudioSession: Bool) {
         let hadVoicePlayback = progressTask != nil
             || player != nil
             || activeVoiceID != nil
@@ -101,7 +144,8 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject,
 
         progressTask?.cancel()
         progressTask = nil
-        player?.stop()
+        voiceActivationID = nil
+        let playerToStop = player
         player = nil
         if hadVoicePlayback {
             activeVoiceID = nil
@@ -109,7 +153,58 @@ final class PrototypePlaybackCoordinator: NSObject, ObservableObject,
             duration = 0
             isPaused = false
         }
+        if let playerToStop {
+            let handle = PrototypeAudioPlayerHandle(player: playerToStop)
+            prototypeAudioOperationQueue.async {
+                handle.player.stop()
+                if hadVoicePlayback, deactivateAudioSession {
+                    AVAudioSession.sharedInstance().deactivate(options: []) { _, _ in }
+                }
+            }
+        } else if hadVoicePlayback, deactivateAudioSession {
+            AVAudioSession.sharedInstance().deactivate(options: []) { _, _ in }
+        }
         stopReading()
+    }
+
+    private func start(_ player: AVAudioPlayer, activationID: UUID) {
+        let handle = PrototypeAudioPlayerHandle(player: player)
+        prototypeAudioOperationQueue.async { [weak self] in
+            let started = handle.player.prepareToPlay()
+                && handle.player.play()
+            Task { @MainActor [weak self] in
+                guard let self,
+                      self.voiceActivationID == activationID,
+                      self.player === handle.player
+                else {
+                    if started {
+                        prototypeAudioOperationQueue.async {
+                            handle.player.stop()
+                        }
+                    }
+                    return
+                }
+
+                guard started else {
+                    self.stopAll(deactivateAudioSession: false)
+                    return
+                }
+                self.startProgress()
+            }
+        }
+    }
+
+    private func resume(_ player: AVAudioPlayer) {
+        let handle = PrototypeAudioPlayerHandle(player: player)
+        prototypeAudioOperationQueue.async { [weak self] in
+            guard handle.player.play() else {
+                Task { @MainActor in
+                    guard let self, self.player === handle.player else { return }
+                    self.stopAll()
+                }
+                return
+            }
+        }
     }
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {

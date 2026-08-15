@@ -84,7 +84,7 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `TXT-10` | Direct - Text & Delivery | `TXT-10` | Raw URL | Open URL; standard actions | Implemented; review pending |
 | [ ] | `DLV-01` | Direct - Text & Delivery | `DLV-01` | Sending outgoing state | Standard outgoing actions | Implemented; review pending |
 | [ ] | `DLV-02` | Direct - Text & Delivery | `DLV-02` | Sent outgoing state | Standard outgoing actions | Implemented; review pending |
-| [ ] | `DLV-03` | Direct - Text & Delivery | `DLV-03` | Red **Not delivered, hold for options** status, left-aligned like the outgoing timestamp at the bubble's inner corner inset; no timestamp | Touch and hold → Retry Send; standard outgoing actions | Implemented; review pending |
+| [ ] | `DLV-03` | Direct - Text & Delivery | `DLV-03` | Primary-label outlined warning icon with **Not delivered, hold for options** status, left-aligned like the outgoing timestamp at the bubble's inner corner inset; no timestamp | Touch and hold → Retry Send; standard outgoing actions | Implemented; review pending |
 | [ ] | `CLUSTER-01` | Direct - Text & Delivery | `CLUSTER-01` | Author change starts a cluster | None | Implemented; review pending |
 | [ ] | `CLUSTER-02` | Direct - Text & Delivery | `CLUSTER-02` | More than five minutes starts a cluster | None | Implemented; review pending |
 | [ ] | `CLUSTER-03` | Direct - Text & Delivery | `CLUSTER-03` | New day starts a cluster | None | Implemented; review pending |
@@ -128,8 +128,8 @@ coverage, but have not yet been accepted in a simulator pass.
 | Done | Scenario ID | Catalog chat | Fixture/message ID | Expected result | Supported action | Implementation status |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `MED-01`–`MED-03` | Media - Single Photos & Video | same IDs | Incoming/outgoing photo-only and captioned single media use natural constrained sizing | Open exact item in chat-wide viewer | Implemented; review pending |
-| [ ] | `MED-SINGLE-01`–`MED-SINGLE-05` | Media - Single Photos & Video | same IDs | Landscape, square, portrait, panorama-clamped, tall-clamped, and low-resolution sizing | Open exact item | Implemented; review pending |
-| [ ] | `MED-11`, `MED-VIDEO-01` | Media - Single Photos & Video | same IDs | Available landscape and portrait video with play and duration overlays | Open exact item; native playback | Implemented; review pending |
+| [ ] | `MED-SINGLE-04`–`MED-SINGLE-06` | Media - Single Photos & Video | same IDs | Panorama-clamped, tall-clamped, and low-resolution sizing | Open exact item | Implemented; review pending |
+| [ ] | `MED-11`, `MED-SINGLE-08` | Media - Single Photos & Video | same IDs | Available landscape and portrait video with play and duration overlays | Open exact item; native playback | Implemented; review pending |
 | [ ] | `MED-12`–`MED-13` | Media - Single Photos & Video | same IDs | Unavailable video/photo remain visible and fully noninteractive | None | Implemented; review pending |
 | [ ] | `MED-04`–`MED-09` | Media - Gallery Layouts | same IDs | Counts 2–7 use Signal-informed five-tile layouts and 2-point gutters | Open selected attachment | Implemented; review pending |
 | [ ] | `MED-GALLERY-08` | Media - Gallery Layouts | same ID | Larger overflow shows the hidden count on tile five | Open at attachment five | Implemented; review pending |
@@ -275,7 +275,7 @@ intentional product fallback are outside catalog scope.
 | [ ] | `MSG-ACT-13` | `RICH-05` | Contact opens the referenced profile | Implemented; review pending |
 | [ ] | `MSG-ACT-14` | Any nondeleted message | Select enters multi-message selection with count, selected-message Delete, Forward, and Close controls | Implemented; review pending |
 | [ ] | `MSG-ACT-15` | Any nondeleted message | Info pushes Message Details with direction, time, sender, delivery state, and recipients | Implemented; review pending |
-| [ ] | `MSG-ACT-14` | `VOICE-01`–`VOICE-03` | Play/pause, progress, waveform, and elapsed/remaining time stay synchronized | Implemented; review pending |
+| [ ] | `MSG-ACT-16` | `VOICE-01`–`VOICE-03` | Play/pause, progress, waveform, and elapsed/remaining time stay synchronized | Implemented; review pending |
 | [ ] | `CHAT-ACT-01` | `LIST-02`, `LIST-03` | Read/Unread updates count and marked-unread state | Implemented; review pending |
 | [ ] | `CHAT-ACT-02` | `LIST-01` | Pin/Unpin updates ordering; legacy fixtures remain below catalog | Implemented; review pending |
 | [ ] | `CHAT-ACT-03` | `LIST-07` | Archive/Unarchive moves between All and Archived scopes | Implemented; review pending |

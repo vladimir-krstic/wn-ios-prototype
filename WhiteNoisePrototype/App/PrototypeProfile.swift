@@ -97,8 +97,10 @@ struct PrototypeProfile: Identifiable, Equatable {
 }
 
 extension PrototypeProfile {
+    static let marmotaID = "marmota"
+
     static let marmota = PrototypeProfile(
-        id: "marmota",
+        id: marmotaID,
         name: "Marmota",
         publicKey: "npub1m8z7q4k6v2c9r5t3y8p4s7h2d6n9w3x5j8f4u7e2a6k9q8x4k",
         about: "Quietly making plans and sending good links.",
@@ -107,7 +109,7 @@ extension PrototypeProfile {
         lightningAddress: "marmota@pay.example",
         avatar: .asset("ProfileAvatarMarmota"),
         chats: PrototypeChatFixtures.chats(
-            profileID: "marmota",
+            profileID: marmotaID,
             relayURLs: PrototypeRelayConfiguration.fixtures
                 .availableChatMessageRelayURLs
         )

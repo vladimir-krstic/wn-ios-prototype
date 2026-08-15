@@ -1,9 +1,13 @@
 import SwiftUI
 
 struct ChatListRow: View {
-    private static let unreadBadgeHeight: CGFloat = 20
     private static let failureSymbolSize: CGFloat = 18
-    private static let multiDigitHorizontalPadding: CGFloat = 6
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .caption2)
+    private var unreadBadgeHeight: CGFloat = 20
+    @ScaledMetric(relativeTo: .caption2)
+    private var multiDigitHorizontalPadding: CGFloat = 6
 
     let chat: ChatListItem
 
@@ -15,7 +19,7 @@ struct ChatListRow: View {
                 HStack(spacing: 5) {
                     Text(chat.title)
                         .font(.headline)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
 
                     if chat.isMuted {
                         Image(systemName: "bell.slash.fill")
@@ -46,16 +50,16 @@ struct ChatListRow: View {
 
                     Text(chat.timestamp)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.primary.opacity(0.6))
                         .monospacedDigit()
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 }
 
                 HStack(alignment: .top, spacing: 5) {
                     preview
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .foregroundStyle(Color.primary.opacity(0.6))
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                     Spacer(minLength: 8)
 
@@ -129,12 +133,12 @@ struct ChatListRow: View {
                 Circle()
                     .fill(Color("AccentColor"))
                     .frame(
-                        width: Self.unreadBadgeHeight,
-                        height: Self.unreadBadgeHeight
+                        width: unreadBadgeHeight,
+                        height: unreadBadgeHeight
                     )
                     .overlay {
                         Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.caption2.weight(.bold))
                             .foregroundStyle(Color(uiColor: .systemBackground))
                     }
                     .accessibilityLabel("Chat invitation")
@@ -145,11 +149,11 @@ struct ChatListRow: View {
 
                 case .failed:
                     Image(systemName: "exclamationmark.circle")
-                        .font(.system(size: Self.failureSymbolSize))
+                        .font(.body)
                         .foregroundStyle(.red)
                         .frame(
-                            width: Self.failureSymbolSize,
-                            height: Self.failureSymbolSize
+                            minWidth: Self.failureSymbolSize,
+                            minHeight: Self.failureSymbolSize
                         )
                         .accessibilityLabel("Not delivered")
                 }
@@ -161,7 +165,7 @@ struct ChatListRow: View {
                 }
             }
         }
-        .frame(minHeight: Self.unreadBadgeHeight)
+        .frame(minHeight: unreadBadgeHeight)
     }
 
     private var unreadBadge: some View {
@@ -170,8 +174,8 @@ struct ChatListRow: View {
                 Circle()
                     .fill(Color("AccentColor"))
                     .frame(
-                        width: Self.unreadBadgeHeight,
-                        height: Self.unreadBadgeHeight
+                        width: unreadBadgeHeight,
+                        height: unreadBadgeHeight
                     )
                     .overlay {
                         unreadBadgeLabel
@@ -185,15 +189,15 @@ struct ChatListRow: View {
                 unreadBadgeLabel
                     .padding(
                         .horizontal,
-                        Self.multiDigitHorizontalPadding
+                        multiDigitHorizontalPadding
                     )
                     .hidden()
                     .frame(
-                        minWidth: Self.unreadBadgeHeight,
+                        minWidth: unreadBadgeHeight,
                         alignment: .center
                     )
                     .frame(
-                        height: Self.unreadBadgeHeight,
+                        height: unreadBadgeHeight,
                         alignment: .center
                     )
                     .background {
@@ -220,7 +224,7 @@ struct ChatListRow: View {
             .font(.caption2.weight(.bold))
             .monospacedDigit()
             .foregroundStyle(Color(uiColor: .systemBackground))
-            .lineLimit(1)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
             .multilineTextAlignment(.center)
     }
 
@@ -234,8 +238,8 @@ struct ChatListRow: View {
         Circle()
             .fill(Color("AccentColor"))
             .frame(
-                width: Self.unreadBadgeHeight,
-                height: Self.unreadBadgeHeight
+                width: unreadBadgeHeight,
+                height: unreadBadgeHeight
             )
             .accessibilityLabel("Unread")
     }

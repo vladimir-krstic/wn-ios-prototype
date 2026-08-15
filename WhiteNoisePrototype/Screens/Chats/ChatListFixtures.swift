@@ -163,7 +163,7 @@ enum ChatListFixtures {
         catalogItem(
             id: "catalog-media-single",
             title: "Media - Single Photos & Video",
-            preview: "MED-SINGLE-10: Unavailable video",
+            preview: "MED-12: Unavailable video",
             muted: true
         ),
         catalogItem(

@@ -65,7 +65,9 @@ struct ChatsView: View {
     }
 
     var body: some View {
-        chatContent
+        let projection = chatProjection
+
+        chatContent(projection.visibleChats)
             .ignoresSafeArea(.container, edges: [.top, .bottom])
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
@@ -111,7 +113,7 @@ struct ChatsView: View {
             }
             .modifier(
                 ReadAllBottomBar(
-                    isVisible: readAllIsVisible,
+                    isVisible: scope == .unread && projection.hasUnreadChats,
                     action: markAllChatsRead
                 )
             )
@@ -123,7 +125,7 @@ struct ChatsView: View {
     }
 
     @ViewBuilder
-    private var chatContent: some View {
+    private func chatContent(_ visibleChats: [ChatListItem]) -> some View {
         ZStack {
             NativeChatList(
                 chats: visibleChats,
@@ -226,13 +228,15 @@ struct ChatsView: View {
         mutation(&profile.chats[index])
     }
 
-    private var rows: [ChatListItem] {
-        profile.chats.map {
-            $0.row(people: profile.people, currentProfileID: profile.id)
-        }
+    private struct ChatProjection {
+        let visibleChats: [ChatListItem]
+        let hasUnreadChats: Bool
     }
 
-    private var visibleChats: [ChatListItem] {
+    private var chatProjection: ChatProjection {
+        let rows = profile.chats.map {
+            $0.row(people: profile.people, currentProfileID: profile.id)
+        }
         let scopedChats = rows.filter { chat in
             switch scope {
             case .all: !chat.isArchived
@@ -247,14 +251,12 @@ struct ChatsView: View {
             chat.title.localizedCaseInsensitiveContains(query)
                 || chat.searchablePreview.localizedCaseInsensitiveContains(query)
         }
-        return matchingChats.filter(\.isPinned) + matchingChats.filter { !$0.isPinned }
+        return ChatProjection(
+            visibleChats: matchingChats.filter(\.isPinned)
+                + matchingChats.filter { !$0.isPinned },
+            hasUnreadChats: rows.contains { !$0.isArchived && $0.isUnread }
+        )
     }
-
-    private var hasUnreadChats: Bool {
-        rows.contains { !$0.isArchived && $0.isUnread }
-    }
-
-    private var readAllIsVisible: Bool { scope == .unread && hasUnreadChats }
 
     private var filterMenu: some View {
         Menu {

@@ -351,7 +351,7 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   double-tap zoom, files use Quick Look where supported, and sharing uses the
   system share sheet.
 - Holding the empty-composer waveform for the native `LongPressGesture`
-  threshold of 0.5 seconds, within its ten-point movement allowance, replaces
+  threshold of 0.4 seconds, within its 32-point movement allowance, replaces
   the input with an animated red waveform, elapsed timer, and explicit Stop
   control. A tap alone does not start recording. Quiet or not-yet-populated
   waveform bars use a lighter red treatment while active bars use the full
@@ -591,10 +591,12 @@ that interaction split while using the user-approved visible copy above.
   composer, including when the person had scrolled to older history first.
 - Tapping anywhere outside the focused composer dismisses the keyboard without
   consuming the tapped message, control, menu, media, or navigation action.
-- A failed outgoing message shows no timestamp. It shows **Not delivered, hold
-  for options**, left-aligned to the outgoing message text inset, and touching
-  and holding the bubble or status exposes **Retry Send** first in the focused
-  message-action presentation.
+- A failed outgoing message shows no timestamp. A primary-label outlined
+  warning icon precedes **Not delivered, hold for options**, communicating the
+  state without depending on color and retaining system contrast in either
+  appearance. The status is left-aligned to the outgoing message text inset,
+  and touching and holding the bubble or status exposes **Retry Send** first in
+  the focused message-action presentation.
 - Swiping any currently replyable nondeleted message from its semantic leading
   side tracks the message without blocking vertical scrolling. The filled
   secondary-gray reply arrow reveals beneath the message, visibly and

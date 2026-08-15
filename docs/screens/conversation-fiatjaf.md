@@ -34,11 +34,21 @@ The supplied Figma conversation establishes the identity, ordering, reply, react
 - A native `ScrollView` with `LazyVStack` owns timeline scrolling without a visible scroll indicator. Messages are bottom-aligned when the content is shorter than the viewport.
 - Outgoing messages use the adaptive app accent: black with white content in Light Mode and white with black content in Dark Mode.
 - Incoming messages use the adaptive semantic `secondarySystemFill`.
-- SwiftUI has no stock message-bubble component. The screen uses `UnevenRoundedRectangle` with one tighter lower corner to distinguish direction without drawing a custom tail.
+- SwiftUI has no stock message-bubble component. The shared renderer uses a
+  tail-free, fully rounded continuous silhouette; compact clustering rather
+  than flattened corners communicates same-author grouping.
 - The reply preview is part of the incoming bubble and uses a semantic overlay, a short vertical capsule, caption typography for the author, and secondary text for the quoted body.
 - Reactions use a compact system-background capsule attached below the bubble’s inward edge: leading for outgoing messages and trailing for incoming messages. The capsule is inset symmetrically from that edge, matching the timestamp inset rather than sitting flush with the bubble.
 - The five approved Figma images use native SwiftUI stacks with row widths derived from the approved bubble width, clipped rounded rectangles, and no runtime loading. Media never escapes its message bubble.
-- The composer is pinned with `safeAreaInset`; the timeline uses the native soft bottom scroll-edge effect instead of a hard bar boundary or opaque composer backing. A native multiline `TextField` owns keyboard, focus, selection, and text entry inside a system Liquid Glass rounded rectangle. Its resting single line is vertically centered at the native minimum interaction height, multiline content grows to ten visible lines before scrolling, and the resting corner radius stays constant. The stable trailing slot changes in place from waveform to the native glass Send button so typing does not resize the field.
+- The composer is pinned with `safeAreaInset`; the timeline uses the native
+  soft bottom scroll-edge effect instead of a hard bar boundary or opaque
+  composer backing. A native `UITextView` bridged into SwiftUI owns keyboard,
+  focus, selection, scrolling, and multiline text entry inside a system Liquid
+  Glass rounded rectangle. Its resting single line is vertically centered at
+  the native minimum interaction height, multiline content grows to ten
+  visible lines before scrolling, and the resting corner radius stays
+  constant. The stable trailing slot changes in place from waveform to the
+  native glass Send button so typing does not resize the field.
 - The timeline keeps system spacing between its final message and the stationary composer when first opened and after sending.
 - Message metadata shows time only. Timestamps sit outside the bubble: beneath the inward edge of outgoing and incoming messages. Delivery checkmarks aren’t part of the White Noise conversation design.
 - Sending nonempty text appends a deterministic outgoing bubble labeled **Now**, clears the composer, keeps the new message visible, and updates the Fiatjaf row preview.

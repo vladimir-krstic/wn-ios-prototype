@@ -113,6 +113,14 @@ struct SignOutPrototypeView: View {
             .frame(maxWidth: .infinity)
             .disabled(!confirmationMatches)
             .accessibilityLabel("Sign Out and Wipe Data")
+            .accessibilityValue(
+                confirmationMatches ? "Ready" : "Profile name required"
+            )
+            .accessibilityHint(
+                confirmationMatches
+                    ? "Permanently removes this profile and its local data."
+                    : "Enter \(profile.name) to enable this button."
+            )
             .accessibilityIdentifier("wipe-profile.confirm")
         } else {
             Button(role: .destructive) {
@@ -139,8 +147,10 @@ struct SignOutPrototypeView: View {
     }
 
     private var confirmationMatches: Bool {
-        confirmationText.trimmingCharacters(in: .whitespacesAndNewlines)
-            == profile.name
+        WipeConfirmationPhrase.matches(
+            confirmationText,
+            expected: profile.name
+        )
     }
 
     private func run(

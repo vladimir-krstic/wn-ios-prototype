@@ -47,7 +47,10 @@ private func prototypeInlineHighlightedText(
     _ attributedString: AttributedString,
     tagsMentions: Bool
 ) -> Text {
-    var result = Text("")
+    var interpolation = LocalizedStringKey.StringInterpolation(
+        literalCapacity: 0,
+        interpolationCount: attributedString.runs.count
+    )
 
     for run in attributedString.runs {
         let isSearchMatch = run.backgroundColor != nil
@@ -63,10 +66,10 @@ private func prototypeInlineHighlightedText(
         if isSearchMatch {
             segment = segment.customAttribute(PrototypeSearchMatchAttribute())
         }
-        result = result + segment
+        interpolation.appendInterpolation(segment)
     }
 
-    return result
+    return Text(LocalizedStringKey(stringInterpolation: interpolation))
 }
 
 struct PrototypeMessageBubble: View {
@@ -122,19 +125,8 @@ struct PrototypeMessageBubble: View {
         static let maximumMovement: CGFloat = 10
     }
 
-    @ViewBuilder
     var body: some View {
-        if let voiceAttachment {
-            messageRow
-                .accessibilityAction(named: "Play or Pause") {
-                    PrototypePlaybackCoordinator.shared.toggleVoice(
-                        id: voiceAttachment.id,
-                        duration: voiceAttachment.duration
-                    )
-                }
-        } else {
-            messageRow
-        }
+        messageRow
     }
 
     private var messageRow: some View {
@@ -175,9 +167,13 @@ struct PrototypeMessageBubble: View {
             if !outgoing { Spacer(minLength: 48) }
         }
         .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilitySummary)
-        .accessibilityIdentifier("message.\(message.id)")
+        .modifier(
+            PrototypeMessageAccessibilityModifier(
+                containsVoice: voiceAttachment != nil,
+                summary: accessibilitySummary,
+                identifier: "message.\(message.id)"
+            )
+        )
         .gesture(
             PrototypeMessageReplyPanGesture(
                 isEnabled: isSwipeToReplyEnabled,
@@ -192,6 +188,10 @@ struct PrototypeMessageBubble: View {
         )
         .onChange(of: isSwipeToReplyEnabled) { _, isEnabled in
             if !isEnabled { resetReplySwipe(animated: false) }
+        }
+        .onDisappear {
+            cancelContextPresentation()
+            resetReplySwipe(animated: false)
         }
     }
 
@@ -416,7 +416,7 @@ struct PrototypeMessageBubble: View {
             }
             Text(PrototypeDateFormatter.time(for: message.sentAt))
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
                 .monospacedDigit()
         }
     }
@@ -429,7 +429,7 @@ struct PrototypeMessageBubble: View {
                 .multilineTextAlignment(.leading)
         }
         .font(.caption)
-        .foregroundStyle(.red)
+        .foregroundStyle(.primary)
         .padding(
             .leading,
             PrototypeMessageBubbleMetrics.textHorizontalInset
@@ -481,6 +481,7 @@ struct PrototypeMessageBubble: View {
                         tint: messageColor.foregroundColor,
                         surfaceOpacity: richSurfaceOpacity,
                         searchQuery: searchQuery,
+                        accessibilityContext: accessibilitySummary,
                         onOpenMedia: onOpenMedia,
                         onOpenFile: onOpenFile,
                         onOpenPerson: onOpenPerson
@@ -550,14 +551,45 @@ struct PrototypeMessageBubble: View {
     }
 
     private var renderedMessageText: some View {
-        styledMessageText
-            .textSelection(.enabled)
-            .textRenderer(
-                PrototypeInlineHighlightTextRenderer(
-                    mentionBackgroundColor: mentionSurfaceColor,
-                    searchBackgroundColor: .cyan
-                )
+        Group {
+            if requiresInlineHighlightRenderer {
+                styledMessageText
+                    .font(.body)
+                    .textRenderer(
+                        PrototypeInlineHighlightTextRenderer(
+                            mentionBackgroundColor: mentionSurfaceColor,
+                            searchBackgroundColor: .cyan
+                        )
+                    )
+            } else if requiresAttributedMessageText {
+                Text(attributedMessageText)
+                    .font(.body)
+            } else {
+                Text(message.text)
+            }
+        }
+    }
+
+    private var requiresInlineHighlightRenderer: Bool {
+        if let searchQuery {
+            let query = searchQuery.trimmingCharacters(
+                in: .whitespacesAndNewlines
             )
+            if !query.isEmpty,
+               message.text.localizedStandardContains(query) {
+                return true
+            }
+        }
+
+        return people.contains { person in
+            message.text.contains("@\(person.name)")
+        }
+    }
+
+    private var requiresAttributedMessageText: Bool {
+        attributedMessageText.runs.contains { run in
+            run.inlinePresentationIntent != nil || run.link != nil
+        }
     }
 
     private func voiceTranscript<Content: View>(
@@ -1002,6 +1034,7 @@ private struct PrototypeAttachmentCollectionView: View {
     let tint: Color
     let surfaceOpacity: Double
     let searchQuery: String?
+    let accessibilityContext: String
     let onOpenMedia: (PrototypeAttachment) -> Void
     let onOpenFile: (URL) -> Void
     let onOpenPerson: (String) -> Void
@@ -1164,7 +1197,12 @@ private struct PrototypeAttachmentCollectionView: View {
                     .accessibilityLabel("File, \(name), unavailable")
             }
         case let .voice(id, _, duration):
-            PrototypeVoiceBubble(id: id, duration: duration)
+            PrototypeVoiceBubble(
+                id: id,
+                duration: duration,
+                tintColor: UIColor(tint),
+                accessibilityContext: accessibilityContext
+            )
         case let .link(_, title, domain, summary, image):
             if let destination = safeLinkDestination(domain: domain) {
                 Link(destination: destination) {
@@ -1504,12 +1542,67 @@ private struct PrototypeMessageReplyPanGesture: UIGestureRecognizerRepresentable
         coordinator.isEnabled = isEnabled
         recognizer.delegate = coordinator
         recognizer.isEnabled = isEnabled
+        recognizer.cancelsTouchesInView = true
+    }
+}
+
+private struct PrototypeVoicePlaybackButton: UIViewRepresentable {
+    let id: String
+    let isPlaying: Bool
+    let tintColor: UIColor
+    let elapsed: TimeInterval
+    let duration: TimeInterval
+    let accessibilityContext: String
+    let action: () -> Void
+
+    final class Coordinator: NSObject {
+        var action: () -> Void
+
+        init(action: @escaping () -> Void) {
+            self.action = action
+        }
+
+        @objc func activate() {
+            action()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(action: action)
+    }
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        button.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.activate),
+            for: .touchUpInside
+        )
+        return button
+    }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        context.coordinator.action = action
+        button.tintColor = tintColor
+        button.setImage(
+            UIImage(systemName: isPlaying ? "pause.fill" : "play.fill"),
+            for: .normal
+        )
+        button.isAccessibilityElement = true
+        button.accessibilityIdentifier = "voice.\(id).toggle"
+        button.accessibilityLabel = isPlaying
+            ? "Pause Voice Message"
+            : "Play Voice Message"
+        button.accessibilityValue = "\(prototypeDurationString(elapsed)) of \(prototypeDurationString(duration))"
+        button.accessibilityHint = accessibilityContext
     }
 }
 
 private struct PrototypeVoiceBubble: View {
     let id: String
     let duration: TimeInterval
+    let tintColor: UIColor
+    let accessibilityContext: String
     @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
 
     private var isActive: Bool { playback.activeVoiceID == id }
@@ -1523,15 +1616,18 @@ private struct PrototypeVoiceBubble: View {
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 0) {
-                Button {
-                    playback.toggleVoice(id: id, duration: duration)
-                } label: {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isPlaying ? "Pause" : "Play")
-                .accessibilityIdentifier("voice.\(id).toggle")
+                PrototypeVoicePlaybackButton(
+                    id: id,
+                    isPlaying: isPlaying,
+                    tintColor: tintColor,
+                    elapsed: elapsed,
+                    duration: duration,
+                    accessibilityContext: accessibilityContext,
+                    action: {
+                        playback.toggleVoice(id: id, duration: duration)
+                    }
+                )
+                .frame(width: 44, height: 44)
 
                 PrototypeAudioWaveform(
                     samples: playback.waveform(for: id),
@@ -1539,6 +1635,7 @@ private struct PrototypeVoiceBubble: View {
                 )
                 .frame(minWidth: 120, maxWidth: .infinity)
                 .frame(height: 32)
+                .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity)
 
@@ -1550,16 +1647,27 @@ private struct PrototypeVoiceBubble: View {
             .font(.caption.monospacedDigit())
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
+            .accessibilityHidden(true)
         }
         .frame(width: PrototypeMessageBubbleMetrics.richContentWidth)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "Voice message, \(prototypeDurationString(elapsed)) of \(prototypeDurationString(duration))"
-        )
-        .accessibilityAction(named: isPlaying ? "Pause" : "Play") {
-            playback.toggleVoice(id: id, duration: duration)
+    }
+}
+
+private struct PrototypeMessageAccessibilityModifier: ViewModifier {
+    let containsVoice: Bool
+    let summary: String
+    let identifier: String
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if containsVoice {
+            content
+        } else {
+            content
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(summary)
+                .accessibilityIdentifier(identifier)
         }
-        .accessibilityHidden(true)
     }
 }
 

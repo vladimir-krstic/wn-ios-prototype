@@ -805,7 +805,7 @@ enum PrototypeChatFixtures {
             .message(PrototypeMessage(id: "MED-11", authorID: otherID, sentAt: start.addingTimeInterval(1_080), text: "MED-11: Landscape video with duration", attachments: [landscapeVideo])),
             .message(PrototypeMessage(id: "MED-SINGLE-08", authorID: profileID, sentAt: start.addingTimeInterval(1_260), text: "MED-SINGLE-08: Portrait video", attachments: [portraitVideo])),
             .message(PrototypeMessage(id: "MED-13", authorID: otherID, sentAt: start.addingTimeInterval(1_440), text: "MED-13: Unavailable photo", attachments: [.photo(id: "MED-13-photo", source: .data(Data([0x00, 0x01, 0x02])), label: "Unavailable photo", dimensions: PrototypeMediaDimensions(pixelWidth: 1_200, pixelHeight: 800))])),
-            .message(PrototypeMessage(id: "MED-12", authorID: profileID, sentAt: start.addingTimeInterval(1_620), text: "MED-SINGLE-10: Unavailable video", attachments: [.video(id: "MED-12-video", url: nil, thumbnail: .asset("AvatarWebChristopherCampbell"), duration: 42, dimensions: PrototypeMediaDimensions(pixelWidth: 1_080, pixelHeight: 1_920))])),
+            .message(PrototypeMessage(id: "MED-12", authorID: profileID, sentAt: start.addingTimeInterval(1_620), text: "MED-12: Unavailable video", attachments: [.video(id: "MED-12-video", url: nil, thumbnail: .asset("AvatarWebChristopherCampbell"), duration: 42, dimensions: PrototypeMediaDimensions(pixelWidth: 1_080, pixelHeight: 1_920))])),
         ]
     }
 
@@ -1376,7 +1376,10 @@ enum PrototypeChatFixtures {
         if label == "Yesterday" { return now.addingTimeInterval(-86_400) }
 
         let calendar = Calendar.autoupdatingCurrent
-        let weekdaySymbols = DateFormatter().weekdaySymbols ?? []
+        let weekdaySymbols = [
+            "Sunday", "Monday", "Tuesday", "Wednesday",
+            "Thursday", "Friday", "Saturday",
+        ]
         if let weekdayIndex = weekdaySymbols.firstIndex(of: label) {
             let targetWeekday = weekdayIndex + 1
             let currentWeekday = calendar.component(.weekday, from: now)
@@ -1385,11 +1388,15 @@ enum PrototypeChatFixtures {
                 ?? now.addingTimeInterval(-7 * 86_400)
         }
 
-        let parser = DateFormatter()
-        parser.locale = Locale(identifier: "en_US_POSIX")
-        parser.calendar = calendar
-        parser.dateFormat = "M/d/yy"
-        if let parsed = parser.date(from: label) {
+        let dateParts = label.split(separator: "/").compactMap { Int($0) }
+        if dateParts.count == 3,
+           let parsed = calendar.date(
+               from: DateComponents(
+                   year: 2_000 + dateParts[2],
+                   month: dateParts[0],
+                   day: dateParts[1]
+               )
+           ) {
             let day = calendar.component(.day, from: parsed)
             let hour = 9 + day % 10
             let minute = (day * 7 % 4) * 15
@@ -1399,27 +1406,44 @@ enum PrototypeChatFixtures {
         return now.addingTimeInterval(-7 * 86_400)
     }
 
-    private static var showcaseVideoURL: URL? {
-        resourceURL(name: "ChatTrailClip", fileExtension: "mp4")
-    }
+    private static let showcaseVideoURL = resourceURL(
+        name: "ChatTrailClip",
+        fileExtension: "mp4"
+    )
+
+    private static let bundledFileResources: [String: (url: URL?, size: Int)] = {
+        let names = ["ProjectBrief", "ProjectNotes", "TrailPlan", "WeekendNotes"]
+        return Dictionary(uniqueKeysWithValues: names.map { name in
+            let url = resourceURL(name: name, fileExtension: "pdf")
+            let size = url.flatMap { url in
+                try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+            } ?? 0
+            return (name, (url, size))
+        })
+    }()
 
     private static func bundledFile(
         id: String,
         name: String,
         resourceName: String
     ) -> PrototypeAttachment {
-        let url = resourceURL(name: resourceName, fileExtension: "pdf")
-        let size = url.flatMap { url in
-            try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
-        } ?? 0
-        return .file(id: id, name: name, size: size, url: url)
+        let resource = bundledFileResources[resourceName]
+        return .file(
+            id: id,
+            name: name,
+            size: resource?.size ?? 0,
+            url: resource?.url
+        )
     }
 
     private static func resourceURL(name: String, fileExtension: String) -> URL? {
-        let owningBundle = Bundle(for: PrototypeChatFixtureBundleToken.self)
-        return owningBundle.url(forResource: name, withExtension: fileExtension)
+        fixtureBundle.url(forResource: name, withExtension: fileExtension)
             ?? Bundle.main.url(forResource: name, withExtension: fileExtension)
     }
+
+    private static let fixtureBundle = Bundle(
+        for: PrototypeChatFixtureBundleToken.self
+    )
 
     private static func about(for id: String) -> String {
         switch id {

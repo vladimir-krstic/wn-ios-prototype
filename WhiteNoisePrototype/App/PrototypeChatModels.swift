@@ -264,13 +264,15 @@ struct PrototypeComposerLinkPreview: Equatable {
     let summary: String
     let image: PrototypeImageSource?
 
+    private static let linkDetector = try? NSDataDetector(
+        types: NSTextCheckingResult.CheckingType.link.rawValue
+    )
+
     static func first(in text: String) -> PrototypeComposerLinkPreview? {
-        guard let detector = try? NSDataDetector(
-            types: NSTextCheckingResult.CheckingType.link.rawValue
-        ) else { return nil }
+        guard let linkDetector else { return nil }
 
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        guard let url = detector.firstMatch(
+        guard let url = linkDetector.firstMatch(
             in: text,
             options: [],
             range: range
@@ -590,7 +592,10 @@ struct PrototypeChat: Identifiable, Equatable {
                 attachmentPreview = nil
                 previewMessage = nil
             case .notice:
-                preconditionFailure("Notices are excluded from chat-row activity")
+                previewText = emptyPreview
+                previewAuthor = nil
+                attachmentPreview = nil
+                previewMessage = nil
             }
         } else {
             previewText = emptyPreview

@@ -1,7 +1,8 @@
 # Official Apple reference index
 
 Last full verification: **2026-07-31**. Developer Tools sources were
-reverified on **2026-08-06**.
+reverified on **2026-08-06**. Performance and testing sources were reverified
+on **2026-08-15**.
 
 This is the routing index for material platform decisions. Open the relevant
 live Apple source before choosing or recreating a component, interaction,
@@ -283,6 +284,14 @@ system.
 | [Xcode testing](https://developer.apple.com/documentation/xcode/testing) | Unit, integration, UI, and performance test capabilities | Adding a justified regression or logic test | Test targets | 2026-07-31 |
 | [Testing and performance](https://developer.apple.com/documentation/technologyoverviews/testing-and-performance) | Responsiveness, stalls, hitches, energy, and concurrency | Investigating a reproducible quality issue | Chats, conversation | 2026-07-31 |
 | [Writing and running performance tests](https://developer.apple.com/documentation/xcode/writing-and-running-performance-tests) | Repeatable performance baselines | Protecting a proven performance-critical path | Native chat list | 2026-07-31 |
+| [Improving app responsiveness](https://developer.apple.com/documentation/xcode/improving-app-responsiveness) | Rough interaction budgets, main-thread work, hangs, hitches, and appropriate diagnostic tools | Investigating delayed taps, animation stalls, or expensive synchronous work | Project-wide hardening | 2026-08-15 |
+| [Diagnosing performance issues early](https://developer.apple.com/documentation/xcode/diagnosing-performance-issues-early) | Thread Performance Checker findings, priority inversions, and non-UI main-thread work | Separating a project-owned stall from a runtime or toolchain issue | Project-wide hardening | 2026-08-15 |
+| [Understanding and improving SwiftUI performance](https://developer.apple.com/documentation/xcode/understanding-and-improving-swiftui-performance) | Long-running view bodies, frequent updates, dependency scope, and SwiftUI Instruments evidence | Reviewing repeated work in a SwiftUI view graph | Chats, conversation | 2026-08-15 |
+| [Performance tests](https://developer.apple.com/documentation/xctest/performance-tests) | XCTest metrics, measurement options, and regression baselines | Adding a durable performance regression test | Unit and UI test targets | 2026-08-15 |
+| [XCTApplicationLaunchMetric](https://developer.apple.com/documentation/xctest/xctapplicationlaunchmetric) | First-frame and responsive launch duration | Comparing repeated launches under the same harness | App launch | 2026-08-15 |
+| [XCTOSSignpostMetric](https://developer.apple.com/documentation/xctest/xctossignpostmetric) | Duration of system or custom signposted regions | Isolating navigation-transition time from UI-automation wall time | Conversation navigation | 2026-08-15 |
+| [navigationTransitionMetric](https://developer.apple.com/documentation/xctest/xctossignpostmetric/navigationtransitionmetric) | System navigation-transition duration | Comparing first and repeated conversation opens | Conversation navigation | 2026-08-15 |
+| [OSSignposter](https://developer.apple.com/documentation/os/ossignposter) | Low-overhead custom interval and event signposts | Adding temporary attribution only when system metrics are insufficient | Project-wide diagnostics | 2026-08-15 |
 
 ## 10. Xcode 27 and current SwiftUI
 

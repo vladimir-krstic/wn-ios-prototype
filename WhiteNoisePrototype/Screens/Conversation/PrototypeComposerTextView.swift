@@ -41,13 +41,17 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         textView.setContentHuggingPriority(.defaultLow, for: .vertical)
         textView.accessibilityLabel = "Message"
         textView.accessibilityIdentifier = "conversation.composer"
-        applyText(to: textView)
+        applyText(
+            to: textView,
+            mentionExpressions: context.coordinator.mentionExpressions
+        )
         return textView
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
-        context.coordinator.parent = self
+        context.coordinator.updateParent(self)
 
+        textView.isUserInteractionEnabled = isEnabled
         textView.isEditable = isEnabled
         textView.isSelectable = isEnabled
         textView.returnKeyType = sendsWithReturn ? .send : .default
@@ -59,7 +63,10 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         ]
 
         if textView.text != text || context.coordinator.styleSignature != styleSignature {
-            applyText(to: textView)
+            applyText(
+                to: textView,
+                mentionExpressions: context.coordinator.mentionExpressions
+            )
             context.coordinator.styleSignature = styleSignature
         }
 
@@ -128,7 +135,10 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         return hasher.finalize()
     }
 
-    private func applyText(to textView: UITextView) {
+    private func applyText(
+        to textView: UITextView,
+        mentionExpressions: [NSRegularExpression]
+    ) {
         guard textView.markedTextRange == nil else { return }
 
         let selection = textView.selectedRange
@@ -146,7 +156,10 @@ struct PrototypeComposerTextView: UIViewRepresentable {
             attributes: baseAttributes
         )
 
-        for range in mentionRanges(in: text) {
+        for range in mentionRanges(
+            in: text,
+            expressions: mentionExpressions
+        ) {
             attributedText.addAttributes(
                 [
                     .font: mentionFont,
@@ -168,17 +181,14 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         )
     }
 
-    private func mentionRanges(in value: String) -> [NSRange] {
+    private func mentionRanges(
+        in value: String,
+        expressions: [NSRegularExpression]
+    ) -> [NSRange] {
         let fullRange = NSRange(value.startIndex..., in: value)
         var ranges: [NSRange] = []
 
-        for name in mentionNames.sorted(by: { $0.count > $1.count }) {
-            let token = NSRegularExpression.escapedPattern(for: "@\(name)")
-            let pattern = "(?<![\\p{L}\\p{N}_])\(token)(?=$|[^\\p{L}\\p{N}_])"
-            guard let expression = try? NSRegularExpression(pattern: pattern) else {
-                continue
-            }
-
+        for expression in expressions {
             for match in expression.matches(in: value, range: fullRange) {
                 guard !ranges.contains(where: { NSIntersectionRange($0, match.range).length > 0 })
                 else { continue }
@@ -189,14 +199,37 @@ struct PrototypeComposerTextView: UIViewRepresentable {
         return ranges
     }
 
+    private static func makeMentionExpressions(
+        for names: [String]
+    ) -> [NSRegularExpression] {
+        names.sorted(by: { $0.count > $1.count }).compactMap { name in
+            let token = NSRegularExpression.escapedPattern(for: "@\(name)")
+            let pattern = "(?<![\\p{L}\\p{N}_])\(token)(?=$|[^\\p{L}\\p{N}_])"
+            return try? NSRegularExpression(pattern: pattern)
+        }
+    }
+
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: PrototypeComposerTextView
+        private(set) var mentionExpressions: [NSRegularExpression]
+        private var mentionNames: [String]
         var styleSignature: Int?
         var maximumVisibleLines: Int?
         var usesAvailableHeight: Bool?
 
         init(parent: PrototypeComposerTextView) {
             self.parent = parent
+            mentionNames = parent.mentionNames
+            mentionExpressions = PrototypeComposerTextView
+                .makeMentionExpressions(for: parent.mentionNames)
+        }
+
+        func updateParent(_ parent: PrototypeComposerTextView) {
+            self.parent = parent
+            guard mentionNames != parent.mentionNames else { return }
+            mentionNames = parent.mentionNames
+            mentionExpressions = PrototypeComposerTextView
+                .makeMentionExpressions(for: parent.mentionNames)
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -204,7 +237,10 @@ struct PrototypeComposerTextView: UIViewRepresentable {
             if parent.text != updatedText {
                 parent.text = updatedText
             }
-            parent.applyText(to: textView)
+            parent.applyText(
+                to: textView,
+                mentionExpressions: mentionExpressions
+            )
             styleSignature = parent.styleSignature
             textView.invalidateIntrinsicContentSize()
         }

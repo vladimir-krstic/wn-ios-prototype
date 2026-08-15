@@ -4,29 +4,19 @@ import XCTest
 final class PinReorderMotionUITests: XCTestCase {
     func testPinningLowerConversationReordersCleanly() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing-chats"]
         app.launch()
 
-        let initialSignUp = app.buttons["welcome.sign-up"]
-        XCTAssertTrue(initialSignUp.waitForExistence(timeout: 3))
-        initialSignUp.tap()
-
-        let nameField = app.textFields["Name"].firstMatch
-        XCTAssertTrue(nameField.waitForExistence(timeout: 3))
-
-        let createProfile = app.buttons["sign-up.create"]
-        XCTAssertTrue(createProfile.waitForExistence(timeout: 3))
-        createProfile.tap()
-
-        let hal = app.cells["chat.hal-finney"]
-        XCTAssertTrue(hal.waitForExistence(timeout: 5))
-        hal.swipeRight()
+        let reactions = app.cells["chat.catalog-direct-reactions"]
+        XCTAssertTrue(reactions.waitForExistence(timeout: 8))
+        reactions.swipeRight()
 
         let pin = app.buttons["Pin"].firstMatch
         XCTAssertTrue(pin.waitForExistence(timeout: 2))
         pin.tap()
 
-        let judith = app.cells["chat.judith-milhon"]
-        XCTAssertTrue(judith.waitForExistence(timeout: 2))
-        XCTAssertLessThan(hal.frame.minY, judith.frame.minY)
+        let dates = app.cells["chat.catalog-direct-dates"]
+        XCTAssertTrue(dates.waitForExistence(timeout: 3))
+        XCTAssertLessThan(reactions.frame.minY, dates.frame.minY)
     }
 }

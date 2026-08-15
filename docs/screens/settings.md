@@ -396,8 +396,8 @@ not require the source pages during normal work.
   - White Noise Profile — Profile, Chat Messages.
   - White Noise Inbox — Inbox.
 - Chat Messages is a per-profile default for chats created afterward. It does
-  not rewrite existing or incoming chat routing. Per-chat relay editing is
-  deferred to a future chat or group-details flow.
+  not rewrite existing or incoming chat routing. Existing chats own their
+  independent relay lists, edited from Chat Info or Group Info.
 - Production translation requires the transport layer to accept a per-profile
   default chat-routing input or public setter; the current process-construction
   default is not sufficient. Initial relay choice before first publication is

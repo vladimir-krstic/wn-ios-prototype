@@ -184,6 +184,7 @@ struct PersonProfileView: View {
                             }
                             .buttonStyle(.glassProminent)
                             .controlSize(.large)
+                            .accessibilityIdentifier("person-profile.message")
                         } else {
                             NavigationLink {
                                 RelaysPrototypeView(configuration: $profile.relayConfiguration)

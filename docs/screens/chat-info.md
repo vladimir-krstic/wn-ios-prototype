@@ -207,8 +207,10 @@ position and total.
   Document rows and message surfaces use the outline document symbol.
 - Chat Info contains no custom category selector or horizontal pager.
 - Photos and videos render as consistent square grid cells.
-  Opening one item does not create pagination across the full chat history;
-  sender, sent date, Share, Forward, Save, and Go to Message remain available.
+  Opening one item uses the shared chronological, chat-wide photo and video
+  page set; unavailable media remains visible at its source but is excluded
+  from paging. Sender, sent date, Share, Forward, Save, and Go to Message
+  remain available.
 - Share and Forward retain equal regular glass controls and no longer read
   optically larger than Back and More.
 - Forward search filters eligible chats by title, multiple selections survive

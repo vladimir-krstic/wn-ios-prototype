@@ -18,6 +18,22 @@ private struct ConversationTimelineDay: Identifiable {
     var id: Date { date }
 }
 
+private struct ConversationMessageSelectionModifier: ViewModifier {
+    let isSelecting: Bool
+    let action: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isSelecting {
+            content
+                .contentShape(Rectangle())
+                .onTapGesture(perform: action)
+        } else {
+            content
+        }
+    }
+}
+
 private struct ConversationDeletionRequest: Identifiable {
     let messageIDs: Set<String>
 
@@ -30,7 +46,7 @@ private struct ConversationDateHeader: View {
 
     var body: some View {
         label
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.primary.opacity(0.6))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
             .allowsHitTesting(false)
@@ -38,10 +54,10 @@ private struct ConversationDateHeader: View {
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("conversation.date-header")
             .onScrollVisibilityChange(threshold: 0.01) { isVisible in
-                visibilityChanged(isVisible)
+                reportVisibility(isVisible)
             }
             .onDisappear {
-                visibilityChanged(false)
+                reportVisibility(false)
             }
     }
 
@@ -51,6 +67,13 @@ private struct ConversationDateHeader: View {
             .lineLimit(1)
             .padding(.horizontal, 12)
             .padding(.vertical, 3)
+    }
+
+    private func reportVisibility(_ isVisible: Bool) {
+        Task { @MainActor in
+            await Task.yield()
+            visibilityChanged(isVisible)
+        }
     }
 }
 
@@ -96,6 +119,7 @@ private struct ConversationComposerExpansionInteraction {
     let update: (CGFloat) -> Void
     let finish: (CGFloat) -> Void
 
+    @MainActor
     func gesture() -> some Gesture {
         DragGesture(
             minimumDistance:
@@ -126,6 +150,7 @@ private struct ConversationExpandableComposerSurface<
     let isExpansionEnabled: Bool
     let shouldPushTranscript: Bool
     let onOutsideTap: () -> Void
+    let onCompactHeightResolved: () -> Void
     let transcript: (Bool) -> Transcript
     let composer: (
         Bool,
@@ -144,6 +169,7 @@ private struct ConversationExpandableComposerSurface<
         isExpansionEnabled: Bool,
         shouldPushTranscript: Bool,
         onOutsideTap: @escaping () -> Void,
+        onCompactHeightResolved: @escaping () -> Void,
         @ViewBuilder transcript: @escaping (Bool) -> Transcript,
         @ViewBuilder composer: @escaping (
             Bool,
@@ -156,6 +182,7 @@ private struct ConversationExpandableComposerSurface<
         self.isExpansionEnabled = isExpansionEnabled
         self.shouldPushTranscript = shouldPushTranscript
         self.onOutsideTap = onOutsideTap
+        self.onCompactHeightResolved = onCompactHeightResolved
         self.transcript = transcript
         self.composer = composer
     }
@@ -200,21 +227,26 @@ private struct ConversationExpandableComposerSurface<
         GeometryReader { proxy in
             let frame = proxy[bounds]
 
-            ZStack(alignment: .bottom) {
-                Color.clear
-                    .contentShape(.rect)
-                    .onTapGesture(perform: onOutsideTap)
-                    .allowsHitTesting(usesFlexibleLayout)
-                    .accessibilityHidden(true)
+            if usesFlexibleLayout {
+                ZStack(alignment: .bottom) {
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture(perform: onOutsideTap)
+                        .accessibilityHidden(true)
 
+                    presentedComposer
+                }
+                .frame(
+                    width: frame.width,
+                    height: max(1, frame.maxY),
+                    alignment: .bottom
+                )
+                .offset(x: frame.minX)
+            } else {
                 presentedComposer
+                    .frame(width: frame.width, alignment: .bottom)
+                    .offset(x: frame.minX, y: frame.minY)
             }
-            .frame(
-                width: frame.width,
-                height: max(1, frame.maxY),
-                alignment: .bottom
-            )
-            .offset(x: frame.minX)
         }
     }
 
@@ -230,7 +262,13 @@ private struct ConversationExpandableComposerSurface<
                 proxy.size.height
             } action: { height in
                 guard !usesFlexibleLayout else { return }
+                let wasUnresolved = compactHeight <= 1
                 compactHeight = height
+                guard wasUnresolved, height > 1 else { return }
+                Task { @MainActor in
+                    await Task.yield()
+                    onCompactHeightResolved()
+                }
             }
     }
 
@@ -386,6 +424,7 @@ struct ConversationView: View {
     @ObservedObject private var playback = PrototypePlaybackCoordinator.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .caption2) private var conversationHeaderTimerIconSize: CGFloat = 9
 
     @Binding var profile: PrototypeProfile
@@ -489,13 +528,18 @@ struct ConversationView: View {
     }
 
     private var conversation: some View {
-        ScrollViewReader { proxy in
+        let days = timelineDays
+
+        return ScrollViewReader { proxy in
             conversationBottomSurface(
-                availableHeight: conversationAvailableHeight
+                availableHeight: conversationAvailableHeight,
+                onComposerMeasured: {
+                    proxy.scrollTo(bottomID, anchor: .bottom)
+                }
             ) { hidesDatePills in
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(timelineDays) { day in
+                        ForEach(days) { day in
                             ConversationDateHeader(date: day.date) { isVisible in
                                 setDateHeader(day.date, isVisible: isVisible)
                             }
@@ -517,12 +561,12 @@ struct ConversationView: View {
                                     .id(indexedEntry.entry.id)
                             }
 
-                            if day.id == timelineDays.last?.id {
+                            if day.id == days.last?.id {
                                 Color.clear.frame(height: 8).id(bottomID)
                             }
                         }
 
-                        if timelineDays.isEmpty {
+                        if days.isEmpty {
                             Color.clear.frame(height: 8).id(bottomID)
                         }
                     }
@@ -551,7 +595,7 @@ struct ConversationView: View {
                 }
             }
             .onChange(of: chat.timeline.count) {
-                activeTimelineDate = timelineDays.last?.date
+                activeTimelineDate = days.last?.date
                 withAnimation { proxy.scrollTo(bottomID, anchor: .bottom) }
             }
             .onChange(of: composerIsFocused) { _, isFocused in
@@ -592,7 +636,11 @@ struct ConversationView: View {
             }
             return url.scheme?.lowercased() == "https" ? .systemAction : .discarded
         })
-        .navigationTitle("")
+        .navigationTitle(
+            dynamicTypeSize.isAccessibilitySize
+                ? chat.title(people: profile.people)
+                : ""
+        )
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(
             isSelectingMessages || isConversationSearchMounted
@@ -818,6 +866,7 @@ struct ConversationView: View {
     @ViewBuilder
     private func conversationBottomSurface<Content: View>(
         availableHeight: CGFloat,
+        onComposerMeasured: @escaping () -> Void,
         @ViewBuilder content: @escaping (Bool) -> Content
     ) -> some View {
         if isConversationSearchMounted {
@@ -864,7 +913,8 @@ struct ConversationView: View {
                         isExpanded: $composerIsExpanded,
                         isExpansionEnabled: isComposerExpansionEnabled,
                         shouldPushTranscript: isTimelineBottomVisible,
-                        onOutsideTap: dismissComposerFromOutside
+                        onOutsideTap: dismissComposerFromOutside,
+                        onCompactHeightResolved: onComposerMeasured
                     ) { hidesDatePills in
                         content(hidesDatePills)
                             .simultaneousGesture(
@@ -974,32 +1024,44 @@ struct ConversationView: View {
     @ToolbarContentBuilder
     private var conversationToolbar: some ToolbarContent {
         if !isConversationSearchMounted {
-            ToolbarItem(placement: .principal) {
-                if isSelectingMessages {
-                    Text(chat.title(people: profile.people))
-                        .font(.headline)
-                        .lineLimit(1)
-                } else {
-                    Button {
-                        isShowingChatInfo = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            PrototypeChatAvatarView(
-                                avatar: chat.resolvedAvatar(people: profile.people),
-                                size: 44,
-                                publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
-                            )
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(chat.title(people: profile.people))
-                                    .font(.headline).lineLimit(1)
-                                conversationHeaderSubtitle
+            if dynamicTypeSize.isAccessibilitySize {
+                if !isSelectingMessages {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Chat Info", systemImage: "info.circle") {
+                            isShowingChatInfo = true
+                        }
+                        .accessibilityHint("Opens chat information.")
+                        .accessibilityIdentifier("conversation.info")
+                    }
+                }
+            } else {
+                ToolbarItem(placement: .principal) {
+                    if isSelectingMessages {
+                        Text(chat.title(people: profile.people))
+                            .font(.headline)
+                            .lineLimit(1)
+                    } else {
+                        Button {
+                            isShowingChatInfo = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                PrototypeChatAvatarView(
+                                    avatar: chat.resolvedAvatar(people: profile.people),
+                                    size: 44,
+                                    publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
+                                )
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(chat.title(people: profile.people))
+                                        .font(.headline).lineLimit(1)
+                                    conversationHeaderSubtitle
+                                }
                             }
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(conversationHeaderAccessibilityLabel)
+                        .accessibilityHint("Opens chat information.")
+                        .accessibilityIdentifier("conversation.info")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(conversationHeaderAccessibilityLabel)
-                    .accessibilityHint("Opens chat information.")
-                    .accessibilityIdentifier("conversation.info")
                 }
             }
         }
@@ -1222,11 +1284,12 @@ struct ConversationView: View {
                         messageFrames[message.id] = frame
                     }
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                guard isSelectingMessages else { return }
-                toggleSelection(message.id)
-            }
+            .modifier(
+                ConversationMessageSelectionModifier(
+                    isSelecting: isSelectingMessages,
+                    action: { toggleSelection(message.id) }
+                )
+            )
             .accessibilityActions {
                 if isSelectingMessages {
                     Button(
@@ -1315,14 +1378,16 @@ struct ConversationView: View {
         author: PrototypePerson?,
         reportsContextContentFrame: Bool = true
     ) -> some View {
-        PrototypeMessageBubble(
+        let reply = resolvedReply(for: message)
+
+        return PrototypeMessageBubble(
             message: message,
             outgoing: message.authorID == profile.id,
             isGroup: chat.isGroup,
             author: author,
             profileName: profile.name,
-            resolvedReply: resolvedReply(for: message),
-            replyAuthorName: replyAuthorName(for: message),
+            resolvedReply: reply,
+            replyAuthorName: reply.map(authorName) ?? "Message",
             showsAuthor: startsCluster(at: index),
             showsAvatar: endsCluster(at: index),
             showsTimestamp: endsCluster(at: index),
@@ -1646,10 +1711,11 @@ struct ConversationView: View {
                 ) {
                     if composerText.isEmpty {
                         Text("Message")
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.primary)
                             .padding(.horizontal, 4)
                             .padding(.top, usesFlexibleLayout ? 10 : 0)
                             .allowsHitTesting(false)
+                            .accessibilityHidden(true)
                     }
 
                     PrototypeComposerTextView(
@@ -1923,6 +1989,33 @@ struct ConversationView: View {
 
     private func removeQueuedAttachment(_ attachment: PrototypeAttachment) {
         queuedAttachments.removeAll { $0.id == attachment.id }
+        if let url = localTemporaryFileURL(for: attachment) {
+            removeTemporaryFile(at: url)
+        }
+    }
+
+    private func localTemporaryFileURL(
+        for attachment: PrototypeAttachment
+    ) -> URL? {
+        switch attachment {
+        case let .video(_, url, _, _, _), let .file(_, _, _, url):
+            guard let url else { return nil }
+            let temporaryDirectory = FileManager.default.temporaryDirectory
+                .standardizedFileURL
+            let candidate = url.standardizedFileURL
+            guard candidate.path.hasPrefix(temporaryDirectory.path + "/") else {
+                return nil
+            }
+            return candidate
+        case .photo, .voice, .link, .gif, .contact:
+            return nil
+        }
+    }
+
+    private func removeTemporaryFile(at url: URL) {
+        Task.detached {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     private var composerMaximumVisibleLines: Int {
@@ -2855,11 +2948,6 @@ struct ConversationView: View {
         return chat.messages.first { $0.id == id }
     }
 
-    private func replyAuthorName(for message: PrototypeMessage) -> String {
-        guard let target = resolvedReply(for: message) else { return "Message" }
-        return authorName(for: target)
-    }
-
     private func authorName(for message: PrototypeMessage) -> String {
         if message.authorID == profile.id { return "You" }
         return profile.people.first { $0.id == message.authorID }?.name ?? "Unknown"
@@ -2978,9 +3066,13 @@ struct ConversationView: View {
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self), !Task.isCancelled else { continue }
             if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }) {
-                guard let prepared = await ConversationVideoProcessor.prepare(data: data),
-                      !Task.isCancelled
-                else { continue }
+                guard let prepared = await ConversationVideoProcessor.prepare(data: data) else {
+                    continue
+                }
+                guard !Task.isCancelled else {
+                    removeTemporaryFile(at: prepared.url)
+                    continue
+                }
                 queuedAttachments.append(
                     .video(
                         id: UUID().uuidString,
@@ -3028,9 +3120,12 @@ struct ConversationView: View {
             Task {
                 defer { try? FileManager.default.removeItem(at: url) }
                 guard let prepared = await ConversationVideoProcessor
-                    .prepare(fileAt: url),
-                      !Task.isCancelled
+                    .prepare(fileAt: url)
                 else { return }
+                guard !Task.isCancelled else {
+                    removeTemporaryFile(at: prepared.url)
+                    return
+                }
                 queuedAttachments.append(
                     .video(
                         id: UUID().uuidString,
@@ -3056,16 +3151,18 @@ struct ConversationView: View {
                 let destination = FileManager.default.temporaryDirectory
                     .appending(path: "\(UUID().uuidString)-\(source.lastPathComponent)")
                 do {
-                    try await Task.detached {
+                    let size = try await Task.detached {
                         try FileManager.default.copyItem(at: source, to: destination)
+                        return try destination.resourceValues(
+                            forKeys: [.fileSizeKey]
+                        ).fileSize ?? 0
                     }.value
                     try Task.checkCancellation()
-                    let values = try destination.resourceValues(forKeys: [.fileSizeKey])
                     queuedAttachments.append(
                         .file(
                             id: UUID().uuidString,
                             name: source.lastPathComponent,
-                            size: values.fileSize ?? 0,
+                            size: size,
                             url: destination
                         )
                     )
@@ -3117,7 +3214,7 @@ private struct ConversationKeyboardLayoutReader: UIViewRepresentable {
         }
 
         required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
+            nil
         }
 
         override func didMoveToWindow() {
@@ -3593,15 +3690,21 @@ private struct ConversationSearchBar: UIViewRepresentable {
             _ searchBar: UISearchBar,
             textDidChange searchText: String
         ) {
-            parent.text = searchText
+            if parent.text != searchText {
+                parent.text = searchText
+            }
         }
 
         func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-            parent.isFocused = true
+            if !parent.isFocused {
+                parent.isFocused = true
+            }
         }
 
         func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-            parent.isFocused = false
+            if parent.isFocused {
+                parent.isFocused = false
+            }
         }
 
         func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {

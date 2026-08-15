@@ -25,20 +25,32 @@ private struct PrototypeRootView: View {
         var id: Self { self }
     }
 
-    @State private var rootDestination = ProcessInfo.processInfo.arguments
-        .contains("-ui-testing-chats")
-        ? RootDestination.chats
-        : RootDestination.welcome
+    @State private var rootDestination: RootDestination
     @State private var onboardingPresentation: OnboardingPresentation?
-    @State private var profiles = PrototypeProfile.initialProfiles
-    @State private var activeProfileID = PrototypeProfile.marmota.id
-    @State private var signedInProfileIDs = Set(
-        PrototypeProfile.initialProfiles.map(\.id)
-    )
+    @State private var profiles: [PrototypeProfile]
+    @State private var activeProfileID: String
+    @State private var signedInProfileIDs: Set<String>
     @State private var settings = PrototypeSettingsState()
     @State private var isShowingSettings = false
     @State private var chatsPath: [ChatsRoute] = []
     @State private var dismissesAddProfileAfterSettingsRemoval = false
+
+    init() {
+        let opensChats = ProcessInfo.processInfo.arguments
+            .contains("-ui-testing-chats")
+        let initialProfiles = opensChats
+            ? PrototypeProfile.initialProfiles
+            : []
+
+        _rootDestination = State(
+            initialValue: opensChats ? .chats : .welcome
+        )
+        _profiles = State(initialValue: initialProfiles)
+        _activeProfileID = State(initialValue: PrototypeProfile.marmotaID)
+        _signedInProfileIDs = State(
+            initialValue: Set(initialProfiles.map(\.id))
+        )
+    }
 
     var body: some View {
         Group {
@@ -233,7 +245,11 @@ private struct PrototypeRootView: View {
         updatedProfile: PrototypeProfile
     ) {
         activeProfileBinding.wrappedValue = updatedProfile
-        chatsPath = [.conversation(chatID)]
+        chatsPath.removeAll()
+        Task { @MainActor in
+            await Task.yield()
+            chatsPath = [.conversation(chatID)]
+        }
     }
 
     private func completeInitialSignIn() {
@@ -275,7 +291,7 @@ private struct PrototypeRootView: View {
     private func eraseAllAppData() {
         signedInProfileIDs.removeAll()
         profiles.removeAll()
-        activeProfileID = PrototypeProfile.marmota.id
+        activeProfileID = PrototypeProfile.marmotaID
         settings = PrototypeSettingsState()
         onboardingPresentation = nil
         isShowingSettings = false
