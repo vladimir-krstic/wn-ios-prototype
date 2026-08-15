@@ -325,20 +325,49 @@ extension PrototypeChat {
         messageID: String,
         currentProfileID: String
     ) {
+        updateReaction(
+            emoji: emoji,
+            messageID: messageID,
+            currentProfileID: currentProfileID,
+            removesMatchingReaction: true
+        )
+    }
+
+    mutating func selectReaction(
+        emoji: String,
+        messageID: String,
+        currentProfileID: String
+    ) {
+        updateReaction(
+            emoji: emoji,
+            messageID: messageID,
+            currentProfileID: currentProfileID,
+            removesMatchingReaction: false
+        )
+    }
+
+    private mutating func updateReaction(
+        emoji: String,
+        messageID: String,
+        currentProfileID: String,
+        removesMatchingReaction: Bool
+    ) {
         guard emoji.count == 1,
               emoji.unicodeScalars.contains(where: { $0.properties.isEmoji })
         else { return }
         mutateMessage(messageID) { message in
             guard !message.isDeleted else { return }
-            let isRemoving = message.reactions.contains {
+            let alreadySelected = message.reactions.contains {
                 $0.emoji == emoji && $0.personIDs.contains(currentProfileID)
             }
+            guard removesMatchingReaction || !alreadySelected else { return }
+
             for index in message.reactions.indices {
                 message.reactions[index].personIDs.removeAll { $0 == currentProfileID }
             }
             message.reactions.removeAll(where: { $0.personIDs.isEmpty })
 
-            guard !isRemoving else { return }
+            guard !alreadySelected else { return }
             if let index = message.reactions.firstIndex(where: { $0.emoji == emoji }) {
                 message.reactions[index].personIDs.append(currentProfileID)
             } else {

@@ -227,26 +227,21 @@ private struct ConversationExpandableComposerSurface<
         GeometryReader { proxy in
             let frame = proxy[bounds]
 
-            if usesFlexibleLayout {
-                ZStack(alignment: .bottom) {
-                    Color.clear
-                        .contentShape(.rect)
-                        .onTapGesture(perform: onOutsideTap)
-                        .accessibilityHidden(true)
+            ZStack(alignment: .bottom) {
+                Color.clear
+                    .contentShape(.rect)
+                    .onTapGesture(perform: onOutsideTap)
+                    .allowsHitTesting(usesFlexibleLayout)
+                    .accessibilityHidden(true)
 
-                    presentedComposer
-                }
-                .frame(
-                    width: frame.width,
-                    height: max(1, frame.maxY),
-                    alignment: .bottom
-                )
-                .offset(x: frame.minX)
-            } else {
                 presentedComposer
-                    .frame(width: frame.width, alignment: .bottom)
-                    .offset(x: frame.minX, y: frame.minY)
             }
+            .frame(
+                width: frame.width,
+                height: max(1, frame.maxY),
+                alignment: .bottom
+            )
+            .offset(x: frame.minX)
         }
     }
 
@@ -1395,7 +1390,7 @@ struct ConversationView: View {
             searchQuery: conversationSearchHighlightQuery,
             people: profile.people,
             currentProfileID: profile.id,
-            onToggleReaction: { toggleReaction($0, messageID: message.id) },
+            onSelectReaction: { selectReaction($0, messageID: message.id) },
             onOpenReply: {
                 if let target = message.replyToMessageID {
                     requestedScroll = TimelineScrollRequest(
@@ -1722,7 +1717,10 @@ struct ConversationView: View {
                         text: composerTextBinding,
                         mentionNames: composerMentionNames,
                         isFocused: composerIsFocused,
-                        isEnabled: !isComposerInteractionBlocked,
+                        // The menu overlay owns temporary touch blocking. Keep
+                        // an active editor editable so UIKit does not resign it
+                        // and collapse the keyboard while the menu is opening.
+                        isEnabled: !isComposerInteractionBlocked || composerIsFocused,
                         sendsWithReturn: settings.returnKeyBehavior == .send,
                         maximumVisibleLines: composerMaximumVisibleLines,
                         usesAvailableHeight: usesFlexibleLayout,
@@ -2288,9 +2286,9 @@ struct ConversationView: View {
         if isReviewingVoice {
             return voiceReviewTranscript != nil && voiceReviewFormat.includesText
         }
-        // The empty composer shows the hold-to-record control. Keeping the pull
-        // gesture inactive there prevents it from outranking the long press.
-        return canSend
+        // Keep the pull mounted before text changes. A stationary touch still
+        // reaches the voice long press because the drag has a movement threshold.
+        return true
     }
 
     private var composerLinkPreview: PrototypeComposerLinkPreview? {
@@ -2922,22 +2920,45 @@ struct ConversationView: View {
 
     private func selectFullReaction(_ emoji: String) {
         guard let messageID = emojiPickerMessageID else { return }
-        toggleReaction(emoji, messageID: messageID)
+        selectReaction(emoji, messageID: messageID)
         emojiPickerMessageID = nil
         contextMessageID = nil
     }
 
+    private func selectReaction(_ emoji: String, messageID: String) {
+        guard chat.messages.first(where: { $0.id == messageID })?.reactions.contains(
+            where: { $0.emoji == emoji && $0.personIDs.contains(profile.id) }
+        ) != true else { return }
+        updateReaction(emoji, messageID: messageID, togglesMatchingReaction: false)
+    }
+
     private func toggleReaction(_ emoji: String, messageID: String) {
+        updateReaction(emoji, messageID: messageID, togglesMatchingReaction: true)
+    }
+
+    private func updateReaction(
+        _ emoji: String,
+        messageID: String,
+        togglesMatchingReaction: Bool
+    ) {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
 
         withTransaction(transaction) {
             updateChat {
-                $0.toggleReaction(
-                    emoji: emoji,
-                    messageID: messageID,
-                    currentProfileID: profile.id
-                )
+                if togglesMatchingReaction {
+                    $0.toggleReaction(
+                        emoji: emoji,
+                        messageID: messageID,
+                        currentProfileID: profile.id
+                    )
+                } else {
+                    $0.selectReaction(
+                        emoji: emoji,
+                        messageID: messageID,
+                        currentProfileID: profile.id
+                    )
+                }
             }
         }
         reactionFeedbackTrigger += 1

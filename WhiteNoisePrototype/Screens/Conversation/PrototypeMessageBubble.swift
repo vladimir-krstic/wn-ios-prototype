@@ -91,7 +91,7 @@ struct PrototypeMessageBubble: View {
     let searchQuery: String?
     let people: [PrototypePerson]
     let currentProfileID: String
-    let onToggleReaction: (String) -> Void
+    let onSelectReaction: (String) -> Void
     let onOpenReply: () -> Void
     let onOpenPerson: (String) -> Void
     let onOpenMedia: (PrototypeAttachment) -> Void
@@ -798,7 +798,7 @@ struct PrototypeMessageBubble: View {
                 switch item {
                 case let .reaction(reaction):
                     Button {
-                        onToggleReaction(reaction.emoji)
+                        onSelectReaction(reaction.emoji)
                     } label: {
                         PrototypeReactionChip(
                             emoji: reaction.emoji,
@@ -817,6 +817,11 @@ struct PrototypeMessageBubble: View {
                     )
                     .accessibilityAddTraits(
                         reaction.personIDs.contains(currentProfileID) ? .isSelected : []
+                    )
+                    .accessibilityHint(
+                        reaction.personIDs.contains(currentProfileID)
+                            ? "Show message actions to remove your reaction."
+                            : "Adds this reaction."
                     )
 
                 case let .overflow(count, isSelected):

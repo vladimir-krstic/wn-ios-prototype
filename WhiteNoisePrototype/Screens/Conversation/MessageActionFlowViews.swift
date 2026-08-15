@@ -233,6 +233,13 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
         }?.emoji
     }
 
+    private var displayedQuickReactionEmoji: [String] {
+        guard let localReaction,
+              !quickReactionEmoji.contains(localReaction)
+        else { return quickReactionEmoji }
+        return quickReactionEmoji + [localReaction]
+    }
+
     private var reactionBar: some View {
         ZStack {
             Color.clear
@@ -249,7 +256,7 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
 
             HStack(spacing: 0) {
                 ForEach(
-                    Array(quickReactionEmoji.enumerated()),
+                    Array(displayedQuickReactionEmoji.enumerated()),
                     id: \.offset
                 ) { index, emoji in
                     Button {
@@ -289,7 +296,7 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
                 .reactionEntryMotion(
                     isPresented: reactionContentsArePresented,
                     isDismissing: isDismissing,
-                    index: quickReactionEmoji.count,
+                    index: displayedQuickReactionEmoji.count,
                     reduceMotion: reduceMotion
                 )
             }
@@ -428,7 +435,7 @@ struct PrototypeMessageContextPresentation<Preview: View>: View {
         let groupTop = min(max(preferredTop, verticalMargin), maximumTop)
         let reactionWidth = min(
             size.width - (Layout.horizontalMargin * 2),
-            CGFloat(quickReactionEmoji.count + 1) * 44 + 12
+            CGFloat(displayedQuickReactionEmoji.count + 1) * 44 + 12
         )
         let sourceAlignedEdgeX = alignedContentEdgeX(scale: Layout.initialPreviewScale)
         let alignedEdgeX = alignedContentEdgeX(scale: previewScale)
@@ -1195,7 +1202,7 @@ struct PrototypeMessageDetailsView: View {
             searchQuery: nil,
             people: profile.people,
             currentProfileID: profile.id,
-            onToggleReaction: { _ in },
+            onSelectReaction: { _ in },
             onOpenReply: {},
             onOpenPerson: { _ in },
             onOpenMedia: { _ in },

@@ -639,6 +639,58 @@ struct PrototypeChatModelTests {
         #expect(chat.messages[0].reactions.isEmpty)
     }
 
+    @Test("Selecting a reaction never removes the current profile's match")
+    func reactionSelection() {
+        var chat = emptyDirectChat()
+        chat.timeline = [
+            .message(
+                PrototypeMessage(
+                    id: "m",
+                    authorID: "maya-chen",
+                    sentAt: .now,
+                    text: "Hi",
+                    reactions: [
+                        PrototypeReaction(
+                            emoji: "🦫",
+                            personIDs: ["maya-chen", "marmota"]
+                        ),
+                        PrototypeReaction(emoji: "🔥", personIDs: ["another-person"]),
+                    ]
+                )
+            )
+        ]
+
+        chat.selectReaction(
+            emoji: "🦫",
+            messageID: "m",
+            currentProfileID: "marmota"
+        )
+        #expect(
+            chat.messages[0].reactions == [
+                PrototypeReaction(
+                    emoji: "🦫",
+                    personIDs: ["maya-chen", "marmota"]
+                ),
+                PrototypeReaction(emoji: "🔥", personIDs: ["another-person"]),
+            ]
+        )
+
+        chat.selectReaction(
+            emoji: "🔥",
+            messageID: "m",
+            currentProfileID: "marmota"
+        )
+        #expect(
+            chat.messages[0].reactions == [
+                PrototypeReaction(emoji: "🦫", personIDs: ["maya-chen"]),
+                PrototypeReaction(
+                    emoji: "🔥",
+                    personIDs: ["another-person", "marmota"]
+                ),
+            ]
+        )
+    }
+
     @Test("A full-picker reaction replaces the current profile's prior reaction")
     func reactionReplacement() {
         var chat = emptyDirectChat()
@@ -660,7 +712,7 @@ struct PrototypeChatModelTests {
             )
         ]
 
-        chat.toggleReaction(
+        chat.selectReaction(
             emoji: "🙂‍↕️",
             messageID: "m",
             currentProfileID: "marmota"

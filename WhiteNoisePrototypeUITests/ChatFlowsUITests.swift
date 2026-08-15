@@ -35,6 +35,18 @@ final class ChatFlowsUITests: XCTestCase {
         ).firstMatch.waitForExistence(timeout: 3))
     }
 
+    func testComposerExpandsAndCollapsesWhenEmptyAndWithOneLine() {
+        openChat("maya-chen")
+        let composer = app.textViews["conversation.composer"]
+
+        assertComposerExpandsAndCollapses(composer)
+
+        composer.tap()
+        composer.typeText("One line")
+        XCTAssertEqual(composer.value as? String, "One line")
+        assertComposerExpandsAndCollapses(composer)
+    }
+
     func testShowcaseHistoriesOpenAtNewestAndReachTheirBeginnings() {
         openChat("maya-chen")
         let latestDirect = app.descendants(matching: .any)["message.maya-17"]
@@ -343,11 +355,15 @@ final class ChatFlowsUITests: XCTestCase {
 
     }
 
-    func testAttachmentMenuBlocksComposerBeforeSelectingBottomItem() {
+    func testAttachmentMenuPreservesKeyboardAndBlocksComposerBeforeSelection() {
         openChat("maya-chen")
         let composer = app.textViews["conversation.composer"]
         let attachmentMenu = app.buttons["conversation.attachment-menu"]
         XCTAssertTrue(attachmentMenu.waitForExistence(timeout: 3))
+
+        composer.tap()
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 3))
 
         attachmentMenu.tap()
         let camera = app.buttons["Camera"]
@@ -358,13 +374,21 @@ final class ChatFlowsUITests: XCTestCase {
         XCTAssertTrue(files.exists)
         XCTAssertLessThan(camera.frame.minY, photosAndVideos.frame.minY)
         XCTAssertLessThan(photosAndVideos.frame.minY, files.frame.minY)
-        XCTAssertFalse(composer.isEnabled)
+        XCTAssertTrue(keyboard.exists)
+        let keyboardDismissal = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: keyboard
+        )
+        keyboardDismissal.isInverted = true
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [keyboardDismissal], timeout: 1),
+            .completed
+        )
 
         files.tap()
         XCTAssertTrue(
             app.navigationBars["UIDocumentPickerView"].waitForExistence(timeout: 3)
         )
-        XCTAssertFalse(composer.isEnabled)
     }
 
     func testMediaPreviewControlsMatchNavigationGeometry() {
@@ -468,6 +492,47 @@ final class ChatFlowsUITests: XCTestCase {
         let row = locateChat(id)
         row.tap()
         XCTAssertTrue(app.textViews["conversation.composer"].waitForExistence(timeout: 5))
+    }
+
+    private func assertComposerExpandsAndCollapses(
+        _ composer: XCUIElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let compactHeight = composer.frame.height
+        composer.swipeUp()
+        XCTAssertEqual(
+            XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate { _, _ in
+                        composer.frame.height > compactHeight + 80
+                    },
+                    object: composer
+                )],
+                timeout: 2
+            ),
+            .completed,
+            "The composer should expand from its compact height.",
+            file: file,
+            line: line
+        )
+
+        composer.swipeDown()
+        XCTAssertEqual(
+            XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate { _, _ in
+                        composer.frame.height <= compactHeight + 2
+                    },
+                    object: composer
+                )],
+                timeout: 2
+            ),
+            .completed,
+            "The composer should return to its compact height.",
+            file: file,
+            line: line
+        )
     }
 
     private func scrollToBeginning(until element: XCUIElement) {

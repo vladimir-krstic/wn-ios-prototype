@@ -510,3 +510,19 @@ working style remains authoritative.
 - The prototype keeps recording and transcription deterministic and in memory.
   It adds no microphone, Speech framework, network, persistence, or backend
   dependency. Native system speech synthesis may read received text aloud.
+
+## WN-PROTOTYPE-0025 — Content-independent composer pull
+
+- Date: 2026-08-15
+- Status: Approved; supersedes only the empty-composer pull restriction in
+  WN-PROTOTYPE-0024
+
+- The resting composer accepts the same pull for empty, one-line, and multiline
+  drafts. Expansion never depends on whether the draft is sendable.
+- Compact and expanded presentations retain one stable composer hierarchy
+  throughout direct manipulation and settling. Entering flexible layout never
+  replaces the gesture-owning subtree, so the first pull continues to its
+  selected endpoint instead of stopping at an intermediate height.
+- The movement threshold separates a directional pull from the waveform's
+  stationary press-and-hold. Active recording still disables expansion, and
+  voice review retains its existing format-specific behavior.

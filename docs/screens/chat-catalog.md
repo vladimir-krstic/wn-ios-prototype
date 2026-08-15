@@ -110,13 +110,13 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `RPL-04` | Direct - Replies & Deletion | `RPL-04` → `RPL-missing` | Missing target says **Message unavailable** | No target navigation | Implemented; review pending |
 | [ ] | `DEL-01` | Direct - Replies & Deletion | `DEL-01-caption`, `DEL-01` | **You deleted this message.** | No action presentation | Implemented; review pending |
 | [ ] | `DEL-02` | Direct - Replies & Deletion | `DEL-02-caption`, `DEL-02` | **This message was deleted.** | No action presentation | Implemented; review pending |
-| [ ] | `RCT-01` | Direct - Reactions & Actions | `RCT-01` | One reaction from another person; no count | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-02` | Direct - Reactions & Actions | `RCT-02` | One current-profile reaction with the opaque selected treatment | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-03` | Direct - Reactions & Actions | `RCT-03` | Three people use the same reaction without current-profile participation | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-04` | Direct - Reactions & Actions | `RCT-04` | Three people use the same reaction including current-profile participation | Toggle chip | Implemented; review pending |
-| [ ] | `RCT-05` | Direct - Reactions & Actions | `RCT-05` | Multiple reaction types mix single/count and current/other participation | Toggle each chip | Implemented; review pending |
-| [ ] | `RCT-06`–`RCT-12` | Direct - Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented as renderer coverage beyond quick defaults | Display and toggle chip | Implemented; review pending |
-| [ ] | `RCT-13` | Direct - Reactions & Actions | `RCT-13` | A narrow outgoing bubble proves three-point reaction gaps, opposite-edge timestamp placement, and adaptive `+N` overflow | Toggle visible chips | Implemented; review pending |
+| [ ] | `RCT-01` | Direct - Reactions & Actions | `RCT-01` | One reaction from another person; no count | Select chip | Implemented; review pending |
+| [ ] | `RCT-02` | Direct - Reactions & Actions | `RCT-02` | One current-profile reaction with the opaque selected treatment | Selected chip tap is a no-op | Implemented; review pending |
+| [ ] | `RCT-03` | Direct - Reactions & Actions | `RCT-03` | Three people use the same reaction without current-profile participation | Select chip | Implemented; review pending |
+| [ ] | `RCT-04` | Direct - Reactions & Actions | `RCT-04` | Three people use the same reaction including current-profile participation | Selected chip tap is a no-op | Implemented; review pending |
+| [ ] | `RCT-05` | Direct - Reactions & Actions | `RCT-05` | Multiple reaction types mix single/count and current/other participation | Select another chip to replace | Implemented; review pending |
+| [ ] | `RCT-06`–`RCT-12` | Direct - Reactions & Actions | same IDs | ❤ 😀 👍 👎 🤣 🔥 🦫 all represented as renderer coverage beyond quick defaults | Display and select chip | Implemented; review pending |
+| [ ] | `RCT-13` | Direct - Reactions & Actions | `RCT-13` | A narrow outgoing bubble proves three-point reaction gaps, opposite-edge timestamp placement, and adaptive `+N` overflow | Select visible chips | Implemented; review pending |
 | [ ] | `ACT-01` | Direct - Reactions & Actions | `ACT-01` | Incoming text includes Delete for Me | Long press | Implemented; review pending |
 | [ ] | `ACT-02` | Direct - Reactions & Actions | `ACT-02` | Outgoing text includes both deletion scopes | Long press; confirm Delete | Implemented; review pending |
 | [ ] | `ACT-03` | Direct - Reactions & Actions | `ACT-03-caption`, `ACT-03` | Incoming attachment-only includes Delete, not Copy | Long press | Implemented; review pending |
@@ -260,7 +260,7 @@ intentional product fallback are outside catalog scope.
 
 | Done | Action ID | Catalog prerequisite | Expected native behavior | Implementation status |
 | --- | --- | --- | --- | --- |
-| [ ] | `MSG-ACT-01` | `RCT-06`–`RCT-12` | Quick reactions offer ❤ 🤘 🔥 😂 🦫 🚀 plus More Reactions; choosing another emoji replaces current-profile participation | Implemented; review pending |
+| [ ] | `MSG-ACT-01` | `RCT-06`–`RCT-12` | Quick reactions offer ❤ 🤘 🔥 😂 🦫 🚀 plus the selected nonfavorite when needed, then More Reactions; the selected quick emoji removes current-profile participation | Implemented; review pending |
 | [ ] | `MSG-ACT-02` | Any nondeleted message | Reply opens the composer quote; sending preserves the target ID | Implemented; review pending |
 | [ ] | `MSG-ACT-03` | `ACT-01`, `ACT-02` | Copy appears only when text exists | Implemented; review pending |
 | [ ] | `MSG-ACT-04` | `ACT-01`–`ACT-05` | Forward opens eligible chat selection and preserves source order and attachments | Implemented; review pending |

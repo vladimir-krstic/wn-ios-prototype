@@ -33,10 +33,14 @@ one bounded flow.
   position would place an action offscreen. Touching the backdrop dismisses it.
 - The quick reactions default to **❤**, **🤘**, **🔥**, **😂**, **🦫**, and
   **🚀**, followed by **More Reactions**. The six defaults belong to the active
-  profile and remain in memory independently for each profile. Choosing the
-  reaction already applied by the current profile removes it. Any other choice
+  profile and remain in memory independently for each profile. If the current
+  profile's selected reaction is not one of those six, it is appended as a
+  selected seventh reaction immediately before **More Reactions**. Choosing the
+  selected reaction in this long-press strip removes it. Any other choice
   replaces the current profile's prior reaction so one person has at most one
-  reaction per message.
+  reaction per message. A normal tap on a reaction pill beneath a message only
+  selects or replaces the current profile's reaction; tapping an already
+  selected pill never removes it.
 - **More Reactions** opens a searchable native sheet at the medium or large
   detent. The sheet has no navigation title or Close button; its system drag
   indicator and interactive sheet dismissal remain visible. A search field
@@ -59,7 +63,8 @@ one bounded flow.
   eight standard categories. It fits within the sheet margins and never
   scrolls or extends past an edge. The chosen category is distinguished inside
   that shared surface rather than giving every category a separate glass
-  button. Choosing an emoji applies it and dismisses the sheet. The picker and
+  button. Choosing an emoji applies or replaces the current reaction and
+  dismisses the sheet; it never removes a matching reaction. The picker and
   quick strip use Apple-rendered emoji glyphs.
 - **Configure Reactions** is available from the picker's gear action. It opens
   a focused native sheet titled **Configure Reactions** with the active
@@ -239,6 +244,8 @@ one bounded flow.
 - [Signal reaction picker](https://github.com/signalapp/Signal-iOS/blob/main/Signal/src/ViewControllers/MessageReactionPicker.swift)
 - [Signal emoji sheet](https://github.com/signalapp/Signal-iOS/blob/main/Signal/Emoji/EmojiPickerSheet.swift)
 - [Signal reaction configuration](https://github.com/signalapp/Signal-iOS/blob/main/Signal/Emoji/EmojiReactionPickerConfigViewController.swift)
+- User-supplied Signal selected-nonfavorite reaction screenshot, reviewed
+  2026-08-15.
 - [Signal message selection](https://github.com/signalapp/Signal-iOS/blob/main/Signal/ConversationView/ConversationViewController%2BSelection.swift)
 - [Signal selection toolbar](https://github.com/signalapp/Signal-iOS/blob/main/Signal/src/ViewControllers/MessageActionsToolbar.swift)
 - [Signal message details](https://github.com/signalapp/Signal-iOS/blob/main/Signal/src/ViewControllers/MessageDetailViewController.swift)
@@ -253,8 +260,10 @@ one bounded flow.
 - Tapping any interactive quote, media, link, file, person, or playback control
   performs that control's action, while holding the same point opens message
   actions without also performing the tap action.
-- Quick and full-picker reactions toggle coherently and immediately update the
-  message's compact reaction summary.
+- A normal reaction-pill tap selects or replaces but never removes. Holding the
+  message exposes the selected reaction in the quick strip—even when it is not
+  a favorite—and tapping that selected quick reaction removes it. Full-picker
+  choices apply or replace and immediately update the compact reaction summary.
 - The full picker has one continuous category glass surface, eight dense emoji
   columns with 44-point targets, matching native side margins, no
   message-specific section or navigation chrome, and a working Configure

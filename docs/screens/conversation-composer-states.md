@@ -55,11 +55,15 @@ selection states remain part of the shared composer flow.
   no persistent expansion handle. The complete composer surface accepts an
   upward pull to expand and a downward pull to collapse in both keyboard states,
   including when the draft is empty or one line. While the pull is held, the
-  composer follows the finger continuously between the compact and expanded
-  endpoints. Releasing selects an endpoint from the current position and
-  projected movement, then SwiftUI's native `interactiveSpring` completes the
-  remaining travel with the same interruptible, velocity-aware character used
-  for system direct manipulation. Finger tracking and spring settling drive one
+  gesture remains mounted regardless of whether the draft is sendable, and the
+  composer retains one stable view hierarchy from touch-down through settling.
+  Entering flexible layout therefore cannot interrupt the first pull. A
+  stationary press on the empty waveform remains the independent voice action.
+  While held, the composer follows the finger continuously between the compact
+  and expanded endpoints. Releasing selects an endpoint from the current
+  position and projected movement, then SwiftUI's native `interactiveSpring`
+  completes the remaining travel with the same interruptible, velocity-aware
+  character used for system direct manipulation. Finger tracking and spring settling drive one
   continuous numeric expansion progress; changing the semantic resting endpoint
   never swaps the geometry's base height or clamps away the remaining animated
   distance. Drag translation is measured in the stable global coordinate space,
@@ -381,6 +385,9 @@ Comparison sources:
 - Tapping or scrolling the transcript dismisses the keyboard while preserving
   the underlying message interaction. Interacting with any composer control does
   not trigger outside-tap dismissal or change the expansion target mid-animation.
+  Opening the attachment menu while the editor is focused keeps the keyboard and
+  composer geometry stationary, so the native menu remains anchored to the
+  attachment button; only choosing a system destination may dismiss the keyboard.
   In the expanded state, tapping outside the glass, including the otherwise
   empty leading lane above the attachment button, dismisses the keyboard and
   collapses the composer. A drag beginning outside the glass cannot scroll or

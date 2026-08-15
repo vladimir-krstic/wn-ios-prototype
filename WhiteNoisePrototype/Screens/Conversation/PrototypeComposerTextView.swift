@@ -51,7 +51,8 @@ struct PrototypeComposerTextView: UIViewRepresentable {
     func updateUIView(_ textView: UITextView, context: Context) {
         context.coordinator.updateParent(self)
 
-        textView.isUserInteractionEnabled = isEnabled
+        // UIKit interaction must remain independent from editability. Turning
+        // it off can force an active responder to dismiss its keyboard.
         textView.isEditable = isEnabled
         textView.isSelectable = isEnabled
         textView.returnKeyType = sendsWithReturn ? .send : .default
