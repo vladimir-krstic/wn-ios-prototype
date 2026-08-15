@@ -1192,6 +1192,7 @@ struct PrototypeMessageDetailsView: View {
             showsAvatar: false,
             showsTimestamp: true,
             isHighlighted: false,
+            searchQuery: nil,
             people: profile.people,
             currentProfileID: profile.id,
             onToggleReaction: { _ in },

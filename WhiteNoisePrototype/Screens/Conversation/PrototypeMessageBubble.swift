@@ -1,6 +1,74 @@
 import SwiftUI
 import UIKit
 
+private func prototypeSearchHighlightedAttributedString(
+    _ attributedString: AttributedString,
+    query: String?
+) -> AttributedString {
+    guard let query else { return attributedString }
+    let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !needle.isEmpty else { return attributedString }
+
+    var result = attributedString
+    var searchStart = result.startIndex
+    while searchStart < result.endIndex {
+        let remaining = result[searchStart..<result.endIndex]
+        guard let match = remaining.range(
+            of: needle,
+            options: [.caseInsensitive, .diacriticInsensitive]
+        ) else { break }
+        result[match].backgroundColor = .cyan
+        result[match].foregroundColor = .black
+        searchStart = match.upperBound
+    }
+    return result
+}
+
+private func prototypeSearchHighlightedText(
+    _ text: String,
+    query: String?
+) -> some View {
+    prototypeInlineHighlightedText(
+        prototypeSearchHighlightedAttributedString(
+            AttributedString(text),
+            query: query
+        ),
+        tagsMentions: false
+    )
+    .textRenderer(
+        PrototypeInlineHighlightTextRenderer(
+            mentionBackgroundColor: nil,
+            searchBackgroundColor: .cyan
+        )
+    )
+}
+
+private func prototypeInlineHighlightedText(
+    _ attributedString: AttributedString,
+    tagsMentions: Bool
+) -> Text {
+    var result = Text("")
+
+    for run in attributedString.runs {
+        let isSearchMatch = run.backgroundColor != nil
+        var segmentAttributes = AttributedString(attributedString[run.range])
+        if isSearchMatch {
+            segmentAttributes.backgroundColor = nil
+        }
+
+        var segment = Text(segmentAttributes)
+        if tagsMentions, run.link?.scheme == "whitenoise-person" {
+            segment = segment.customAttribute(PrototypeMentionAttribute())
+        }
+        if isSearchMatch {
+            segment = segment.customAttribute(PrototypeSearchMatchAttribute())
+        }
+        result = result + segment
+    }
+
+    return result
+}
+
 struct PrototypeMessageBubble: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.incomingPrototypeMessageColor) private var incomingColor
@@ -17,6 +85,7 @@ struct PrototypeMessageBubble: View {
     let showsAvatar: Bool
     let showsTimestamp: Bool
     let isHighlighted: Bool
+    let searchQuery: String?
     let people: [PrototypePerson]
     let currentProfileID: String
     let onToggleReaction: (String) -> Void
@@ -81,7 +150,10 @@ struct PrototypeMessageBubble: View {
                     Button {
                         if let author { onOpenPerson(author.id) }
                     } label: {
-                        Text(author?.name ?? "Unknown")
+                        prototypeSearchHighlightedText(
+                            author?.name ?? "Unknown",
+                            query: searchQuery
+                        )
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(
                                 PrototypeAuthorNameColor.color(
@@ -408,6 +480,7 @@ struct PrototypeMessageBubble: View {
                         people: people,
                         tint: messageColor.foregroundColor,
                         surfaceOpacity: richSurfaceOpacity,
+                        searchQuery: searchQuery,
                         onOpenMedia: onOpenMedia,
                         onOpenFile: onOpenFile,
                         onOpenPerson: onOpenPerson
@@ -480,8 +553,9 @@ struct PrototypeMessageBubble: View {
         styledMessageText
             .textSelection(.enabled)
             .textRenderer(
-                PrototypeMentionTextRenderer(
-                    backgroundColor: mentionSurfaceColor
+                PrototypeInlineHighlightTextRenderer(
+                    mentionBackgroundColor: mentionSurfaceColor,
+                    searchBackgroundColor: .cyan
                 )
             )
     }
@@ -517,19 +591,10 @@ struct PrototypeMessageBubble: View {
     }
 
     private var styledMessageText: Text {
-        var result = Text("")
-        let attributed = attributedMessageText
-
-        for run in attributed.runs {
-            let segment = Text(AttributedString(attributed[run.range]))
-            if run.link?.scheme == "whitenoise-person" {
-                result = result + segment.customAttribute(PrototypeMentionAttribute())
-            } else {
-                result = result + segment
-            }
-        }
-
-        return result
+        prototypeInlineHighlightedText(
+            attributedMessageText,
+            tagsMentions: true
+        )
     }
 
     private func attributedText(_ text: String) -> AttributedString {
@@ -557,7 +622,10 @@ struct PrototypeMessageBubble: View {
                 attributed[range].underlineStyle = Text.LineStyle(pattern: .solid)
             }
         }
-        return attributed
+        return prototypeSearchHighlightedAttributedString(
+            attributed,
+            query: searchQuery
+        )
     }
 
     private func plainText(_ text: String) -> String {
@@ -885,19 +953,33 @@ private enum PrototypeReactionSummaryItem: Identifiable {
 }
 
 private struct PrototypeMentionAttribute: TextAttribute {}
+private struct PrototypeSearchMatchAttribute: TextAttribute {}
 
-private struct PrototypeMentionTextRenderer: TextRenderer {
-    let backgroundColor: Color
+private struct PrototypeInlineHighlightTextRenderer: TextRenderer {
+    let mentionBackgroundColor: Color?
+    let searchBackgroundColor: Color?
 
     var displayPadding: EdgeInsets {
-        EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
+        guard mentionBackgroundColor != nil else { return EdgeInsets() }
+        return EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
     }
 
     func draw(layout: Text.Layout, in context: inout GraphicsContext) {
         for line in layout {
             for run in line {
-                if run[PrototypeMentionAttribute.self] != nil {
-                    let bounds = run.typographicBounds.rect.insetBy(dx: -2, dy: 0)
+                let backgroundColor: Color?
+                if run[PrototypeSearchMatchAttribute.self] != nil {
+                    backgroundColor = searchBackgroundColor
+                } else if run[PrototypeMentionAttribute.self] != nil {
+                    backgroundColor = mentionBackgroundColor
+                } else {
+                    backgroundColor = nil
+                }
+
+                if let backgroundColor {
+                    let bounds = run[PrototypeSearchMatchAttribute.self] != nil
+                        ? run.typographicBounds.rect
+                        : run.typographicBounds.rect.insetBy(dx: -2, dy: 0)
                     context.fill(
                         Path(
                             roundedRect: bounds,
@@ -919,6 +1001,7 @@ private struct PrototypeAttachmentCollectionView: View {
     let people: [PrototypePerson]
     let tint: Color
     let surfaceOpacity: Double
+    let searchQuery: String?
     let onOpenMedia: (PrototypeAttachment) -> Void
     let onOpenFile: (URL) -> Void
     let onOpenPerson: (String) -> Void
@@ -1155,7 +1238,9 @@ private struct PrototypeAttachmentCollectionView: View {
                 .font(.title3.weight(.medium))
                 .frame(width: 24, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
-                Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                prototypeSearchHighlightedText(name, query: searchQuery)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
                 Text(fileMetadata(name: name, size: size))
                     .font(.caption).foregroundStyle(tint.opacity(0.72))
             }
@@ -1193,12 +1278,21 @@ private struct PrototypeAttachmentCollectionView: View {
                     .clipped()
             }
             VStack(alignment: .leading, spacing: 4) {
-                Label(domain, systemImage: "link")
+                Label {
+                    prototypeSearchHighlightedText(domain, query: searchQuery)
+                } icon: {
+                    Image(systemName: "link")
+                }
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(tint.opacity(0.72))
                     .lineLimit(1)
-                Text(title).font(.headline).lineLimit(2)
-                Text(summary).font(.subheadline).lineLimit(3).opacity(0.78)
+                prototypeSearchHighlightedText(title, query: searchQuery)
+                    .font(.headline)
+                    .lineLimit(2)
+                prototypeSearchHighlightedText(summary, query: searchQuery)
+                    .font(.subheadline)
+                    .lineLimit(3)
+                    .opacity(0.78)
             }
             .padding(PrototypeMessageBubbleMetrics.richComponentInset)
         }

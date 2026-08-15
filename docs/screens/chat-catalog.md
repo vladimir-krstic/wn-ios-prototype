@@ -282,7 +282,7 @@ intentional product fallback are outside catalog scope.
 | [ ] | `CHAT-ACT-04` | `LIST-04` | Mute menu offers 1 Hour, 8 Hours, 1 Day, 1 Week, Always; Unmute clears it | Implemented; review pending |
 | [ ] | `CHAT-ACT-05` | Active group | Leave appends a terminal event and moves the row to Left | Implemented; review pending |
 | [ ] | `CHAT-ACT-06` | `STATE-02`–`STATE-04` | Ended chat can be deleted from Left; active chat is not offered this action | Implemented; review pending |
-| [ ] | `CHAT-ACT-07` | Any populated catalog chat | Search finds text, author, and attachment label and jumps to the result | Implemented; review pending |
+| [ ] | `CHAT-ACT-07` | Any populated catalog chat | Search finds text, author, and attachment labels, opens on the newest result, and navigates matches in place | Implemented; review pending |
 | [ ] | `CHAT-ACT-08` | `IND-01`–`IND-03` | Changing or turning off disappearing messages updates or removes the Chats-row and conversation-header timer presentation from the shared chat state | Implemented; review pending |
 | [ ] | `DIRECT-ACT-01` | Any active direct catalog chat | Chat Info exposes contact, disappearing messages, chat relays, archive, and block controls | Implemented; review pending |
 | [ ] | `DIRECT-ACT-02` | `STATE-05` | Unblock restores the composer without losing timeline history | Implemented; review pending |

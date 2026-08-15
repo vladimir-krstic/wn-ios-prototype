@@ -132,18 +132,6 @@ final class ChatFlowsUITests: XCTestCase {
         retry.tap()
         XCTAssertFalse(retry.exists)
 
-        app.buttons["Search"].tap()
-        let search = app.searchFields["Messages"]
-        XCTAssertTrue(search.waitForExistence(timeout: 3))
-        search.tap()
-        search.typeText("Weekend Notes")
-        XCTAssertTrue(app.staticTexts["Weekend Notes.pdf"].firstMatch.waitForExistence(timeout: 3))
-        let searchResult = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "message-search-result.")
-        ).firstMatch
-        XCTAssertTrue(searchResult.waitForExistence(timeout: 3))
-        searchResult.tap()
-
         let incoming = app.descendants(matching: .any)["message.maya-10"]
         XCTAssertTrue(incoming.waitForExistence(timeout: 3))
         incoming.press(forDuration: 1)
@@ -171,6 +159,16 @@ final class ChatFlowsUITests: XCTestCase {
         app.buttons["Delete"].tap()
         app.buttons["Delete Message"].tap()
         XCTAssertTrue(app.staticTexts["You deleted this message."].waitForExistence(timeout: 3))
+
+        app.buttons["conversation.info"].tap()
+        XCTAssertTrue(app.buttons["Search"].waitForExistence(timeout: 3))
+        app.buttons["Search"].tap()
+        let search = app.searchFields["conversation.search.field"]
+        XCTAssertTrue(search.waitForExistence(timeout: 3))
+        search.tap()
+        search.typeText("Weekend Notes")
+        XCTAssertTrue(app.staticTexts["Weekend Notes.pdf"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["1 of 1 match"].waitForExistence(timeout: 3))
     }
 
     func testWeekendGroupMetadataAndMemberManagement() {

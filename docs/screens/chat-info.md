@@ -146,7 +146,8 @@ available only through their dedicated drill-down. Source reviewed:
   confirmation, preserves read-only history, and stops new messages.
   Disappearing-message selection remains deterministic, profile-scoped, and
   retained with the chat for the process lifetime.
-- Search returns to the conversation and scrolls to the selected result.
+- Search returns to the conversation and opens the in-place flow defined in
+  `conversation-search.md`.
 - Blocking uses native destructive confirmation, preserves history, and
   replaces the composer with an **Unblock** recovery action. User Profile
   retains the same Unblock action when reached from Chat Info.

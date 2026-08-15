@@ -132,11 +132,11 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   padding: the visible pill begins one point below the content's lower edge,
   overlaps only the lower bubble edge, and reserves its external hit area
   without changing a one-line bubble's height.
-- Search matches text, sender names, file names, and attachment labels. Reply
-  quotes scroll to the original without adding an outline or other temporary
-  target indicator, or show a stable unavailable state. Search results retain
-  their temporary target emphasis and visibly emphasize every matching term
-  without relying on color.
+- Conversation search is defined in `conversation-search.md`: it keeps the
+  transcript visible, navigates newest-first matches in place, and visibly
+  emphasizes matching terms. Reply quotes scroll to the original without
+  adding an outline or other temporary target indicator, or show a stable
+  unavailable state.
 - Inline emphasis uses native attributed text. Links and mentions retain the
   approved adaptive monochrome bubble palette while adding an underline;
   mentions also use semibold type. VoiceOver reads the rendered words rather

@@ -423,8 +423,9 @@ struct ConversationView: View {
     @State private var requestedScroll: TimelineScrollRequest?
     @State private var selectedPersonID: String?
     @State private var isShowingChatInfo = false
-    @State private var isShowingSearch = false
-    @State private var pendingSearchResultID: String?
+    @State private var isConversationSearchMounted = false
+    @State private var conversationSearchText = ""
+    @State private var conversationSearchIndex = 0
     @State private var composerText: String
     @State private var renderedChat: PrototypeChat?
     @State private var voiceState = PrototypeVoiceRecordingState.idle
@@ -449,6 +450,7 @@ struct ConversationView: View {
     @State private var activeTimelineDate: Date?
     @State private var visibleTimelineDateHeaders: Set<Date> = []
     @State private var composerIsFocused = false
+    @State private var isConversationSearchFocused = false
 
     init(
         profile: Binding<PrototypeProfile>,
@@ -497,12 +499,21 @@ struct ConversationView: View {
                             ConversationDateHeader(date: day.date) { isVisible in
                                 setDateHeader(day.date, isVisible: isVisible)
                             }
-                            .opacity(hidesDatePills ? 0 : 1)
+                            .opacity(
+                                hidesDatePills
+                                    ? 0
+                                    : conversationSearchBackgroundOpacity
+                            )
                             .accessibilityHidden(hidesDatePills)
 
                             ForEach(day.entries) { indexedEntry in
                                 timelineEntry(indexedEntry.entry, at: indexedEntry.index)
                                     .padding(.top, timelineTopPadding(at: indexedEntry.index))
+                                    .opacity(
+                                        conversationSearchOpacity(
+                                            for: indexedEntry.entry
+                                        )
+                                    )
                                     .id(indexedEntry.entry.id)
                             }
 
@@ -535,6 +546,7 @@ struct ConversationView: View {
                        let activeTimelineDate,
                        !visibleTimelineDateHeaders.contains(activeTimelineDate) {
                         ConversationPinnedDateHeader(date: activeTimelineDate)
+                            .opacity(conversationSearchBackgroundOpacity)
                     }
                 }
             }
@@ -582,7 +594,9 @@ struct ConversationView: View {
         })
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(isSelectingMessages)
+        .navigationBarBackButtonHidden(
+            isSelectingMessages || isConversationSearchMounted
+        )
         .toolbar { conversationToolbar }
         .background {
             ConversationKeyboardLayoutReader { availableHeight in
@@ -709,29 +723,8 @@ struct ConversationView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $isShowingSearch) {
-            NavigationStack {
-                ChatMessageSearchView(
-                    chat: chat,
-                    people: profile.people,
-                    profileID: profile.id
-                ) { messageID in
-                    pendingSearchResultID = messageID
-                    isShowingSearch = false
-                }
-            }
-        }
-        .onChange(of: isShowingSearch) { _, isPresented in
-            guard !isPresented, let messageID = pendingSearchResultID else { return }
-            pendingSearchResultID = nil
-            composerIsFocused = false
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(350))
-                requestedScroll = TimelineScrollRequest(
-                    messageID: messageID,
-                    highlightsTarget: true
-                )
-            }
+        .onChange(of: conversationSearchText) { _, _ in
+            selectNewestConversationSearchMatch()
         }
         .navigationDestination(isPresented: $isShowingChatInfo) {
             ChatInfoView(
@@ -827,7 +820,15 @@ struct ConversationView: View {
         availableHeight: CGFloat,
         @ViewBuilder content: @escaping (Bool) -> Content
     ) -> some View {
-        if chat.listState.membershipState == .invited {
+        if isConversationSearchMounted {
+            content(false)
+                .safeAreaBar(edge: .top, spacing: 0) {
+                    conversationSearchHeader
+                }
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    conversationSearchControls
+                }
+        } else if chat.listState.membershipState == .invited {
             content(false)
                 .safeAreaBar(edge: .bottom, spacing: 0) {
                     invitationActionBar
@@ -885,6 +886,75 @@ struct ConversationView: View {
         }
     }
 
+    private var conversationSearchHeader: some View {
+        HStack(spacing: 4) {
+            ConversationSearchBar(
+                text: $conversationSearchText,
+                isFocused: $isConversationSearchFocused
+            )
+            .frame(maxWidth: .infinity)
+
+            Button("Close", systemImage: "xmark", role: .close) {
+                closeConversationSearch()
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+            .accessibilityIdentifier("conversation.search.close")
+        }
+        .safeAreaPadding(.leading, 8)
+        .safeAreaPadding(.trailing)
+    }
+
+    private var conversationSearchControls: some View {
+        GlassEffectContainer {
+            ZStack {
+                HStack {
+                    HStack(spacing: 0) {
+                        Button(action: selectOlderConversationSearchMatch) {
+                            Image(systemName: "chevron.up")
+                                .frame(width: 44, height: 44)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!canSelectOlderConversationSearchMatch)
+                        .accessibilityLabel("Previous Match")
+                        .accessibilityIdentifier("conversation.search.previous")
+
+                        Button(action: selectNewerConversationSearchMatch) {
+                            Image(systemName: "chevron.down")
+                                .frame(width: 44, height: 44)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!canSelectNewerConversationSearchMatch)
+                        .accessibilityLabel("Next Match")
+                        .accessibilityIdentifier("conversation.search.next")
+                    }
+                    .glassEffect(.regular, in: .capsule)
+
+                    Spacer(minLength: 0)
+                }
+
+                if !conversationSearchTrimmedQuery.isEmpty {
+                    Text(conversationSearchResultCountLabel)
+                        .font(.body)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .contentTransition(.numericText())
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 44)
+                        .glassEffect(.regular, in: .capsule)
+                        .accessibilityIdentifier("conversation.search.count")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+    }
+
     private var conversationKeyboardDismissTapGesture: some Gesture {
         TapGesture()
             .onEnded {
@@ -903,32 +973,34 @@ struct ConversationView: View {
 
     @ToolbarContentBuilder
     private var conversationToolbar: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            if isSelectingMessages {
-                Text(chat.title(people: profile.people))
-                    .font(.headline)
-                    .lineLimit(1)
-            } else {
-                Button {
-                    isShowingChatInfo = true
-                } label: {
-                    HStack(spacing: 8) {
-                        PrototypeChatAvatarView(
-                            avatar: chat.resolvedAvatar(people: profile.people),
-                            size: 44,
-                            publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
-                        )
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(chat.title(people: profile.people))
-                                .font(.headline).lineLimit(1)
-                            conversationHeaderSubtitle
+        if !isConversationSearchMounted {
+            ToolbarItem(placement: .principal) {
+                if isSelectingMessages {
+                    Text(chat.title(people: profile.people))
+                        .font(.headline)
+                        .lineLimit(1)
+                } else {
+                    Button {
+                        isShowingChatInfo = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            PrototypeChatAvatarView(
+                                avatar: chat.resolvedAvatar(people: profile.people),
+                                size: 44,
+                                publicKey: chat.resolvedAvatarPublicKey(people: profile.people)
+                            )
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(chat.title(people: profile.people))
+                                    .font(.headline).lineLimit(1)
+                                conversationHeaderSubtitle
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(conversationHeaderAccessibilityLabel)
+                    .accessibilityHint("Opens chat information.")
+                    .accessibilityIdentifier("conversation.info")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(conversationHeaderAccessibilityLabel)
-                .accessibilityHint("Opens chat information.")
-                .accessibilityIdentifier("conversation.info")
             }
         }
 
@@ -989,10 +1061,108 @@ struct ConversationView: View {
 
     private func openSearchFromChatInfo() {
         isShowingChatInfo = false
+        composerIsFocused = false
+        composerIsExpanded = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
-            isShowingSearch = true
+            isConversationSearchMounted = true
+            await Task.yield()
+            guard isConversationSearchMounted else { return }
+            isConversationSearchFocused = true
         }
+    }
+
+    private var conversationSearchTrimmedQuery: String {
+        conversationSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var conversationSearchResults: [PrototypeMessage] {
+        guard !conversationSearchTrimmedQuery.isEmpty else { return [] }
+        return Array(
+            chat.matchingMessages(
+                query: conversationSearchTrimmedQuery,
+                people: profile.people,
+                currentProfileID: profile.id
+            ).reversed()
+        )
+    }
+
+    private var conversationSearchCurrentMessageID: String? {
+        guard conversationSearchResults.indices.contains(conversationSearchIndex) else {
+            return nil
+        }
+        return conversationSearchResults[conversationSearchIndex].id
+    }
+
+    private var conversationSearchHighlightQuery: String? {
+        guard isConversationSearchMounted,
+              !conversationSearchTrimmedQuery.isEmpty else {
+            return nil
+        }
+        return conversationSearchTrimmedQuery
+    }
+
+    private var conversationSearchBackgroundOpacity: Double {
+        conversationSearchCurrentMessageID == nil ? 1 : 0.28
+    }
+
+    private func conversationSearchOpacity(
+        for entry: PrototypeTimelineEntry
+    ) -> Double {
+        guard let currentMessageID = conversationSearchCurrentMessageID else {
+            return 1
+        }
+        return entry.id == currentMessageID ? 1 : 0.28
+    }
+
+    private var canSelectOlderConversationSearchMatch: Bool {
+        conversationSearchIndex + 1 < conversationSearchResults.count
+    }
+
+    private var canSelectNewerConversationSearchMatch: Bool {
+        conversationSearchIndex > 0 && !conversationSearchResults.isEmpty
+    }
+
+    private var conversationSearchResultCountLabel: String {
+        let count = conversationSearchResults.count
+        guard count > 0 else { return "0 matches" }
+        let noun = count == 1 ? "match" : "matches"
+        return "\(conversationSearchIndex + 1) of \(count) \(noun)"
+    }
+
+    private func selectNewestConversationSearchMatch() {
+        conversationSearchIndex = 0
+        highlightedMessageID = nil
+        guard let messageID = conversationSearchCurrentMessageID else { return }
+        requestedScroll = TimelineScrollRequest(
+            messageID: messageID,
+            highlightsTarget: false
+        )
+    }
+
+    private func selectOlderConversationSearchMatch() {
+        selectConversationSearchMatch(at: conversationSearchIndex + 1)
+    }
+
+    private func selectNewerConversationSearchMatch() {
+        selectConversationSearchMatch(at: conversationSearchIndex - 1)
+    }
+
+    private func selectConversationSearchMatch(at index: Int) {
+        guard conversationSearchResults.indices.contains(index) else { return }
+        conversationSearchIndex = index
+        requestedScroll = TimelineScrollRequest(
+            messageID: conversationSearchResults[index].id,
+            highlightsTarget: false
+        )
+    }
+
+    private func closeConversationSearch() {
+        guard isConversationSearchMounted else { return }
+        isConversationSearchFocused = false
+        isConversationSearchMounted = false
+        conversationSearchText = ""
+        conversationSearchIndex = 0
     }
 
     private func openMessageFromChatInfo(_ messageID: String) {
@@ -1066,7 +1236,8 @@ struct ConversationView: View {
                     ) {
                         toggleSelection(message.id)
                     }
-                } else if !message.isDeleted,
+                } else if !isConversationSearchMounted,
+                          !message.isDeleted,
                           chat.listState.membershipState != .invited {
                     if message.authorID == profile.id, message.deliveryState == .failed {
                         Button("Retry Send") { retryMessage(message.id) }
@@ -1121,13 +1292,21 @@ struct ConversationView: View {
                     }
                 }
             }
-            .accessibilityValue(
-                isSelectingMessages
-                    ? (selectedMessageIDs.contains(message.id) ? "Selected" : "Not selected")
-                    : ""
-            )
+            .accessibilityValue(conversationMessageAccessibilityValue(message))
             .animation(.easeInOut(duration: 0.2), value: isSelectingMessages)
         }
+    }
+
+    private func conversationMessageAccessibilityValue(
+        _ message: PrototypeMessage
+    ) -> String {
+        if isSelectingMessages {
+            return selectedMessageIDs.contains(message.id)
+                ? "Selected"
+                : "Not selected"
+        }
+        guard message.id == conversationSearchCurrentMessageID else { return "" }
+        return "Search result \(conversationSearchIndex + 1) of \(conversationSearchResults.count)"
     }
 
     private func messageBubble(
@@ -1148,6 +1327,7 @@ struct ConversationView: View {
             showsAvatar: endsCluster(at: index),
             showsTimestamp: endsCluster(at: index),
             isHighlighted: highlightedMessageID == message.id,
+            searchQuery: conversationSearchHighlightQuery,
             people: profile.people,
             currentProfileID: profile.id,
             onToggleReaction: { toggleReaction($0, messageID: message.id) },
@@ -1175,11 +1355,13 @@ struct ConversationView: View {
                 : nil,
             isContextInteractionEnabled: !isSelectingMessages
                 && contextMessageID == nil
+                && !isConversationSearchMounted
                 && chat.listState.membershipState != .invited,
             onShowActions: { showMessageActions(message.id) },
             isSwipeToReplyEnabled: !message.isDeleted
                 && !isSelectingMessages
                 && contextMessageID == nil
+                && !isConversationSearchMounted
                 && chat.listState.membershipState == .active
                 && composerRecovery == nil,
             onSwipeToReply: { beginReply(to: message.id) },
@@ -3363,82 +3545,68 @@ private struct ConversationContactPicker: View {
     }
 }
 
-private struct ChatMessageSearchView: View {
-    let chat: PrototypeChat
-    let people: [PrototypePerson]
-    let profileID: String
-    let onSelect: (String) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.dismissSearch) private var dismissSearch
-    @State private var query = ""
+@MainActor
+private struct ConversationSearchBar: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
 
-    var body: some View {
-        List(results) { message in
-            Button {
-                dismissSearch()
-                onSelect(message.id)
-                dismiss()
-            } label: {
-                VStack(alignment: .leading, spacing: 4) {
-                    highlightedText(authorName(message)).font(.headline)
-                    highlightedText(preview(message))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                    Text(message.sentAt, format: .dateTime.month().day().hour().minute())
-                        .font(.caption).foregroundStyle(.tertiary)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("message-search-result.\(message.id)")
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let searchBar = UISearchBar()
+        searchBar.delegate = context.coordinator
+        searchBar.searchBarStyle = .minimal
+        searchBar.placeholder = "Messages"
+        searchBar.showsCancelButton = false
+        searchBar.searchTextField.clearButtonMode = .never
+        searchBar.searchTextField.returnKeyType = .search
+        searchBar.searchTextField.accessibilityLabel = "Search Messages"
+        searchBar.searchTextField.accessibilityIdentifier = "conversation.search.field"
+        return searchBar
+    }
+
+    func updateUIView(_ searchBar: UISearchBar, context: Context) {
+        context.coordinator.parent = self
+
+        if searchBar.text != text {
+            searchBar.text = text
         }
-        .overlay {
-            if results.isEmpty {
-                ContentUnavailableView.search(text: query)
-            }
-        }
-        .navigationTitle("Search")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "Messages")
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+        searchBar.searchTextField.clearButtonMode = text.isEmpty ? .never : .always
+
+        if isFocused, !searchBar.searchTextField.isFirstResponder {
+            searchBar.searchTextField.becomeFirstResponder()
+        } else if !isFocused, searchBar.searchTextField.isFirstResponder {
+            searchBar.searchTextField.resignFirstResponder()
         }
     }
 
-    private var results: [PrototypeMessage] {
-        chat.matchingMessages(
-            query: query,
-            people: people,
-            currentProfileID: profileID
-        )
-    }
+    final class Coordinator: NSObject, UISearchBarDelegate {
+        var parent: ConversationSearchBar
 
-    private func authorName(_ message: PrototypeMessage) -> String {
-        if message.authorID == profileID { return "You" }
-        return people.first { $0.id == message.authorID }?.name ?? "Unknown"
-    }
-
-    private func preview(_ message: PrototypeMessage) -> String {
-        if message.isDeleted { return "Message deleted" }
-        if !message.text.isEmpty { return message.text }
-        return message.attachments.map(\.accessibilityLabel).joined(separator: ", ")
-    }
-
-    private func highlightedText(_ text: String) -> Text {
-        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !needle.isEmpty else { return Text(text) }
-
-        var result = Text("")
-        var cursor = text.startIndex
-        while cursor < text.endIndex,
-              let match = text.range(
-                  of: needle,
-                  options: [.caseInsensitive, .diacriticInsensitive],
-                  range: cursor..<text.endIndex
-              ) {
-            result = result + Text(String(text[cursor..<match.lowerBound]))
-                + Text(String(text[match])).bold().underline()
-            cursor = match.upperBound
+        init(parent: ConversationSearchBar) {
+            self.parent = parent
         }
-        return result + Text(String(text[cursor...]))
+
+        func searchBar(
+            _ searchBar: UISearchBar,
+            textDidChange searchText: String
+        ) {
+            parent.text = searchText
+        }
+
+        func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+            parent.isFocused = true
+        }
+
+        func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+            parent.isFocused = false
+        }
+
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            parent.isFocused = false
+            searchBar.searchTextField.resignFirstResponder()
+        }
     }
 }
