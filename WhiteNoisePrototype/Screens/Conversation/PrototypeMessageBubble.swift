@@ -77,6 +77,7 @@ struct PrototypeMessageBubble: View {
     @Environment(\.incomingPrototypeMessageColor) private var incomingColor
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.outgoingPrototypeMessageColor) private var outgoingColor
+    @ScaledMetric(relativeTo: .caption) private var deliveryStatusIconSize: CGFloat = 12
     let message: PrototypeMessage
     let outgoing: Bool
     let isGroup: Bool
@@ -246,7 +247,7 @@ struct PrototypeMessageBubble: View {
                         )
                         .offset(
                             x: replySwipeOffset,
-                            y: PrototypeMessageBubbleMetrics.timestampVerticalOffset
+                            y: PrototypeMessageBubbleMetrics.metadataVerticalOffset
                         )
                 } else if showsFailedDeliveryStatus {
                     failedDeliveryStatus
@@ -258,7 +259,10 @@ struct PrototypeMessageBubble: View {
                                 onCancelled: cancelContextPresentation
                             )
                         )
-                        .offset(x: replySwipeOffset, y: 18)
+                        .offset(
+                            x: replySwipeOffset,
+                            y: PrototypeMessageBubbleMetrics.metadataVerticalOffset
+                        )
                 }
             }
             .padding(
@@ -410,26 +414,36 @@ struct PrototypeMessageBubble: View {
     }
 
     private var timestamp: some View {
-        HStack(spacing: 4) {
-            if message.deliveryState == .sending {
-                ProgressView().controlSize(.mini)
+        HStack(spacing: 3) {
+            if outgoing, message.deliveryState == .sending {
+                ProgressView()
+                    .controlSize(.mini)
+            } else if outgoing, message.deliveryState == .sent {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: deliveryStatusIconSize, weight: .medium))
+                    .accessibilityHidden(true)
             }
-            Text(PrototypeDateFormatter.time(for: message.sentAt))
-                .font(.caption2)
-                .foregroundStyle(.primary)
-                .monospacedDigit()
+
+            Text(timestampText)
+                .font(.caption.weight(.medium))
         }
+        .foregroundStyle(.secondary)
+    }
+
+    private var timestampText: String {
+        PrototypeDateFormatter.time(for: message.sentAt)
     }
 
     private var failedDeliveryStatus: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Image(systemName: "exclamationmark.circle")
+                .font(.system(size: deliveryStatusIconSize, weight: .medium))
 
             Text("Not delivered, hold for options")
+                .font(.caption.weight(.medium))
                 .multilineTextAlignment(.leading)
         }
-        .font(.caption)
-        .foregroundStyle(.primary)
+        .foregroundStyle(.red)
         .padding(
             .leading,
             PrototypeMessageBubbleMetrics.textHorizontalInset
@@ -908,17 +922,19 @@ struct PrototypeMessageBubble: View {
             + PrototypeMessageBubbleMetrics.reactionTextGap
     }
     private var metadataBottomReserve: CGFloat {
-        if showsFailedDeliveryStatus { return 18 }
+        if showsFailedDeliveryStatus {
+            return PrototypeMessageBubbleMetrics.metadataVerticalOffset
+        }
         if showsReactions {
             return max(
                 reactionVerticalOffset,
                 showsVisibleTimestamp
-                    ? PrototypeMessageBubbleMetrics.timestampVerticalOffset
+                    ? PrototypeMessageBubbleMetrics.metadataVerticalOffset
                     : 0
             )
         }
         return showsVisibleTimestamp
-            ? PrototypeMessageBubbleMetrics.timestampVerticalOffset
+            ? PrototypeMessageBubbleMetrics.metadataVerticalOffset
             : 0
     }
     private var hasRichContent: Bool {
@@ -957,9 +973,16 @@ struct PrototypeMessageBubble: View {
         let reply = message.replyToMessageID == nil
             ? ""
             : ", reply to \(replyAuthorName): \(replyPreview)"
-        let failed = message.deliveryState == .failed ? ", not sent" : ""
+        let delivery = outgoing ? deliveryAccessibilityValue : ""
         let reading = readAloudProgress == nil ? "" : ", reading aloud"
-        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(failed)\(reading)"
+        return "\(sender), \(PrototypeDateFormatter.time(for: message.sentAt)). \(content)\(reply)\(reactions)\(delivery)\(reading)"
+    }
+    private var deliveryAccessibilityValue: String {
+        switch message.deliveryState {
+        case .sending: ", sending"
+        case .sent: ", sent"
+        case .failed: ", not sent"
+        }
     }
     private func accessibilityTranscript(_ text: String) -> String {
         let transcript = plainText(text)

@@ -83,8 +83,8 @@ coverage, but have not yet been accepted in a simulator pass.
 | [ ] | `TXT-09` | Direct - Text & Delivery | `TXT-09` | Markdown emphasis and inline link | Open link; standard actions | Implemented; review pending |
 | [ ] | `TXT-10` | Direct - Text & Delivery | `TXT-10` | Raw URL | Open URL; standard actions | Implemented; review pending |
 | [ ] | `DLV-01` | Direct - Text & Delivery | `DLV-01` | Sending outgoing state | Standard outgoing actions | Implemented; review pending |
-| [ ] | `DLV-02` | Direct - Text & Delivery | `DLV-02` | Sent outgoing state | Standard outgoing actions | Implemented; review pending |
-| [ ] | `DLV-03` | Direct - Text & Delivery | `DLV-03` | Primary-label outlined warning icon with **Not delivered, hold for options** status, left-aligned like the outgoing timestamp at the bubble's inner corner inset; no timestamp | Touch and hold → Retry Send; standard outgoing actions | Implemented; review pending |
+| [ ] | `DLV-02` | Direct - Text & Delivery | `DLV-02` | Sent outgoing state with a 12-point medium secondary filled-circle checkmark before the matching secondary timestamp | Standard outgoing actions | Implemented; review pending |
+| [ ] | `DLV-03` | Direct - Text & Delivery | `DLV-03` | Matching 12-point medium red outlined warning icon with **Not delivered, hold for options** status, left-aligned like the outgoing timestamp at the bubble's inner corner inset; no timestamp | Touch and hold → Retry Send; standard outgoing actions | Implemented; review pending |
 | [ ] | `CLUSTER-01` | Direct - Text & Delivery | `CLUSTER-01` | Author change starts a cluster | None | Implemented; review pending |
 | [ ] | `CLUSTER-02` | Direct - Text & Delivery | `CLUSTER-02` | More than five minutes starts a cluster | None | Implemented; review pending |
 | [ ] | `CLUSTER-03` | Direct - Text & Delivery | `CLUSTER-03` | New day starts a cluster | None | Implemented; review pending |

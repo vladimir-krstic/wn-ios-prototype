@@ -69,13 +69,21 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   older dates. Separate message clusters use 16 points of space; messages
   inside one cluster remain compact.
 - Deleted messages remain as **You deleted this message.** or **This message
-  was deleted.** A failed outgoing message replaces its timestamp with the red
-  status **Not delivered, hold for options**. Its outlined warning icon and
-  copy form a compact three-point-spaced
-  unit whose leading edge matches the outgoing message text inset. Touching and
-  holding either the bubble or that status opens the focused message-action
-  presentation, whose first recovery action is **Retry Send**. Sent messages do
-  not show delivery checkmarks.
+  was deleted.** A failed outgoing message replaces its timestamp with the
+  red status **Not delivered, hold for options**. Its outlined warning
+  icon and copy use medium `caption` typography, a 12-point scaled symbol,
+  and a compact three-point gap. Their leading edge matches the outgoing
+  message text inset. Touching and holding either the bubble or that status
+  opens the focused message-action presentation, whose first recovery action
+  is **Retry Send**. Sent messages show a filled-circle checkmark immediately
+  before their timestamp using the same medium `caption` typography,
+  12-point scaled symbol, and three-point gap. The sent icon and time use the
+  semantic secondary foreground style. Both metadata treatments use the same
+  18-point external offset from the bubble. Timestamps retain proportional
+  system digits rather than applying tabular figures because each time is a
+  static, independently aligned label. Incoming messages never show the sent
+  checkmark; sending keeps its progress indicator, and failed delivery keeps
+  the failure status instead of a timestamp.
 - The selected message-action flow is defined in `message-actions.md`. A
   Signal-informed focused presentation owns quick and full-picker reactions,
   Reply, Forward, Copy, Select, Info, and Delete while standard controls own
@@ -121,8 +129,7 @@ retaining the accepted Fiatjaf and White Noise Support stories.
   default. The reaction row's leading edge for outgoing messages, or trailing
   edge for incoming messages, aligns with the bubble's 12-point text inset.
   The timestamp remains on the opposite side at the same 12-point text edge and
-  uses a 15-point external offset, aligning its lower edge with the visible
-  22-point reaction pill. The summary still accounts for that timestamp
+  uses the shared 18-point metadata offset. The summary still accounts for that timestamp
   width and shows every reaction type that fits without colliding with it; when
   the row is too narrow, its final visible item is an adaptive `+N` pill
   counting the omitted reaction types. This Signal-informed compact overflow
@@ -552,7 +559,8 @@ that interaction split while using the user-approved visible copy above.
 - Same-author bubbles form a compact cluster while keeping fully rounded
   corners and one precise author-side edge. Separate clusters have visibly more
   breathing room. The terminal bubble's timestamp sits outside the bubble on
-  its conversation-center side, inset by the shared corner radius; delivery or
+  its conversation-center side, inset by the shared corner radius. Timestamp
+  and failure metadata use the same 18-point external offset; delivery or
   failure state also remains outside the bubble.
 - Incoming gray is the adaptive `systemGray5`. Every day boundary remains an
   inline header. The last header above the viewport becomes one pinned
@@ -591,12 +599,13 @@ that interaction split while using the user-approved visible copy above.
   composer, including when the person had scrolled to older history first.
 - Tapping anywhere outside the focused composer dismisses the keyboard without
   consuming the tapped message, control, menu, media, or navigation action.
-- A failed outgoing message shows no timestamp. A primary-label outlined
+- A failed outgoing message shows no timestamp. A red outlined
   warning icon precedes **Not delivered, hold for options**, communicating the
   state without depending on color and retaining system contrast in either
-  appearance. The status is left-aligned to the outgoing message text inset,
-  and touching and holding the bubble or status exposes **Retry Send** first in
-  the focused message-action presentation.
+  appearance. The icon and text match sent metadata at 12 points, medium
+  weight, and a three-point gap. The status is left-aligned to the outgoing
+  message text inset, and touching and holding the bubble or status exposes
+  **Retry Send** first in the focused message-action presentation.
 - Swiping any currently replyable nondeleted message from its semantic leading
   side tracks the message without blocking vertical scrolling. The filled
   secondary-gray reply arrow reveals beneath the message, visibly and

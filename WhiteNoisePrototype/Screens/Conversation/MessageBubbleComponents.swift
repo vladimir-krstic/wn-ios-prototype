@@ -23,7 +23,7 @@ enum PrototypeMessageBubbleMetrics {
     static let reactionHorizontalInset: CGFloat = 7
     static let reactionContentSpacing: CGFloat = 2
     static let reactionTextGap: CGFloat = 1
-    static let timestampVerticalOffset: CGFloat = 15
+    static let metadataVerticalOffset: CGFloat = 18
     static let reactionVerticalOffset = reactionHitTarget
         - reactionPillVerticalInset
         - textVerticalInset
