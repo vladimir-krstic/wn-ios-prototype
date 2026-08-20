@@ -526,3 +526,93 @@ working style remains authoritative.
 - The movement threshold separates a directional pull from the waveform's
   stationary press-and-hold. Active recording still disables expansion, and
   voice review retains its existing format-specific behavior.
+
+## WN-PROTOTYPE-0026 — Optional Profile diagnostics consent
+
+- Date: 2026-08-20
+- Status: Approved; supersedes the telemetry and audit-preference ownership and
+  Developer Tools gating in WN-PROTOTYPE-0008, WN-PROTOTYPE-0018,
+  WN-PROTOTYPE-0019, and WN-PROTOTYPE-0020
+
+- Sign Up and Sign In contain no diagnostics controls. After either path, or
+  Add Profile, succeeds for a Profile with no recorded choice, Chats presents
+  one native medium card sheet with both choices directly available. The sheet
+  waits until account entry has dismissed and Chats is visible.
+- **Share Anonymous Analytics** and **Share Diagnostic Logs** are independent,
+  Profile-scoped choices that start off when no local choice exists. Changes
+  apply immediately. Closing or swiping down keeps the current values and
+  records that the one-time sheet was seen; leaving both off is valid. A
+  locally stored Profile retains its choices and seen state; Add Profile never
+  inherits another Profile’s choices.
+- Privacy & Security owns the same choices and destructive clearing of retained
+  diagnostic contents. The ordinary product surface uses human language and
+  never exposes filenames or paths.
+- Developer Tools no longer owns or gates analytics or logging. Its master
+  Toggle controls Debug Mode only. When Developer Tools is enabled, it may
+  inspect the active Profile’s sanitized diagnostic file records and clear the
+  same contents without changing either preference.
+- Turning logging off preserves existing local sanitized files while stopping
+  new logging. Turning analytics off stops collection. The prototype models
+  both outcomes deterministically in memory and adds no transport, queue,
+  persistence, backend, third-party SDK, export, or sensitive-data logging.
+
+## WN-PROTOTYPE-0027 — Single owner for diagnostic-log cleanup
+
+- Date: 2026-08-20
+- Status: Approved; refines the Developer Tools inspection and cleanup detail
+  in WN-PROTOTYPE-0026
+
+- Privacy & Security's **Diagnostics & Improvements** destination is the only
+  owner of **Clear Diagnostic Logs** and its destructive confirmation.
+- Developer Tools keeps read-only logging status and sanitized per-file
+  technical details for troubleshooting. It does not duplicate the cleanup
+  action.
+- The live developer event console is labeled **Debug Events** so it remains
+  distinct from the person-facing **Diagnostics & Improvements** destination.
+- Developer Tools retains its **About** section with app version/build and the
+  MarmotKit integration baseline, even though Settings also shows a compact
+  version footer.
+
+## WN-PROTOTYPE-0028 — Diagnostic placement and explicit export
+
+- Date: 2026-08-20
+- Status: Approved; refines WN-PROTOTYPE-0026 and WN-PROTOTYPE-0027
+
+- Privacy & Security places **Diagnostics** immediately above **Device Data**,
+  so **Diagnostics & Improvements** appears directly before **Erase App Data**.
+- Developer Tools keeps its sanitized file inventory and adds **Export
+  Diagnostic Logs**. The action uses the native Files destination to save one
+  combined plain-text diagnostic report. It appears only when at least one
+  retained file contains data. With no retained data, Developer Tools shows
+  **There are no logs.** and omits both file rows and the export action.
+- The explicit Files export contains deterministic sanitized technical records and
+  non-identifying file metadata only. It contains no sandbox paths, filenames
+  tied to a Profile, message content, media,
+  contacts, profile details, or keys, and does not itself initiate automatic
+  network transfer.
+- Export does not change logging, retained files, or consent. **Clear
+  Diagnostic Logs** remains owned only by **Diagnostics & Improvements**.
+- The one-time Chats sheet introduces the choices with mission-forward body
+  copy above the grouped controls, without placing that copy inside a settings
+  row: **Help us make messaging without a central point of control more
+  reliable. Anonymous analytics and diagnostic logs are optional and can be
+  changed in Settings.** The copy uses primary body styling and a system bottom
+  inset so it remains readable and distinct from the Toggle group.
+
+## WN-PROTOTYPE-0029 — Diagnostic logs are shared automatically
+
+- Date: 2026-08-20
+- Status: Approved; supersedes the local-only and no-automatic-transfer claims
+  in WN-PROTOTYPE-0026 and WN-PROTOTYPE-0028
+
+- The ordinary product choice is **Share Diagnostic Logs**, not **Save
+  Diagnostic Logs**. It remains independent from **Share Anonymous Analytics**
+  and is off until the Profile opts in.
+- When enabled in the production architecture, sanitized diagnostic records are
+  retained locally and automatically sent to White Noise's diagnostic service
+  after relevant app activity. Message content is excluded and identifiers are
+  obscured. Product copy must not claim that these records remain only on the
+  iPhone or are never sent automatically.
+- The local prototype continues to model the preference and retained records
+  deterministically in memory and performs no real networking. Developer Tools'
+  explicit Files export remains a separate person-initiated action.

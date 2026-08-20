@@ -104,6 +104,15 @@ struct ProfileLifecycleTests {
         )
         stored.developerTools.setEnabled(true)
         stored.developerTools.debugMode = true
+        stored.diagnostics.apply(
+            PrototypeDiagnosticsPreferences(
+                sharesAnonymousAnalytics: true,
+                savesDiagnosticLogs: true
+            ),
+            profileID: stored.id,
+            profileName: stored.name
+        )
+        stored.diagnostics.markChoicesPresented()
         stored.quickReactionEmoji[0] = "🥳"
         stored.nostrAddress = "kept@example.com"
         stored.isNostrAddressVerified = false
@@ -130,6 +139,10 @@ struct ProfileLifecycleTests {
         #expect(stored.relayConfiguration == relayConfiguration)
         #expect(stored.quickReactionEmoji == quickReactionEmoji)
         #expect(stored.developerTools.isConversationDebugEnabled)
+        #expect(stored.diagnostics.preferences.sharesAnonymousAnalytics)
+        #expect(stored.diagnostics.preferences.savesDiagnosticLogs)
+        #expect(stored.diagnostics.hasPresentedChoices)
+        #expect(stored.diagnostics.auditFileCount == 2)
     }
 
     @Test("Wiping then recreating and adding preserves both canonical profiles")

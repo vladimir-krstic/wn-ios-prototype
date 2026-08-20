@@ -11,7 +11,7 @@ struct WhiteNoisePrototypeApp: App {
 }
 
 private struct PrototypeRootView: View {
-    private enum RootDestination {
+    private enum RootDestination: Equatable {
         case welcome
         case chats
         case profileSwitcher
@@ -25,6 +25,12 @@ private struct PrototypeRootView: View {
         var id: Self { self }
     }
 
+    private struct DiagnosticsPrompt: Identifiable {
+        let profileID: String
+
+        var id: String { profileID }
+    }
+
     @State private var rootDestination: RootDestination
     @State private var onboardingPresentation: OnboardingPresentation?
     @State private var profiles: [PrototypeProfile]
@@ -34,6 +40,9 @@ private struct PrototypeRootView: View {
     @State private var isShowingSettings = false
     @State private var chatsPath: [ChatsRoute] = []
     @State private var dismissesAddProfileAfterSettingsRemoval = false
+    @State private var pendingDiagnosticsProfileID: String?
+    @State private var diagnosticsPrompt: DiagnosticsPrompt?
+    @State private var presentedDiagnosticsProfileID: String?
 
     init() {
         let opensChats = ProcessInfo.processInfo.arguments
@@ -141,7 +150,10 @@ private struct PrototypeRootView: View {
             }
         }
         .preferredColorScheme(settings.appearance.colorScheme)
-        .sheet(item: $onboardingPresentation) { presentation in
+        .sheet(
+            item: $onboardingPresentation,
+            onDismiss: presentPendingDiagnosticsPrompt
+        ) { presentation in
             switch presentation {
             case .signIn:
                 InitialSignInSheet {
@@ -163,6 +175,16 @@ private struct PrototypeRootView: View {
                     )
                 }
             }
+        }
+        .sheet(
+            item: $diagnosticsPrompt,
+            onDismiss: completeDiagnosticsPrompt
+        ) { prompt in
+            DiagnosticsAndImprovementsPromptSheet(
+                profile: profileBinding(for: prompt.profileID)
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
         .onChange(of: isShowingSettings) { _, isShowingSettings in
             guard !isShowingSettings,
@@ -254,6 +276,7 @@ private struct PrototypeRootView: View {
 
     private func completeInitialSignIn() {
         activateStoredOrNewProfile(.marmota)
+        scheduleDiagnosticsPrompt(for: PrototypeProfile.marmotaID)
 
         onboardingPresentation = nil
         isShowingSettings = false
@@ -271,6 +294,7 @@ private struct PrototypeRootView: View {
             avatar: avatar
         )
         activateStoredOrNewProfile(profile, updatesStoredProfile: true)
+        scheduleDiagnosticsPrompt(for: profile.id)
 
         onboardingPresentation = nil
         isShowingSettings = false
@@ -306,6 +330,7 @@ private struct PrototypeRootView: View {
             profile,
             updatesStoredProfile: updatesStoredProfile
         )
+        scheduleDiagnosticsPrompt(for: profile.id)
 
         for pseudonym in PrototypeProfile.showcasePseudonyms {
             if !profiles.contains(where: { $0.id == pseudonym.id }) {
@@ -369,6 +394,59 @@ private struct PrototypeRootView: View {
 
     private var signedInProfiles: [PrototypeProfile] {
         profiles.filter { signedInProfileIDs.contains($0.id) }
+    }
+
+    private func scheduleDiagnosticsPrompt(for profileID: String) {
+        guard let profile = profiles.first(where: { $0.id == profileID }),
+              !profile.diagnostics.hasPresentedChoices
+        else {
+            return
+        }
+
+        pendingDiagnosticsProfileID = profileID
+    }
+
+    private func presentPendingDiagnosticsPrompt() {
+        guard rootDestination == .chats,
+              let profileID = pendingDiagnosticsProfileID,
+              let profile = profiles.first(where: { $0.id == profileID }),
+              !profile.diagnostics.hasPresentedChoices
+        else {
+            pendingDiagnosticsProfileID = nil
+            return
+        }
+
+        pendingDiagnosticsProfileID = nil
+        presentedDiagnosticsProfileID = profileID
+        diagnosticsPrompt = DiagnosticsPrompt(profileID: profileID)
+    }
+
+    private func completeDiagnosticsPrompt() {
+        guard let profileID = presentedDiagnosticsProfileID,
+              let index = profiles.firstIndex(where: { $0.id == profileID })
+        else {
+            presentedDiagnosticsProfileID = nil
+            return
+        }
+
+        profiles[index].diagnostics.markChoicesPresented()
+        presentedDiagnosticsProfileID = nil
+    }
+
+    private func profileBinding(
+        for profileID: String
+    ) -> Binding<PrototypeProfile> {
+        Binding {
+            profiles.first(where: { $0.id == profileID }) ?? activeProfile
+        } set: { profile in
+            guard let index = profiles.firstIndex(
+                where: { $0.id == profileID }
+            ) else {
+                return
+            }
+
+            profiles[index] = profile
+        }
     }
 }
 

@@ -24,6 +24,8 @@ authority by itself.
 | Remove active profile and local data | **Wipe Data From This Device** within **Sign Out** | Delete account, wipe identity | Selected by default in the Sign Out sheet; explain that all local data is removed and previous chats don’t return after a later sign-in. |
 | Remove every profile and all local White Noise data | **Erase App Data** | Device-wide sign-out, wipe all profiles, reset app | Privacy & Security device action. Always destructive, requires the generated three-word confirmation phrase, and returns to Welcome. |
 | Remove another stored profile | **Remove Profile** | Delete account, wipe identity | Use for an inactive locally stored profile. |
+| Optional improvement data | **Share Anonymous Analytics** | Anonymous Telemetry in ordinary UI | Profile-scoped opt-in for sanitized reliability, performance, and feature-use data. |
+| Optional troubleshooting records | **Share Diagnostic Logs** | Audit Logging in ordinary UI | Profile-scoped opt-in. Sanitized logs are retained locally and securely sent to White Noise; message content is excluded and identifiers are obscured. |
 
 ## Technical-only terms
 

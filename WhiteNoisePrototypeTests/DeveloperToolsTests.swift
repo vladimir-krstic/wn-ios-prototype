@@ -4,6 +4,40 @@ import Testing
 
 @Suite("Developer tools")
 struct DeveloperToolsTests {
+    @Test("Diagnostics summaries describe every independent choice")
+    func diagnosticsSummaries() {
+        #expect(PrototypeDiagnosticsPreferences().summary == "Off")
+        #expect(
+            PrototypeDiagnosticsPreferences(
+                sharesAnonymousAnalytics: true
+            ).summary == "Analytics"
+        )
+        #expect(
+            PrototypeDiagnosticsPreferences(
+                savesDiagnosticLogs: true
+            ).summary == "Logs"
+        )
+        #expect(
+            PrototypeDiagnosticsPreferences(
+                sharesAnonymousAnalytics: true,
+                savesDiagnosticLogs: true
+            ).summary == "On"
+        )
+    }
+
+    @Test("Diagnostics choice sheet is recorded independently of opt-ins")
+    func diagnosticsChoiceSheetSeenState() {
+        var diagnostics = PrototypeDiagnosticsState()
+
+        #expect(!diagnostics.hasPresentedChoices)
+        #expect(diagnostics.preferences == PrototypeDiagnosticsPreferences())
+
+        diagnostics.markChoicesPresented()
+
+        #expect(diagnostics.hasPresentedChoices)
+        #expect(diagnostics.preferences == PrototypeDiagnosticsPreferences())
+    }
+
     @Test("Developer tools start disabled for each profile")
     func toolsStartDisabled() {
         let marmota = PrototypeProfile.marmota
@@ -12,8 +46,8 @@ struct DeveloperToolsTests {
         #expect(!marmota.developerTools.isEnabled)
         #expect(!pebble.developerTools.isEnabled)
         #expect(!marmota.developerTools.debugMode)
-        #expect(!marmota.developerTools.anonymousTelemetry)
-        #expect(!marmota.developerTools.auditLogging)
+        #expect(!marmota.diagnostics.preferences.sharesAnonymousAnalytics)
+        #expect(!marmota.diagnostics.preferences.savesDiagnosticLogs)
     }
 
     @Test("Developer preferences are independent between profiles")
@@ -23,77 +57,125 @@ struct DeveloperToolsTests {
 
         marmota.developerTools.setEnabled(true)
         marmota.developerTools.debugMode = true
-        marmota.developerTools.anonymousTelemetry = true
+        marmota.diagnostics.apply(
+            PrototypeDiagnosticsPreferences(
+                sharesAnonymousAnalytics: true
+            ),
+            profileID: marmota.id,
+            profileName: marmota.name
+        )
 
         #expect(marmota.developerTools.isEnabled)
         #expect(marmota.developerTools.debugMode)
-        #expect(marmota.developerTools.anonymousTelemetry)
+        #expect(marmota.diagnostics.preferences.sharesAnonymousAnalytics)
         #expect(!pebble.developerTools.isEnabled)
         #expect(!pebble.developerTools.debugMode)
-        #expect(!pebble.developerTools.anonymousTelemetry)
+        #expect(!pebble.diagnostics.preferences.sharesAnonymousAnalytics)
 
         pebble.developerTools.setEnabled(true)
-        pebble.developerTools.auditLogging = true
+        pebble.diagnostics.apply(
+            PrototypeDiagnosticsPreferences(savesDiagnosticLogs: true),
+            profileID: pebble.id,
+            profileName: pebble.name
+        )
 
-        #expect(pebble.developerTools.auditLogging)
-        #expect(!marmota.developerTools.auditLogging)
+        #expect(pebble.diagnostics.preferences.savesDiagnosticLogs)
+        #expect(!marmota.diagnostics.preferences.savesDiagnosticLogs)
     }
 
     @Test("Disabling developer tools stops features but preserves artifacts")
     func disablingToolsPreservesArtifacts() {
         var tools = PrototypeDeveloperToolsState.fixtures()
+        var diagnostics = PrototypeDiagnosticsState()
         tools.setEnabled(true)
         tools.debugMode = true
-        tools.anonymousTelemetry = true
-        tools.auditLogging = true
-        let files = tools.auditFiles
+        diagnostics.apply(
+            PrototypeDiagnosticsPreferences(
+                sharesAnonymousAnalytics: true,
+                savesDiagnosticLogs: true
+            ),
+            profileID: "marmota",
+            profileName: "Marmota"
+        )
+        let files = diagnostics.auditFiles
         let keyPackage = tools.keyPackage
 
         tools.setEnabled(false)
 
         #expect(!tools.isEnabled)
         #expect(!tools.debugMode)
-        #expect(!tools.anonymousTelemetry)
-        #expect(!tools.auditLogging)
-        #expect(tools.auditFiles == files)
+        #expect(diagnostics.preferences.sharesAnonymousAnalytics)
+        #expect(diagnostics.preferences.savesDiagnosticLogs)
+        #expect(diagnostics.auditFiles == files)
         #expect(tools.keyPackage == keyPackage)
     }
 
     @Test("Turning audit logging off preserves existing files")
     func disablingLoggingPreservesFiles() {
-        var tools = PrototypeDeveloperToolsState.fixtures()
-        tools.auditLogging = true
-        let files = tools.auditFiles
+        var diagnostics = PrototypeDiagnosticsState()
+        diagnostics.apply(
+            PrototypeDiagnosticsPreferences(savesDiagnosticLogs: true),
+            profileID: "marmota",
+            profileName: "Marmota"
+        )
+        let files = diagnostics.auditFiles
+        diagnostics.apply(
+            PrototypeDiagnosticsPreferences(),
+            profileID: "marmota",
+            profileName: "Marmota"
+        )
 
-        tools.auditLogging = false
-
-        #expect(tools.auditFiles == files)
-        #expect(tools.auditFileCount == 2)
-        #expect(tools.auditLogTotalByteCount == 32_000)
+        #expect(!diagnostics.preferences.savesDiagnosticLogs)
+        #expect(diagnostics.auditFiles == files)
+        #expect(diagnostics.auditFileCount == 2)
+        #expect(diagnostics.auditLogTotalByteCount == 32_000)
     }
 
     @Test("Clearing audit logs preserves files and logging")
     func clearingLogsPreservesFilesAndLogging() {
-        var tools = PrototypeDeveloperToolsState.fixtures()
-        tools.auditLogging = true
-        let originalFiles = tools.auditFiles
-        #expect(tools.auditLogsContainData)
+        var diagnostics = PrototypeDiagnosticsState()
+        diagnostics.apply(
+            PrototypeDiagnosticsPreferences(savesDiagnosticLogs: true),
+            profileID: "marmota",
+            profileName: "Marmota"
+        )
+        let originalFiles = diagnostics.auditFiles
+        #expect(diagnostics.auditLogsContainData)
 
-        tools.clearAuditLogContents()
+        diagnostics.clearAuditLogContents()
 
-        #expect(tools.auditLogging)
-        #expect(tools.auditFileCount == originalFiles.count)
-        #expect(tools.auditFiles.map(\.id) == originalFiles.map(\.id))
+        #expect(diagnostics.preferences.savesDiagnosticLogs)
+        #expect(diagnostics.auditFileCount == originalFiles.count)
+        #expect(diagnostics.auditFiles.map(\.id) == originalFiles.map(\.id))
         #expect(
-            tools.auditFiles.map(\.filename)
+            diagnostics.auditFiles.map(\.filename)
                 == originalFiles.map(\.filename)
         )
         #expect(
-            tools.auditFiles.map(\.creationDate)
+            diagnostics.auditFiles.map(\.creationDate)
                 == originalFiles.map(\.creationDate)
         )
-        #expect(tools.auditLogTotalByteCount == 0)
-        #expect(!tools.auditLogsContainData)
+        #expect(diagnostics.auditLogTotalByteCount == 0)
+        #expect(!diagnostics.auditLogsContainData)
+    }
+
+    @Test("Diagnostic export contains sanitized retained records")
+    func diagnosticExportIsSanitized() {
+        var diagnostics = PrototypeDiagnosticsState()
+        diagnostics.apply(
+            PrototypeDiagnosticsPreferences(savesDiagnosticLogs: true),
+            profileID: "marmota",
+            profileName: "Marmota"
+        )
+
+        let export = diagnostics.diagnosticLogExportText
+
+        #expect(export.contains("White Noise Diagnostic Logs"))
+        #expect(export.contains("Log file: 1"))
+        #expect(export.contains("info | app.ready"))
+        #expect(!export.contains("Marmota"))
+        #expect(!export.contains("marmota"))
+        #expect(!export.contains("/Users/"))
     }
 
     @Test("Publishing replaces the single current key package")

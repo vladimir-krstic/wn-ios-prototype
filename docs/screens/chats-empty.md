@@ -27,6 +27,8 @@ Show the main Chats destination when the current profile has no chats. The profi
 
 - `NavigationStack` without a visible navigation title in any scope.
 - `ContentUnavailableView` with the current scope’s SF Symbol: `bubble.left.and.bubble.right`, `message.badge`, `archivebox`, or `rectangle.portrait.and.arrow.right`.
+- A one-time native medium card sheet presents the active Profile’s two
+  optional diagnostics choices directly after successful account entry.
 - Native `.searchable` presentation triggered by the Search toolbar button.
 - One `ToolbarItemGroup` containing Filter, Search, and New Message in that order.
 - A native `Picker` inside the menu with SF Symbols for every scope and the system checkmark on the selected scope.
@@ -61,6 +63,9 @@ Show the main Chats destination when the current profile has no chats. The profi
   reconnecting, or disconnected and disappears as soon as every role has at
   least one connected assigned relay.
 - The toolbar contains one unified trailing glass group so the three chat-level actions read as a quiet, related control cluster.
+- The diagnostics sheet presents only after Chats is visible, never underneath
+  account entry. Dismissing it keeps the current choices and it does not
+  automatically repeat for that Profile.
 
 ## Accessibility
 
@@ -80,6 +85,8 @@ Show the main Chats destination when the current profile has no chats. The profi
 - [Menus and commands](https://developer.apple.com/documentation/swiftui/menus-and-commands)
 - [SF Symbols](https://developer.apple.com/sf-symbols/)
 - [Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+- [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets)
+- [presentationDetents](https://developer.apple.com/documentation/swiftui/view/presentationdetents(_:))
 
 Optional Apple product comparisons below preserve historical visual context.
 They are not platform authority and are not required to implement this screen.
@@ -111,4 +118,7 @@ brief remains complete and authoritative.
 - Selecting Chats in the Filter menu returns to the unfiltered scope.
 - Search presents and focuses the native field, opens the keyboard, and filters the current scope; Filter shows icons and a checked native menu choice.
 - No custom toolbar capsule, glass material, empty-state layout, menu, search field, or motion is implemented.
+- The first eligible entry to Chats presents one system medium card sheet with
+  both diagnostics Toggles directly available; subsequent entries for the same
+  Profile do not present it automatically.
 - The selected Filter label’s 34-point height, ten-point trailing internal inset, five-point leading background extension, semantic capsule fill, and symbol-plus-text composition are the approved custom exception required to communicate the selected scope with even visible insets without separating the control from its native toolbar group.

@@ -59,6 +59,7 @@ struct ChatDeveloperToolsView: View {
             NavigationLink {
                 DeveloperToolsPrototypeView(
                     developerTools: $profile.developerTools,
+                    diagnostics: $profile.diagnostics,
                     profile: profile
                 )
             } label: {

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PrivacySecurityPrototypeView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Binding var profile: PrototypeProfile
     @Binding var settings: PrototypeSettingsState
     @State private var isShowingEraseAllAppData = false
 
@@ -58,6 +59,29 @@ struct PrivacySecurityPrototypeView: View {
                 case .passcodeRequired:
                     Text("Set an iPhone passcode to require Face ID.")
                 }
+            }
+
+            Section {
+                NavigationLink {
+                    DiagnosticsAndImprovementsSettingsView(
+                        profile: $profile
+                    )
+                } label: {
+                    LabeledContent(
+                        "Diagnostics & Improvements",
+                        value: profile.diagnostics.preferences.summary
+                    )
+                }
+                .accessibilityValue(
+                    profile.diagnostics.preferences.summary
+                )
+            } header: {
+                Text("Diagnostics")
+            } footer: {
+                Text(
+                    "Control optional analytics and diagnostic logs "
+                        + "for this profile."
+                )
             }
 
             Section {
@@ -739,9 +763,11 @@ private struct AddRelaySheet: View {
 
 #Preview("Privacy & Security") {
     @Previewable @State var settings = PrototypeSettingsState()
+    @Previewable @State var profile = PrototypeProfile.marmota
 
     NavigationStack {
         PrivacySecurityPrototypeView(
+            profile: $profile,
             settings: $settings,
             profiles: PrototypeProfile.multipleProfileFixtures,
             onEraseAllAppData: {}
@@ -753,9 +779,11 @@ private struct AddRelaySheet: View {
     @Previewable @State var settings = PrototypeSettingsState(
         deviceAuthenticationAvailability: .passcodeRequired
     )
+    @Previewable @State var profile = PrototypeProfile.marmota
 
     NavigationStack {
         PrivacySecurityPrototypeView(
+            profile: $profile,
             settings: $settings,
             profiles: PrototypeProfile.multipleProfileFixtures,
             onEraseAllAppData: {}
@@ -767,9 +795,11 @@ private struct AddRelaySheet: View {
     @Previewable @State var settings = PrototypeSettingsState(
         deviceAuthenticationAvailability: .passcode
     )
+    @Previewable @State var profile = PrototypeProfile.marmota
 
     NavigationStack {
         PrivacySecurityPrototypeView(
+            profile: $profile,
             settings: $settings,
             profiles: PrototypeProfile.multipleProfileFixtures,
             onEraseAllAppData: {}

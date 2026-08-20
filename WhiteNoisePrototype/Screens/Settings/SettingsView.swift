@@ -318,11 +318,14 @@ struct SettingsView: View {
         case .appearance:
             AppearanceSettingsPrototypeView(settings: $settings)
         case .privacyAndSecurity:
-            PrivacySecurityPrototypeView(
-                settings: $settings,
-                profiles: profiles,
-                onEraseAllAppData: onEraseAllAppData
-            )
+            if let activeProfileBinding {
+                PrivacySecurityPrototypeView(
+                    profile: activeProfileBinding,
+                    settings: $settings,
+                    profiles: profiles,
+                    onEraseAllAppData: onEraseAllAppData
+                )
+            }
         case .dataUsage:
             DataUsagePrototypeView(settings: $settings)
         case .relays:
@@ -344,6 +347,7 @@ struct SettingsView: View {
             if let activeProfileBinding {
                 DeveloperToolsPrototypeView(
                     developerTools: activeProfileBinding.developerTools,
+                    diagnostics: activeProfileBinding.diagnostics,
                     profile: activeProfileBinding.wrappedValue
                 )
             }

@@ -20,6 +20,7 @@ struct PrototypeProfile: Identifiable, Equatable {
     var chats: [PrototypeChat]
     var quickReactionEmoji: [String]
     var relayConfiguration: PrototypeRelayConfiguration
+    var diagnostics: PrototypeDiagnosticsState
     var developerTools: PrototypeDeveloperToolsState
 
     init(
@@ -35,6 +36,7 @@ struct PrototypeProfile: Identifiable, Equatable {
         chats: [PrototypeChat],
         quickReactionEmoji: [String] = PrototypeReaction.defaultQuickEmoji,
         relayConfiguration: PrototypeRelayConfiguration = .fixtures,
+        diagnostics: PrototypeDiagnosticsState = PrototypeDiagnosticsState(),
         developerTools: PrototypeDeveloperToolsState? = nil
     ) {
         self.id = id
@@ -52,10 +54,8 @@ struct PrototypeProfile: Identifiable, Equatable {
         self.chats = chats
         self.quickReactionEmoji = quickReactionEmoji
         self.relayConfiguration = relayConfiguration
-        self.developerTools = developerTools ?? .fixtures(
-            profileID: id,
-            profileName: name
-        )
+        self.diagnostics = diagnostics
+        self.developerTools = developerTools ?? .fixtures()
     }
 
     var shortPublicKey: String {
@@ -185,10 +185,7 @@ extension PrototypeProfile {
 
         if !normalizedName.isEmpty {
             profile.name = normalizedName
-            profile.developerTools = .fixtures(
-                profileID: profile.id,
-                profileName: normalizedName
-            )
+            profile.developerTools = .fixtures()
         }
 
         profile.about = about
@@ -212,10 +209,7 @@ extension PrototypeProfile {
 
         if !normalizedName.isEmpty {
             profile.name = normalizedName
-            profile.developerTools = .fixtures(
-                profileID: profile.id,
-                profileName: normalizedName
-            )
+            profile.developerTools = .fixtures()
         }
 
         profile.about = about

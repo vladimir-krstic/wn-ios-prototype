@@ -1,11 +1,15 @@
 import Foundation
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct DeveloperToolsPrototypeView: View {
     @Binding var developerTools: PrototypeDeveloperToolsState
+    @Binding var diagnostics: PrototypeDiagnosticsState
     let profile: PrototypeProfile
-    @State private var isShowingClearLogsConfirmation = false
+    @State private var exportDocument = DiagnosticLogExportDocument(text: "")
+    @State private var isFileExporterPresented = false
+    @State private var isShowingExportError = false
 
     var body: some View {
         Form {
@@ -48,7 +52,7 @@ struct DeveloperToolsPrototypeView: View {
                     NavigationLink {
                         DiagnosticsPrototypeView()
                     } label: {
-                        Label("Diagnostics", systemImage: "stethoscope")
+                        Label("Debug Events", systemImage: "stethoscope")
                     }
                 } header: {
                     Text("Debugging")
@@ -70,46 +74,35 @@ struct DeveloperToolsPrototypeView: View {
                 }
 
                 Section {
-                    Toggle(
-                        "Anonymous Telemetry",
-                        isOn: $developerTools.anonymousTelemetry
-                    )
-                } header: {
-                    Text("Telemetry")
-                } footer: {
-                    Text(
-                        "Shares anonymous reliability and performance data. "
-                            + "It doesn’t include messages or profile keys."
-                    )
-                }
-
-                Section {
-                    Toggle(
-                        "Audit Logging",
-                        isOn: $developerTools.auditLogging
+                    LabeledContent(
+                        "Diagnostic Logging",
+                        value: diagnostics.preferences.savesDiagnosticLogs
+                            ? "On"
+                            : "Off"
                     )
 
-                    if developerTools.auditLogging {
-                        ForEach(developerTools.auditFiles) { file in
+                    if diagnostics.auditLogsContainData {
+                        ForEach(nonemptyAuditFiles) { file in
                             auditFileRow(file)
                         }
 
-                        Button(
-                            "Clear Audit Logs",
-                            role: .destructive
-                        ) {
-                            isShowingClearLogsConfirmation = true
+                        Button(action: prepareDiagnosticLogExport) {
+                            Label(
+                                "Export Diagnostic Logs",
+                                systemImage: "arrow.down.document"
+                            )
                         }
-                        .disabled(!developerTools.auditLogsContainData)
+                    } else {
+                        Text("There are no logs.")
+                            .foregroundStyle(.secondary)
                     }
                 } header: {
-                    Text("Audit Logging")
+                    Text("Diagnostic Logs")
                 } footer: {
                     Text(
-                        "Stores sanitized technical activity locally for "
-                            + "troubleshooting. Turning logging off hides "
-                            + "the files but keeps them. Clearing removes "
-                            + "their contents without deleting the files."
+                        "Configure or clear diagnostic logs in Privacy & "
+                            + "Security. Existing sanitized files remain "
+                            + "available here after logging is turned off."
                     )
                 }
             }
@@ -124,19 +117,20 @@ struct DeveloperToolsPrototypeView: View {
         }
         .navigationTitle("Developer Tools")
         .navigationBarTitleDisplayMode(.inline)
+        .fileExporter(
+            isPresented: $isFileExporterPresented,
+            document: exportDocument,
+            contentType: .plainText,
+            defaultFilename: "White Noise Diagnostic Logs",
+            onCompletion: handleExportResult
+        )
         .alert(
-            "Clear all audit logs?",
-            isPresented: $isShowingClearLogsConfirmation
+            "Couldn’t Save Diagnostic Logs",
+            isPresented: $isShowingExportError
         ) {
-            Button("Clear Logs", role: .destructive) {
-                developerTools.clearAuditLogContents()
-            }
-            Button("Cancel", role: .cancel) {}
+            Button("Dismiss", role: .cancel) {}
         } message: {
-            Text(
-                "This removes all recorded activity from the audit log "
-                    + "files. The files remain and Audit Logging stays on."
-            )
+            Text("Choose another location and try again.")
         }
     }
 
@@ -150,11 +144,34 @@ struct DeveloperToolsPrototypeView: View {
         return "\(version) (\(build))"
     }
 
+    private var nonemptyAuditFiles: [PrototypeAuditFile] {
+        diagnostics.auditFiles.filter { file in
+            file.byteCount > 0
+        }
+    }
+
     private var developerToolsEnabled: Binding<Bool> {
         Binding {
             developerTools.isEnabled
         } set: { isEnabled in
             developerTools.setEnabled(isEnabled)
+        }
+    }
+
+    private func prepareDiagnosticLogExport() {
+        guard diagnostics.auditLogsContainData else {
+            return
+        }
+
+        exportDocument = DiagnosticLogExportDocument(
+            text: diagnostics.diagnosticLogExportText
+        )
+        isFileExporterPresented = true
+    }
+
+    private func handleExportResult(_ result: Result<URL, Error>) {
+        if case .failure = result {
+            isShowingExportError = true
         }
     }
 
@@ -309,7 +326,7 @@ struct DiagnosticsPrototypeView: View {
         }
         .padding()
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("Diagnostics")
+        .navigationTitle("Debug Events")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -395,16 +412,47 @@ struct DiagnosticsPrototypeView: View {
     }
 }
 
+private struct DiagnosticLogExportDocument: FileDocument {
+    static let readableContentTypes: [UTType] = [.plainText]
+
+    let data: Data
+
+    init(text: String) {
+        data = Data(text.utf8)
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
 #Preview("Developer Tools") {
     @Previewable @State var developerTools = {
         var state = PrototypeDeveloperToolsState.fixtures()
         state.isEnabled = true
         return state
     }()
+    @Previewable @State var diagnostics = {
+        var state = PrototypeDiagnosticsState()
+        state.apply(
+            PrototypeDiagnosticsPreferences(
+                sharesAnonymousAnalytics: true,
+                savesDiagnosticLogs: true
+            ),
+            profileID: PrototypeProfile.marmota.id,
+            profileName: PrototypeProfile.marmota.name
+        )
+        return state
+    }()
 
     NavigationStack {
         DeveloperToolsPrototypeView(
             developerTools: $developerTools,
+            diagnostics: $diagnostics,
             profile: .marmota
         )
     }

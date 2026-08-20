@@ -261,6 +261,17 @@ not require the source pages during normal work.
   footer reads **Signs out every profile and permanently removes all White
   Noise data from this iPhone.** The action opens the confirmation task
   specified in [`sign-out.md`](sign-out.md).
+- Privacy & Security places a **Diagnostics** section directly before **Device
+  Data**, immediately above **Erase App Data**. Its
+  **Diagnostics & Improvements** disclosure row shows **Off**, **Analytics**,
+  **Logs**, or **On** for the active Profile and pushes the shared two-Toggle
+  Form governed by
+  [`diagnostics-and-improvements.md`](diagnostics-and-improvements.md).
+- Privacy & Security owns consent withdrawal and **Clear Diagnostic Logs**.
+  When retained records exist, **Stored Diagnostic Logs** shows their combined
+  **On This iPhone** size without technical filenames or paths. Turning logging
+  off retains existing local sanitized contents; clearing uses a native
+  destructive alert and does not change the logging preference.
 - The Signal App Security structure was accepted as optional comparison
   evidence. The local requirements above are complete and do not depend on
   Signal's repository or continued access to it.
@@ -516,10 +527,9 @@ and does not require these sites during normal work.
   Tools** Toggle starts off for each profile and must be enabled before the
   technical sections appear. Switching profiles immediately displays that
   profile's independent settings and files.
-- Turning the master Toggle off stops Debug Mode, Anonymous Telemetry, and
-  Audit Logging for that profile. It preserves existing sanitized audit files
-  and the current key package so disabling the tools is not a destructive
-  action.
+- Turning the master Toggle off stops Debug Mode for that Profile. It preserves
+  the current key package and never changes the person’s independent
+  Diagnostics & Improvements choices or retained sanitized logs.
 - **Debug Mode** is independent from telemetry and logging while Developer
   Tools is enabled. It immediately
   adds a native `ladybug` toolbar action to the implemented Fiatjaf and White
@@ -527,7 +537,7 @@ and does not require these sites during normal work.
   Debug** Form containing deterministic local conversation, participant,
   message, routing-relay, push-diagnostics, and recent-event information.
   Technical events never appear inside the normal conversation timeline.
-- **Diagnostics** is a focused event console. One persistent, adaptive
+- **Debug Events** is a focused event console. One persistent, adaptive
   system-background group with continuous rounded corners fills the available
   page beneath an **Events** header. Its deterministic local
   events scroll inside that group; when the list is empty, the same group
@@ -541,8 +551,8 @@ and does not require these sites during normal work.
   compete with the console. **Clear Events** is a normal command, not a
   destructive action, and the system disables it when there is nothing to
   clear.
-- Diagnostics does not repeat runtime, profile, or relay-health summaries.
-- **Streaming Debug** is intentionally omitted. It duplicates Diagnostics and
+- Debug Events does not repeat runtime, profile, or relay-health summaries.
+- **Streaming Debug** is intentionally omitted. It duplicates Debug Events and
   would mix technical events into ordinary conversation timelines.
 - **Key Packages** is an isolated navigation row. Its destination displays
   exactly one current key package. The row shows its identifier, published
@@ -550,37 +560,45 @@ and does not require these sites during normal work.
   **Publish New Key Package**, using the system shipping-box-and-arrow symbol.
   Publishing replaces the displayed package with its newly published state;
   no list management, deletion, or multi-package state is exposed.
-- **Anonymous Telemetry** remains off by default and independent from Debug
-  Mode for the selected profile. Its copy states that it shares anonymous
-  reliability and performance data without messages or profile keys.
-- **Audit Logging** is independent from Debug Mode and telemetry. Audit files
-  belong to the selected profile and are always sanitized. When logging is on,
-  the files appear directly below the Toggle in the same native Form section,
-  without exposing sandbox paths. Turning logging off hides the file rows and
-  stops logging but preserves the files.
-- **Clear Audit Logs** appears below the visible files and requires a native
-  destructive alert. Clearing removes the recorded contents from every audit
-  file while preserving each file, its metadata, and the enabled Audit Logging
-  preference. The file rows remain visible with zero-byte sizes after clearing.
+- Developer Tools shows the active Profile’s **Diagnostic Logging** status.
+  When retained files exist, their sanitized technical records appear without
+  sandbox paths even after logging is turned off. The preference itself remains
+  owned by Privacy & Security and the post-entry diagnostics sheet. This
+  inventory is read-only; **Clear Diagnostic Logs** appears only in
+  **Diagnostics & Improvements**. Its footer directs developers to Privacy &
+  Security to configure or clear logs.
+- When at least one retained file contains data, **Export Diagnostic Logs**
+  uses the native Files destination to save one combined plain-text report.
+  The export contains sanitized technical records and non-identifying file
+  metadata, but no sandbox paths, Profile-tied filenames, or profile details.
+  Export does not alter the files or
+  either diagnostics preference. A failed save presents **Couldn’t Save
+  Diagnostic Logs** with **Choose another location and try again.**
+- When no retained file contains data, Developer Tools shows **There are no
+  logs.** It shows no file inventory and no Export Diagnostic Logs action.
 - **About** is the final section. It shows the bundle version and build plus
   **MarmotKit (790eb860)**. It does not show an SDK version or claim a live
   MarmotKit connection.
-- Governing Apple sources for Diagnostics: [Menus](https://developer.apple.com/design/human-interface-guidelines/menus),
+- Governing Apple sources for Debug Events: [Menus](https://developer.apple.com/design/human-interface-guidelines/menus),
   [Menu](https://developer.apple.com/documentation/swiftui/menu),
   [Toolbars](https://developer.apple.com/documentation/swiftui/toolbars),
   [ScrollView](https://developer.apple.com/documentation/swiftui/scrollview),
   [ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview),
   and [symbolEffect](https://developer.apple.com/documentation/swiftui/view/symboleffect(_:options:isactive:)).
-- Acceptance: the master gate and all child settings are profile-scoped; the
-  locked state reveals no technical sections; Debug Mode adds and removes both
+- Acceptance: the master gate and Debug Mode are profile-scoped; the locked
+  state reveals no technical sections; Debug Mode adds and removes both
   conversation inspection actions immediately; exactly one key package is
-  present; audit-file visibility follows Audit Logging; clearing updates every
-  visible size without removing a file; and every diagnostic value remains
+  present; Developer Tools shows only nonempty diagnostic files and offers
+  export but no diagnostic-log cleanup action; an empty state replaces both
+  file rows and export when no retained data exists; disabling Developer Tools
+  never changes analytics or logging; and every diagnostic value remains
   deterministic and process-local.
 - Governing Apple sources: [Settings](https://developer.apple.com/design/human-interface-guidelines/settings),
   [Form](https://developer.apple.com/documentation/swiftui/form),
   [Toggle](https://developer.apple.com/documentation/swiftui/toggle),
   [NavigationLink](https://developer.apple.com/documentation/swiftui/navigationlink),
+  [fileExporter](https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:)),
+  [FileDocument](https://developer.apple.com/documentation/swiftui/filedocument),
   [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts),
   [Disclosure controls](https://developer.apple.com/design/human-interface-guidelines/disclosure-controls),
   [SF Symbols](https://developer.apple.com/design/human-interface-guidelines/sf-symbols),
@@ -761,6 +779,9 @@ need to open them to implement or evaluate Settings.
 - Relay Details uses the native consequence-aware removal confirmation. The
   main list has no Edit mode or swipe deletion.
 - Appearance updates the implemented product surfaces immediately. Message colors and Return-key behavior remain fixed internal defaults rather than visible Appearance preferences. Notification, privacy, storage, relay, and developer choices remain consistent while the process runs.
+- Diagnostics & Improvements is Profile-scoped, remains independent from
+  Developer Tools, and retains its choices when a locally stored Profile signs
+  in again.
 - Privacy & Security switches remain black when on in Light appearance. In
   Dark appearance, an on switch has an adaptive medium-gray track with a
   clearly distinct white thumb; off and disabled switches retain their native
